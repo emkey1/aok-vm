@@ -3863,6 +3863,7 @@
 		};
 		CE59A7B22ABCCB7C00E5FFBD /* Patch Settings bundle */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
