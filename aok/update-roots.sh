@@ -48,6 +48,30 @@ for a in $ARCHES; do
             mv "$W/bench/x86test.$a.tmp" "$W/bench/x86test.$a"
         fi
         "$ISH" -f "$R" /bin/sh -c 'cat > /bench/x86test && chmod +x /bench/x86test' < "$W/bench/x86test.$a"
+        # n-body through the x87 (32-bit only: Alpine's compiler makes SSE2 code of it there otherwise, so
+        # the plain workload says nothing of the x87).
+        if [ $a = x86 ]; then
+            if [ ! -s "$W/bench/nbody87.$a" ] || [ "$W/bench/nbody.c" -nt "$W/bench/nbody87.$a" ]; then
+                "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > nbody.c &&
+                    gcc -O2 -static -mfpmath=387 -mno-sse -o nbody87 nbody.c -lm && cat nbody87' \
+                    < "$W/bench/nbody.c" > "$W/bench/nbody87.$a.tmp"
+                mv "$W/bench/nbody87.$a.tmp" "$W/bench/nbody87.$a"
+            fi
+            "$ISH" -f "$R" /bin/sh -c 'cat > /bench/nbody87 && chmod +x /bench/nbody87' < "$W/bench/nbody87.$a"
+        fi
+        # The x87 against the hardware's answers: iSH-AOK's known-answer tests (tests/manual/x86 there,
+        # generated, a megabyte each, so they are taken from its checkout and not kept here). The engine's
+        # x87 is iSH-AOK's gadgets, and these are what they are held to.
+        for t in x87_kat x87_kat_unmasked x87_trans; do
+            src=$HOME/git/ish-AOK/tests/manual/x86/$t.c
+            [ -f "$src" ] || src=$W/bench/$t.c
+            if [ ! -s "$W/bench/$t.$a" ] || [ "$src" -nt "$W/bench/$t.$a" ]; then
+                "$ISH" -f "$dev" /bin/sh -e -c "mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > $t.c &&
+                    gcc -O1 -static -o $t $t.c -lm && cat $t" < "$src" > "$W/bench/$t.$a.tmp"
+                mv "$W/bench/$t.$a.tmp" "$W/bench/$t.$a"
+            fi
+            "$ISH" -f "$R" /bin/sh -c "cat > /bench/$t && chmod +x /bench/$t" < "$W/bench/$t.$a"
+        done
         ;;
     esac
     tar -cf - -C "$W" bench/init bench/run1.sh bench/check.sh bench/fptest.c bench/memtest.c bench/udhcpc.sh bench/gltest.sh | "$ISH" -f "$R" /bin/sh -c 'tar -xf - -C /'

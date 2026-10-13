@@ -1,7 +1,7 @@
 #!/bin/bash
 # x86-device.sh DEVICE [ROUNDS] -- both PC guests on a device (labels x86_64 and i386, the 32-bit one):
 # the gates under the gadgets, compared with the Mac's QEMU_AOK=0 transcripts when MBP5 answers (the same
-# extract as x64/x64cmp.sh), then the six workloads under QEMU's own engine and under the gadgets, ROUNDS
+# extract as x64/x64cmp.sh), the x87's known answers, then the six workloads under QEMU's own engine and under the gadgets, ROUNDS
 # times each (default 2), interleaved, and summarize.py's table of them.
 # The device must be unlocked for every launch, and nobody else's app in front meanwhile: about an hour on
 # an M4, several on an A10X.
@@ -21,6 +21,11 @@ for g in x86_64 i386; do
     r=ref; [ $g = i386 ] && r=ref32
     gate $g-check-1 check,fptest,memtest $r-g1
     gate $g-x86test-1 x86test $r-xt
+    # the x87 against the hardware's answers: three lines that must each say PASS
+    "$here/run-device.sh" "$dev" $g-x87kat-1 1 x87kat 2400 > "$out/$g-x87kat.txt" 2>&1
+    xcrun devicectl device copy from --device "$dev" --domain-type appDataContainer --domain-identifier $id \
+        --source Documents/serial.log --destination "$out/$g-x87kat.serial" > /dev/null 2>&1
+    tr -d "\r" < "$out/$g-x87kat.serial" 2> /dev/null | grep -a "^x87_" | sed "s/^/$g: /"
 done
 : > "$out/wl.txt"
 for ((i = 1; i <= rounds; i++)); do

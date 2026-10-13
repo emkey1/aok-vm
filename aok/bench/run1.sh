@@ -7,6 +7,7 @@ for w in "$@"; do
     case "$w" in
     coremark) ./timeit coremark ./coremark 0x0 0x0 0x66 4000 7 1 2000 ;;
     nbody)    ./timeit nbody ./nbody 2000000 ;;
+    nbody87)  ./timeit nbody87 ./nbody87 2000000 ;;         # 32-bit x86: the same through the x87
     python)   ./timeit python python3 pybench.py 1 ;;
     xz)       ./timeit xz xz -T1 -3 -c data2.bin ;;
     sha256)   ./timeit sha256 sh -c "sha256sum data.bin; sha256sum data.bin" ;;
@@ -23,6 +24,8 @@ for w in "$@"; do
     simdtest-*) ./simdtest -b "${w#simdtest-}"; ./timeit "$w" true ;;   # one bucket of it, a line an encoding
     x86test)  ./x86test; ./timeit x86test true ;;           # x86 and x86_64: the integer instructions
     x86testv) ./x86test -v; ./timeit x86testv true ;;       # every result of it
+    x87kat)   ./x87_kat; ./x87_kat_unmasked; ./x87_trans; ./timeit x87kat true ;;   # the x87 against hardware's answers
+    x87kat3)  for i in 1 2 3; do ./x87_kat | grep -v fldcw; ./x87_kat_unmasked | grep -v fldcw; done; ./timeit x87kat3 true ;;   # is a failure the same one each time?
     poke)     # a kernel patching its own code under the other CPUs' feet: Linux flips a static key by
               # writing a breakpoint, then the new bytes, and counts on no CPU meeting the breakpoint
               # after that. The scheduler's statistics key sits in paths the three busy shells never leave.

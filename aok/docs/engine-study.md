@@ -1202,10 +1202,36 @@ interleaved runs), against the same binary with the plug-in off
 The guests are Alpine 3.24's own builds of the same programs, so columns
 compare engines and not architectures: awk is busybox's on three of them.)
 
-Floating point on x86 is the weak column. Doubles in SSE run on the host's
-FP unit only where it gives softfloat's answer and flags (normal numbers
-and zeros under a plain MXCSR); single precision, x87 and MMX are still
-QEMU's helpers, and a 32-bit guest's FP is x87.
+Doubles in SSE run on the host's FP unit only where it gives softfloat's
+answer and flags (normal numbers and zeros under a plain MXCSR); single
+precision and MMX are still QEMU's helpers.
+
+### The x87
+
+Added the day after, when the user asked why it had not been ported.
+iSH-AOK has the x87 as gadgets: the 80-bit arithmetic in integer registers,
+the register stack with its tags and faults, every D8-DF form, the
+transcendentals correctly rounded, 5,000 lines held to 167,517 answers
+recorded on an AMD Ryzen. Three quarters of that was nobody's in particular
+and sat between that engine's CPU state and its way to memory. It is the
+aok-gadgets repository's `x87/` now (five files, written against a host's
+macros; iSH-AOK's object code is byte for byte what it was), and the
+engine's side is 300 lines: QEMU keeps TOP beside the status word and a tag
+byte a register, where the shared code has TOP in the word and a bit a
+register, so four macros convert.
+
+| | QEMU's x87 (softfloat) | The gadgets |
+|---|---:|---:|
+| Every D8-DF form, 4 rounding x 4 precision modes (122,880 answers) | 40,081 wrong | 0 |
+| The same with exceptions unmasked (27,648) | 10,519 wrong | 0 |
+| The transcendentals (16,989) | 8,559 wrong | 0 |
+| n-body compiled for the x87, 32-bit guest, host cycles | 107 G | 39 G |
+
+"Wrong" is against the hardware: stack faults that QEMU does not raise, the
+denormal-operand flag, C1, and `fsin`, `fcos` and `fptan`, which are a
+double's there. The gate's transcripts against QEMU's engine did not move,
+because ordinary programs stay away from all of that. Both PC guests pass
+(`bench=x87kat`).
 
 ### How it was checked
 
@@ -1268,6 +1294,30 @@ patch its own running code.
 - Two compare scripts run at once shared their temporary files and could
   call a difference identical. Each has its own now, and every gate was
   compared again one at a time.
+- **The instruction a fault returns to begins a block of another kind**: the
+  resume flag is in a block's flags, and the front end left such blocks to
+  QEMU. So after any page fault the rest of that block ran in QEMU's code
+  once and in a stream every other time, which nothing could see until the
+  x87 had two implementations that disagree: one or two of 150,000 known
+  answers failed in a run, never the same ones, each with softfloat's
+  answer. Found by printing the failing cases beside iSH-AOK's own output of
+  the same case; the block now clears the flag in its first gadget.
+
+### On an iPad
+
+The M4, 2026-10-14, in the device test app (`aok/ios-app/x86-device.sh`):
+the check, FP, memory and `x86test` transcripts of both PC guests are
+identical to the Mac's with the plug-in off, and the six workloads, in host
+cycles, QEMU's engine against the gadgets (two rounds, before the x87):
+
+| Workload | x86-64 | | x86 32-bit | |
+|----------|-------:|--:|-----------:|--:|
+| CoreMark | 11.63 → 5.01 | 2.3 | 15.05 → 5.64 | 2.7 |
+| n-body | 9.40 → 5.56 | 1.7 | 11.06 → 5.93 | 1.9 |
+| Python | 35.31 → 11.05 | 3.2 | 59.19 → 18.58 | 3.2 |
+| xz -3 | 11.84 → 4.89 | 2.4 | 22.12 → 8.56 | 2.6 |
+| sha256sum | 4.43 → 2.45 | 1.8 | 8.01 → 3.42 | 2.3 |
+| awk | 35.62 → 15.34 | 2.3 | 20.11 → 7.47 | 2.7 |
 
 ### In the app
 
@@ -1285,7 +1335,9 @@ processor line of a Windows system's properties.
   What XP adds to what Linux exercises: a BIOS boot through real mode
   (QEMU's), far more 16-bit-operand code, x87 everywhere, `sysenter` and
   `int 2e`, and data and code sharing pages.
-- x87 and MMX, single-precision SSE on the host, anything with VEX.
+- MMX, single-precision SSE on the host, anything with VEX; of the x87,
+  `fninit` and the environment forms (`fxsave` and its kin), and the
+  last-instruction pointers, which the gadgets do not write.
 - The rotates through carry, 16-bit `adc`/`sbb` and stack operations,
   16-bit addressing, string I/O, `cmpxchg16b`.
 - A store into the block that is running does not stop that block at the
