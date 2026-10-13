@@ -348,7 +348,16 @@ extension VMData {
     
     /// Display subtitle for UI elements
     var detailsSubtitleLabel: String {
-        detailsSystemTargetLabel
+        #if WITH_QEMU_TCI
+        // iSH-AOK's build: which engine will run this machine's CPU comes first, where a
+        // narrow list still shows it. The guest architectures its QEMU has AOK gadgets for
+        // (target/*/tcg/aok there); every other one runs on QEMU's own interpreter.
+        if let qemuConfig = config as? UTMQemuConfiguration {
+            let aok = ["riscv64", "aarch64", "x86_64", "i386"].contains(qemuConfig.system.architecture.rawValue)
+            return (aok ? "AOK gadgets · " : "QEMU · ") + detailsSystemTargetLabel
+        }
+        #endif
+        return detailsSystemTargetLabel
     }
     
     /// Display icon path for UI elements
