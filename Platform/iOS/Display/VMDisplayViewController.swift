@@ -39,20 +39,35 @@ public extension VMDisplayViewController {
         navigationController?.setNavigationBarHidden(true, animated: animated)
     }
     
+    /// UIKit asks the window's root view controller who decides on the pointer lock and the home indicator,
+    /// and follows the answers down. SwiftUI's controllers answer nobody, so UTMPatches lets each be told
+    /// its child for the purpose. Telling only our parent reaches us when the parent is the root; with any
+    /// controller in between (a navigation stack, whatever a later SwiftUI puts there) the chain broke at
+    /// the root, the pointer was never locked, and a trackpad did nothing at all: GCMouse reports movement
+    /// only under the lock. So every ancestor is told the child that leads here.
+    private func setLockChain(_ on: Bool) {
+        var child: UIViewController = self
+        var ancestor = parent
+        while let a = ancestor {
+            a.setChildForHomeIndicatorAutoHidden(on ? child : nil)
+            a.setChildViewControllerForPointerLock(on ? child : nil)
+            child = a
+            ancestor = a.parent
+        }
+    }
+
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        if let parent = parent {
-            parent.setChildForHomeIndicatorAutoHidden(nil)
-            parent.setChildViewControllerForPointerLock(nil)
+        if parent != nil {
+            setLockChain(false)
             UIPress.pressResponderOverride = nil
         }
     }
     
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        if let parent = parent {
-            parent.setChildForHomeIndicatorAutoHidden(self)
-            parent.setChildViewControllerForPointerLock(self)
+        if parent != nil {
+            setLockChain(true)
             UIPress.pressResponderOverride = self
         }
         #if !os(visionOS) && WITH_LOCATION_BACKGROUND

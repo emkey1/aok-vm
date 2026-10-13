@@ -38,6 +38,8 @@ NS_ASSUME_NONNULL_BEGIN
 @property (nonatomic) CGPoint lastTapLocation;
 @property (nonatomic) NSTimeInterval lastTapTime;
 @property (nonatomic) BOOL isTouchScrolling;
+@property (nonatomic) BOOL touchChangedMouseType;  // the touch that is down asked for the other kind of pointer,
+@property (nonatomic) BOOL touchWantsServerCursor; // this kind: the relative one
 @property (nonatomic) BOOL mouseLeftDown;
 @property (nonatomic) BOOL mouseRightDown;
 @property (nonatomic) BOOL mouseMiddleDown;

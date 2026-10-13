@@ -17,6 +17,7 @@
 #import "VMDisplayMetalViewController.h"
 #import "VMDisplayMetalViewController+Private.h"
 #import "VMDisplayMetalViewController+Touch.h"
+#import "VMDisplayMetalViewController+Pointer.h"
 #if !defined(TARGET_OS_VISION) || !TARGET_OS_VISION
 #import "VMDisplayMetalViewController+Pencil.h"
 #endif
@@ -198,7 +199,8 @@ const NSTimeInterval kRepeatTapInterval = 0.5;
 #if TARGET_OS_VISION
     return VMMouseTypeAbsolute;
 #else
-    return VMMouseTypeRelative;
+    // relative only under the pointer lock (VMDisplayMetalViewController+Pointer.m has the reason)
+    return self.isPointerLocked ? VMMouseTypeRelative : VMMouseTypeAbsolute;
 #endif
 }
 
@@ -499,9 +501,30 @@ static CGRect CGRectClipToBounds(CGRect rect1, CGRect rect2) {
         self.lastTapLocation = location;
         self.lastTapTime = NSProcessInfo.processInfo.systemUptime;
         [self mouseClick:kCSInputButtonLeft location:location];
+    } else if (self.touchChangedMouseType) {
+        // The touch under this tap asked for the other kind of pointer, so touchesBegan started no click.
+        // One sent now is pressed on the old pointer device, wherever its cursor was, and released on the
+        // new one; and if the change is already through, nothing here sends one at all.
+        self.touchChangedMouseType = NO;
+        [self mouseClickAfterTypeChange:location tries:10];
     } else if (self.serverModeCursor) { // otherwise we handle in touchesBegan
         [self mouseClick:kCSInputButtonLeft location:location];
     }
+}
+
+/// The click of a tap whose touch changed the kind of pointer: when the guest has the new kind, where the
+/// finger landed. After half a second without the change, as before: with whichever kind there is.
+- (void)mouseClickAfterTypeChange:(CGPoint)location tries:(NSInteger)tries {
+    if (self.vmInput.serverModeCursor != self.touchWantsServerCursor && tries > 0) {
+        [self onDelay:0.05f action:^{
+            [self mouseClickAfterTypeChange:location tries:tries - 1];
+        }];
+        return;
+    }
+    if (!self.vmInput.serverModeCursor) {
+        [self.cursor startMovement:location];
+    }
+    [self mouseClick:kCSInputButtonLeft location:location];
 }
 
 - (IBAction)gestureTwoTap:(UITapGestureRecognizer *)sender {
@@ -764,9 +787,12 @@ static CGRect CGRectClipToBounds(CGRect rect1, CGRect rect2) {
             if (event.allTouches.count == touches.count) { // a touch joining later does not change the gesture
                 self.isTouchScrolling = (type == VMMouseTypeAbsoluteScroll);
             }
+            self.touchChangedMouseType = NO;
             if ([self switchMouseType:type]) {
                 self.isTouchScrolling = NO; // the cursor mode changes under this touch
                 [self dragCursor:UIGestureRecognizerStateEnded primary:YES secondary:YES middle:YES]; // reset drag
+                self.touchChangedMouseType = YES; // a tap of it is clicked in gestureTap, once the change is through
+                self.touchWantsServerCursor = (type == VMMouseTypeRelative);
             } else if (!self.vmInput.serverModeCursor) { // start click for client mode
                 if (self.isTouchScrolling) { // clicks come from the gestures instead
                     if (event.allTouches.count == 1) {

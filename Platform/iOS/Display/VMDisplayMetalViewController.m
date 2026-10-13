@@ -158,7 +158,7 @@ static const NSInteger kResizeTimeoutSecs = 5;
 - (void)enterSuspendedWithIsBusy:(BOOL)busy {
     [super enterSuspendedWithIsBusy:busy];
     self.prefersPointerLocked = NO;
-    self.view.window.isIndirectPointerTouchIgnored = NO;
+    [self stopObservingPointerLock];
     if (!busy) {
         if (self.delegate.qemuHasClipboardSharing) {
             [[UTMPasteboard generalPasteboard] releasePollingModeForObject:self];
@@ -168,8 +168,8 @@ static const NSInteger kResizeTimeoutSecs = 5;
 
 - (void)enterLive {
     [super enterLive];
-    self.prefersPointerLocked = YES;
-    self.view.window.isIndirectPointerTouchIgnored = YES;
+    self.prefersPointerLocked = self.wantsPointerLock;
+    [self startObservingPointerLock]; // indirect touches are ignored only while the lock is really held
     if (self.delegate.qemuDisplayIsDynamicResolution && self.isDynamicResolutionSupported) {
         [self requestResolutionChangeToSize:self.view.bounds.size];
     }

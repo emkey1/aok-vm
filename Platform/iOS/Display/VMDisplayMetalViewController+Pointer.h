@@ -23,9 +23,17 @@ NS_ASSUME_NONNULL_BEGIN
 
 @property (nonatomic, readonly) BOOL hasTouchpadPointer;
 
+/// Whether the system has locked the pointer for this scene, which is not the same as having asked.
+@property (nonatomic, readonly) BOOL isPointerLocked;
+/// Whether to ask for it: a guest with no tablet can only be driven by a captured, relative mouse, and
+/// the user can ask for capture (Settings, "Capture Mouse and Trackpad").
+@property (nonatomic, readonly) BOOL wantsPointerLock;
+
 -(void)initPointerInteraction;
 - (void)startGCMouse;
 - (void)stopGCMouse;
+- (void)startObservingPointerLock;
+- (void)stopObservingPointerLock;
 
 @end
 

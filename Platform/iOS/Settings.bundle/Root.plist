@@ -455,6 +455,18 @@
 		</dict>
 		<dict>
 			<key>Type</key>
+			<string>PSToggleSwitchSpecifier</string>
+			<key>Title</key>
+			<string>Capture Mouse and Trackpad (full screen only)</string>
+			<key>Key</key>
+			<string>MouseIndirectCapture</string>
+			<key>Platform</key>
+			<string>iOS</string>
+			<key>DefaultValue</key>
+			<false/>
+		</dict>
+		<dict>
+			<key>Type</key>
 			<string>PSGroupSpecifier</string>
 			<key>Title</key>
 			<string>Cursor - Drag Speed</string>
