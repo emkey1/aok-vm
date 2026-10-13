@@ -1,0 +1,72 @@
+#!/bin/sh
+# /init for the QEMU guests: run the workloads named by bench=a,b,c on the kernel command line, then power off,
+# or with then=shell stay up with a shell on the console (for a VM someone is sitting at).
+mkdir -p /proc /sys /dev /tmp
+mount -t devtmpfs dev /dev
+exec </dev/console >/dev/console 2>&1
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+B=none; THEN=poweroff; GLTEST=; SCRIPT=
+for x in $(cat /proc/cmdline); do
+    case $x in
+    bench=*) B=${x#bench=} ;; then=*) THEN=${x#then=} ;; gltest=*) GLTEST=${x#gltest=} ;;
+    script=*) SCRIPT=${x#script=} ;;
+    esac
+done
+if [ -d "/lib/modules/$(uname -r)" ]; then
+    # The image for a VM front end carries the kernel's modules (the race's does not). Load the drivers for
+    # the devices this machine has -- there, virtio over PCI, USB input, a display -- and take an address.
+    # A driver that binds can expose more devices, hence the passes. One alias per modprobe: given several,
+    # busybox's gives up at the first that names no module. The kernel log is held back meanwhile, because
+    # the modules are gzipped and each load first tries finit_module(), which the kernel reports as an error.
+    printk=$(cat /proc/sys/kernel/printk); echo 1 > /proc/sys/kernel/printk
+    seen=
+    for pass in 1 2 3 4; do
+        now=$(find /sys/devices -name modalias -type f -exec cat {} + 2>/dev/null | sort -u)
+        [ "$now" = "$seen" ] && break
+        seen=$now
+        echo "$now" | while read -r a; do modprobe -qb "$a" 2>/dev/null; done
+    done
+    modprobe -q af_packet
+    echo "$printk" > /proc/sys/kernel/printk
+    ifconfig lo 127.0.0.1 up
+    for n in /sys/class/net/eth*; do
+        [ -e "$n" ] || continue
+        n=${n##*/}
+        # Up first: udhcpc retries for ever on an interface that is down. Bounded, so a network with no
+        # DHCP server cannot hold the boot.
+        ifconfig "$n" up
+        busybox timeout 12 busybox udhcpc -i "$n" -n -q -t 5 -T 1 -s /bench/udhcpc.sh >/dev/null 2>&1 &&
+            echo "NET $n $(ifconfig "$n" | sed -n 's/.*inet addr:\([^ ]*\).*/\1/p')"
+    done
+fi
+# Which engine: the AOK gadget engine says so in the device tree, where the machine has one, and a PC's
+# in the name of its processor (and both in a fw_cfg file, which takes a driver to read).
+E=
+if [ -d /proc/device-tree ]; then
+    [ -r /proc/device-tree/chosen/aok,engine ] && E=$(tr -d '\000' < /proc/device-tree/chosen/aok,engine)
+elif grep -q "(AOK gadgets)" /proc/cpuinfo; then
+    E="AOK gadgets ($(uname -m))"
+fi
+E=${E:-QEMU, without the AOK gadgets}
+echo "BENCH-START $(uname -m) $(uname -r) $B [engine: $E]"
+/bench/run1.sh $(echo "$B" | tr , ' ')
+echo BENCH-END
+[ -n "$GLTEST" ] && /bench/gltest.sh "$GLTEST"
+# script=vdb: a job for this machine, as a tar on that disk with run.sh in it (how the Devuan disk is built).
+if [ -n "$SCRIPT" ]; then
+    mkdir -p /tmp/script && tar -xf "/dev/$SCRIPT" -C /tmp/script && sh /tmp/script/run.sh
+    echo "SCRIPT-EXIT $?"
+fi
+if [ "$THEN" = shell ]; then
+    echo "A shell. Workloads: /bench/run1.sh coremark|nbody|python|xz|sha256|awk. To stop the VM: poweroff -f"
+    echo "Network: apk add works. Is the display accelerated: /bench/gltest.sh"
+    export HOME=/root PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    cd /root 2>/dev/null || cd /
+    # A session of its own on the console's real device, so that the shell has job control and ^C.
+    t=$(sed 's/.* //' /sys/class/tty/console/active 2>/dev/null)
+    [ "$t" = tty0 ] && t=tty1     # tty0 is "the one in front", which cannot be a controlling terminal
+    [ -c "/dev/$t" ] || t=console
+    setsid /bin/sh -c "exec /bin/sh -l <>/dev/$t >&0 2>&1"
+fi
+poweroff -f

@@ -1,0 +1,7 @@
+# Staged by assemble.sh: QEMU and its libraries built for iOS, the guest, and the generated project.
+Frameworks/
+Resources/
+build/
+*.xcodeproj
+Info.plist
+project.yml

@@ -1,3 +1,12 @@
+# AOK VM
+
+This is **AOK VM**, a fork of UTM's iOS "SE" edition built around QEMU with
+the AOK gadget engine. What the fork is, how to build it and what it
+changes: [`aok/README.md`](aok/README.md). What follows is UTM's own README,
+which describes the project this is based on.
+
+---
+
 #  UTM
 [![Build](https://github.com/utmapp/UTM/actions/workflows/build.yml/badge.svg?branch=main&event=push)][1]
 

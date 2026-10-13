@@ -1,0 +1,54 @@
+--- build_dependencies.sh
++++ build_ios_aok.sh
+@@ -27,7 +27,7 @@
+ # IOS_SDKMINVER must track IPHONEOS_DEPLOYMENT_TARGET in tctiSH.xcodeproj. It is what decides
+ # which SDK symbols clang treats as available; anything introduced later gets weak-linked and
+ # is NULL at runtime on a device that predates it.
+-IOS_SDKMINVER="18.0"
++IOS_SDKMINVER="17.0"
+ MAC_SDKMINVER="10.11"
+ 
+ # Build environment
+@@ -83,10 +83,6 @@
+     }
+     command -v install_name_tool >/dev/null 2>&1 || {
+         echo >&2 "${RED}'install_name_tool' is not found. Make sure you are running on OSX."
+-        exit 1
+-    }
+-    version_check "2.4" "$(bison -V | head -1 | awk '{ print $NF }')" || {
+-        echo >&2 "${RED}'bison' >= 2.4 is required. Did you install from Homebrew and updated your \$PATH variable?"
+         exit 1
+     }
+ }
+@@ -618,14 +614,13 @@
+ QEMU_PLATFORM_BUILD_FLAGS="$QEMU_PLATFORM_BUILD_FLAGS --disable-dbus-display"
+ # No x86_64 machine we build wants a device tree, and the alternative is
+ # fetching and building dtc for a library nothing would link.
+-QEMU_PLATFORM_BUILD_FLAGS="$QEMU_PLATFORM_BUILD_FLAGS --disable-fdt"
+-QEMU_PLATFORM_BUILD_FLAGS="$QEMU_PLATFORM_BUILD_FLAGS --enable-virtfs --target-list=x86_64-softmmu"
++QEMU_PLATFORM_BUILD_FLAGS="$QEMU_PLATFORM_BUILD_FLAGS --enable-fdt=internal"
++QEMU_PLATFORM_BUILD_FLAGS="$QEMU_PLATFORM_BUILD_FLAGS --target-list=riscv64-softmmu,aarch64-softmmu,x86_64-softmmu"
+ # prepare_qemu_source() has already fetched every subproject this needs.
+-QEMU_PLATFORM_BUILD_FLAGS="$QEMU_PLATFORM_BUILD_FLAGS --disable-download"
+ # Both of TCG's AArch64 backends in one library: TCTI, the threaded interpreter that needs no JIT,
+ # and native code. Which one runs is chosen at launch (-accel tcg,tcti=on|off) and can be switched
+ # while the VM runs, so the app ships one QEMU rather than one of each.
+-QEMU_PLATFORM_BUILD_FLAGS="$QEMU_PLATFORM_BUILD_FLAGS --enable-tcg-hybrid=runtime"
++QEMU_PLATFORM_BUILD_FLAGS="$QEMU_PLATFORM_BUILD_FLAGS --enable-tcg-threaded-interpreter --enable-aok-gadgets"
+ 
+ # Setup directories
+ BASEDIR="$(dirname "$(realpath $0)")"
+@@ -718,6 +713,13 @@
+ export SDKROOT
+ 
+ check_env
++if [ -n "$QEMU_ONLY" ]; then
++    # The dependencies are in the sysroot already: only QEMU is configured and built.
++    export PATH="$PREFIX/host/bin:$PATH"
++    build_qemu $QEMU_PLATFORM_BUILD_FLAGS
++    fixup_all
++    exit 0
++fi
+ echo "${GREEN}Starting build for ${PLATFORM_FAMILY_NAME} ${ARCH} [${NCPU} jobs]${NC}"
+ 
+ if [ ! -f "$BUILD_DIR/BUILD_SUCCESS" ]; then

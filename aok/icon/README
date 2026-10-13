@@ -1,0 +1,7 @@
+The icon of "AOK VM", iSH-AOK's build of UTM SE with the AOK gadget engine (build-utm.sh copies AppIcon.icon
+over UTM's own before it builds).
+
+aokvm.svg        the artwork: iSH-AOK's window and wordmark in front of a stack of machines, a chain of
+                 gadgets under it, a VM badge. aokvm-plain.svg is the same with a plain bar for the chain.
+AppIcon.icon     an Icon Composer document with that artwork as its one layer, rendered from the SVG:
+                     qlmanage -t -s 1024 -o . aokvm.svg     (then flattened: no alpha channel)
