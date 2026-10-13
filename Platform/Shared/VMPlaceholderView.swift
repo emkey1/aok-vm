@@ -70,9 +70,18 @@ fileprivate struct VMPlaceholderViewNew: View {
 
 fileprivate struct Title: View {
     var body: some View {
+        #if os(iOS) || os(visionOS)
+        // iSH-AOK's build: a name of its own, and where it comes from.
+        VStack(spacing: 6) {
+            Text(verbatim: "Welcome to AOK VM").font(.title)
+            Text(verbatim: "Based on UTM SE and QEMU, with the AOK gadget engine")
+                .font(.footnote).foregroundColor(.secondary)
+        }
+        #else
         HStack {
             Text("Welcome to UTM").font(.title)
         }
+        #endif
     }
 }
 

@@ -2,15 +2,8 @@
   "fill-specializations" : [
     {
       "value" : {
-        "linear-gradient" : [
-          "display-p3:0.34510,0.56078,0.93725,1.00000",
-          "display-p3:0.00392,0.00784,0.63922,1.00000"
-        ]
+        "solid" : "srgb:0.04314,0.05882,0.09412,1.00000"
       }
-    },
-    {
-      "appearance" : "dark",
-      "value" : "system-dark"
     }
   ],
   "groups" : [
@@ -20,91 +13,12 @@
       "hidden" : false,
       "layers" : [
         {
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "linear-gradient" : [
-                  "display-p3:0.34510,0.56078,0.93725,1.00000",
-                  "display-p3:0.00392,0.00784,0.63922,1.00000"
-                ]
-              }
-            }
-          ],
-          "image-name" : "InnerCircle.svg",
-          "name" : "InnerCircle",
-          "opacity" : 1
-        },
-        {
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "linear-gradient" : [
-                  "display-p3:0.34510,0.56078,0.93725,1.00000",
-                  "display-p3:0.00392,0.00784,0.63922,1.00000"
-                ]
-              }
-            }
-          ],
-          "image-name" : "Ring3.svg",
-          "name" : "Ring3",
-          "opacity" : 1
-        },
-        {
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "linear-gradient" : [
-                  "display-p3:0.34510,0.56078,0.93725,1.00000",
-                  "display-p3:0.00392,0.00784,0.63922,1.00000"
-                ]
-              }
-            }
-          ],
-          "image-name" : "Ring2.svg",
-          "name" : "Ring2",
-          "opacity" : 1
-        },
-        {
-          "fill-specializations" : [
-            {
-              "value" : {
-                "solid" : "srgb:1.00000,1.00000,1.00000,1.00000"
-              }
-            },
-            {
-              "appearance" : "dark",
-              "value" : {
-                "linear-gradient" : [
-                  "display-p3:0.34510,0.56078,0.93725,1.00000",
-                  "display-p3:0.00392,0.00784,0.63922,1.00000"
-                ]
-              }
-            }
-          ],
-          "image-name" : "Ring1.svg",
-          "name" : "Ring1",
+          "image-name" : "aokvm.png",
+          "name" : "aokvm",
           "opacity" : 1
         }
       ],
-      "lighting" : "individual",
+      "lighting" : "combined",
       "opacity" : 1,
       "position" : {
         "scale" : 1,
@@ -114,12 +28,12 @@
         ]
       },
       "shadow" : {
-        "kind" : "neutral",
-        "opacity" : 0.5
+        "kind" : "none",
+        "opacity" : 0
       },
-      "specular" : true,
+      "specular" : false,
       "translucency" : {
-        "enabled" : true,
+        "enabled" : false,
         "value" : 0.5
       }
     }
