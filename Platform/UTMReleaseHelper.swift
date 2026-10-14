@@ -42,7 +42,29 @@ class UTMReleaseHelper: ObservableObject {
         Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.0.0"
     }
     
+    /// AOK VM: its own notes, in the app (aok/RELEASE-NOTES.md, as AOKReleaseNotes.md), not UTM's from UTM's
+    /// GitHub: shown once for each first line ("# AOK VM 1.0 ..."), which names the release.
+    private var aokNotes: (version: String, body: String)? {
+        guard let url = Bundle.main.url(forResource: "AOKReleaseNotes", withExtension: "md"),
+              let text = try? String(contentsOf: url, encoding: .utf8),
+              let first = text.split(whereSeparator: \.isNewline).first, first.hasPrefix("# ") else {
+            return nil
+        }
+        return (String(first.dropFirst(2)), String(text.drop(while: { !$0.isNewline })))
+    }
+    
     func fetchReleaseNotes(force: Bool = false) async {
+        guard let notes = aokNotes else {
+            return
+        }
+        guard force || releaseNotesLastVersion != notes.version else {
+            return
+        }
+        await parseReleaseNotes(notes.body)
+    }
+    
+    /// UTM's: its release notes from UTM's GitHub (AOK VM shows its own, above).
+    private func fetchUTMReleaseNotes(force: Bool = false) async {
         guard force || releaseNotesLastVersion != currentVersion else {
             return
         }
@@ -141,7 +163,7 @@ class UTMReleaseHelper: ObservableObject {
     }
     
     func closeReleaseNotes() {
-        releaseNotesLastVersion = currentVersion
+        releaseNotesLastVersion = aokNotes?.version ?? currentVersion
         isReleaseNotesShown = false
     }
 }

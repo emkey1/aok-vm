@@ -3877,6 +3877,7 @@
 				"$(SRCROOT)/aok/images/bundled/alpine-3.24.2-aarch64.zip",
 				"$(SRCROOT)/aok/images/bundled/devuan-6-aarch64.zip",
 				"$(SRCROOT)/aok/images/bundled/reactos-0.4.16.zip",
+				"$(SRCROOT)/aok/RELEASE-NOTES.md",
 			);
 			name = "Copy AOK VM machines";
 			outputFileListPaths = (
@@ -3886,10 +3887,11 @@
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/alpine-3.24.2-aarch64.zip",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/devuan-6-aarch64.zip",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/reactos-0.4.16.zip",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKReleaseNotes.md",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "#!/bin/sh\n# AOK VM: its machine list, and the machines it carries (aok/images/bundled: aok/images/README.md).\nset -e\nmkdir -p \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/AOKMachines\"\ni=0\nwhile [ $i -lt $SCRIPT_INPUT_FILE_COUNT ]; do\n    eval in=\\$SCRIPT_INPUT_FILE_$i; eval out=\\$SCRIPT_OUTPUT_FILE_$i\n    cp -c \"$in\" \"$out\" 2> /dev/null || cp \"$in\" \"$out\"\n    i=$((i + 1))\ndone\n";
+			shellScript = "#!/bin/sh\n# AOK VM: its machine list, the machines it carries (aok/images/bundled: aok/images/README.md), and its release notes (aok/RELEASE-NOTES.md).\nset -e\nmkdir -p \"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH/AOKMachines\"\ni=0\nwhile [ $i -lt $SCRIPT_INPUT_FILE_COUNT ]; do\n    eval in=\\$SCRIPT_INPUT_FILE_$i; eval out=\\$SCRIPT_OUTPUT_FILE_$i\n    cp -c \"$in\" \"$out\" 2> /dev/null || cp \"$in\" \"$out\"\n    i=$((i + 1))\ndone\n";
 			showEnvVarsInLog = 0;
 		};
 		CE59A7B22ABCCB7C00E5FFBD /* Patch Settings bundle */ = {
