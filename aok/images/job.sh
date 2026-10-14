@@ -6,7 +6,7 @@
 # aok-update, /AOK/persist; Alpine's init files), and then what depends on the machine.
 set -e
 J=$(cd "$(dirname "$0")" && pwd)
-apk add --no-cache e2fsprogs xz tar > /dev/null
+apk add --no-cache e2fsprogs xz tar kmod > /dev/null
 modprobe ext4
 mkdir -p /mnt
 while read -r dev os arch archive ser; do
@@ -17,6 +17,11 @@ while read -r dev os arch archive ser; do
     # (over Devuan's /lib -> usr/lib and the like: without --keep-directory-symlink GNU tar replaces the
     # link with a directory, and the root's programs lose their dynamic loader)
     tar -xpf "$J/in/modules-$arch.tar" -C /mnt --numeric-owner --keep-directory-symlink
+    # Uncompressed, with their indexes made again: Devuan's kmod cannot load Alpine's gzipped modules
+    # ("could not insert ...: Function not implemented"), which left a Devuan machine unable to load any
+    # driver after its boot (udev's for the USB keyboard among them). The disk is compressed anyway.
+    find /mnt/lib/modules -name '*.ko.gz' -exec gunzip {} +
+    for v in /mnt/lib/modules/*; do depmod -b /mnt "${v##*/}"; done
     tar -xpf "$J/in/overlay-$os.tar" -C /mnt --numeric-owner --keep-directory-symlink
     printf '/dev/vda / ext4 rw,relatime 0 0\naokpersist /AOK/persist 9p trans=virtio,version=9p2000.L,nofail 0 0\n' \
         > /mnt/etc/fstab

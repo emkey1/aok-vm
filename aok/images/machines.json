@@ -9,8 +9,8 @@
    "architecture": "aarch64",
    "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
    "file": "alpine-3.24.2-aarch64.zip",
-   "size": 41746934,
-   "sha256": "82d489f5689f888c83f9fee5b8a94527fe29672d0499fdd60035263cadf9e7fe"
+   "size": 42704182,
+   "sha256": "96f935fda56f8ec6e3c6c332a28c98faf2fef08783fe71b3fd525dd2b44f0080"
   },
   {
    "id": "devuan-aarch64",
@@ -18,8 +18,8 @@
    "architecture": "aarch64",
    "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
    "file": "devuan-6-aarch64.zip",
-   "size": 97414026,
-   "sha256": "4e7c6562cbb88350eabe432c04e1520580d8a157c667ac9a141e59473380b51e"
+   "size": 98386646,
+   "sha256": "d8d28cdf0a430c3982104253ef0fb96d1a0dc206019309a1be1e404f9ea62239"
   },
   {
    "id": "reactos",
@@ -36,8 +36,8 @@
    "architecture": "x86_64",
    "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
    "file": "alpine-3.24.2-x86_64.zip",
-   "size": 50231000,
-   "sha256": "dc68192806fc9d21d7de8db23f1cd9f64a2839cdead5c843a9b03c7e2b40d4e7"
+   "size": 51121709,
+   "sha256": "152e26df9a6ed06f6e98dbd5e1a745608fb714c0dbde3c128957c367c7926917"
   },
   {
    "id": "alpine-x86",
@@ -45,8 +45,8 @@
    "architecture": "i386",
    "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
    "file": "alpine-3.24.2-x86.zip",
-   "size": 31838903,
-   "sha256": "f4f8f04408b6a4afeff87024bf8e60ed2dc17ba878e78b3ae01e192d986c9a4a"
+   "size": 32465828,
+   "sha256": "04d21adbbfe3c82aa15cdb7cabeab9f77acc448f66c3dcafba7060f1df483d30"
   },
   {
    "id": "alpine-riscv64",
@@ -54,8 +54,8 @@
    "architecture": "riscv64",
    "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
    "file": "alpine-3.24.2-riscv64.zip",
-   "size": 27196995,
-   "sha256": "332801b1a524a47c6ff81da2081d287972d87aa97ba29bf52a87f9ee16ef42e2"
+   "size": 27472840,
+   "sha256": "90c257861c11fba2963ed390cc188e50de136eae9865e1243c06d79894920366"
   },
   {
    "id": "devuan-x86_64",
@@ -63,8 +63,8 @@
    "architecture": "x86_64",
    "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
    "file": "devuan-6-x86_64.zip",
-   "size": 107264336,
-   "sha256": "5d4b931e293278d4c4b5ce498f5e0e03419646860e7ffbe2c4f26933a3d899bc"
+   "size": 108118014,
+   "sha256": "77ef635e423b7902b5f2ad7ce7a8a7dff245cbff29e0819b2e31e3050a2c011d"
   },
   {
    "id": "devuan-x86",
@@ -72,8 +72,8 @@
    "architecture": "i386",
    "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
    "file": "devuan-6-x86.zip",
-   "size": 89968539,
-   "sha256": "c51bb53208e85709ce35cbf041a6ea653475480e54b1c310f3c9fcba46663653"
+   "size": 90616634,
+   "sha256": "9e14078519831980a1ae3b895524ebd81f766cf75469c46b90c6963f29a023d4"
   },
   {
    "id": "devuan-riscv64",
@@ -81,8 +81,8 @@
    "architecture": "riscv64",
    "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
    "file": "devuan-6-riscv64.zip",
-   "size": 82352030,
-   "sha256": "e03d60ba5335fb3dd7f531e42cb8b5fa20fd829fe75d70f502bd6b3a9c3d0127"
+   "size": 82617187,
+   "sha256": "fd9d53b345101dca7f2502af0d3a9459f3c2f92aa80323349c4a4a01c39e2f5b"
   }
  ]
 }

@@ -57,7 +57,10 @@ what iOS gives the app, 512 MB on a 2 GB device; one CPU on a dual-core one).
   distributions, booted directly by UTM.
 - **The initramfs** (`init`) loads the disk's drivers, mounts the root,
   loads every other driver the machine's devices want from the root's own
-  modules, and takes an address by DHCP. Devuan's root has neither
+  modules (until the devices stop changing: the USB keyboard comes a moment
+  after its controller), and evdev, and takes an address by DHCP. The
+  modules on the disk are uncompressed with their indexes made again, because
+  Devuan's kmod cannot load Alpine's gzipped ones. Devuan's root has neither
   `modprobe` nor a DHCP client, so this is where both happen, for either
   distribution. What it did is in `/var/log/aok-init.log`.
 - **The machine** (`machine.py`): two CPUs, 1 GB, a display with a USB

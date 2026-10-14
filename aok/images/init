@@ -29,17 +29,26 @@ if ! mount -o rw "$root" /newroot; then
     sh; mount -o rw "$root" /newroot || exec sh
 fi
 # Every other driver, from the root's own modules. A driver that binds can expose more devices, hence
-# the passes. One alias per modprobe: given several, busybox's gives up at the first that names no module.
+# the passes; and some devices come later than the driver that finds them (the USB keyboard and tablet,
+# a moment after their controller's driver), so the passes go on until the devices have stayed the same
+# for a few tenths of a second, at most four seconds. One alias per modprobe: given several, busybox's
+# gives up at the first that names no module.
 mkdir -p /lib/modules && mount --bind /newroot/lib/modules /lib/modules
-seen=
-for pass in 1 2 3 4; do
+seen=; same=0; pass=0
+while [ $same -lt 3 ] && [ $pass -lt 20 ]; do
     now=$(find /sys/devices -name modalias -type f -exec cat {} + 2> /dev/null | sort -u)
-    [ "$now" = "$seen" ] && break
-    seen=$now
-    echo "$now" | while read -r a; do modprobe -qb "$a" 2> /dev/null; done
+    if [ "$now" = "$seen" ]; then
+        same=$((same + 1))
+    else
+        same=0; seen=$now
+        echo "$now" | while read -r a; do modprobe -qb "$a" 2> /dev/null; done
+    fi
+    pass=$((pass + 1))
+    sleep 0.2
 done
-# Those no device asks for: packet sockets (DHCP), and the VirtFS share AOK VM gives as /AOK/persist.
-for m in af_packet 9pnet_virtio 9p; do modprobe -q "$m" 2> /dev/null; done
+# Those no device asks for: packet sockets (DHCP), the VirtFS share AOK VM gives as /AOK/persist, and
+# evdev, the keyboard's and the pointer's /dev/input/event* (a desktop's libinput reads nothing else).
+for m in af_packet 9pnet_virtio 9p evdev; do modprobe -q "$m" 2> /dev/null; done
 umount /lib/modules
 echo "$printk" > /proc/sys/kernel/printk
 # The network: QEMU's user-mode one, by DHCP. Bounded, so a machine with no network still boots. What
