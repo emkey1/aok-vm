@@ -27,6 +27,7 @@ for w in "$@"; do
     vec)      # x86_64: the vector tests (x64/vec, iSH-AOK's, each with its answers), their last lines
         for t in /bench/vec/*; do printf 'VEC %s: ' "${t##*/}"; "$t" 2>&1 | tail -1; done; ./timeit vec true ;;
     vec-*)    t=/bench/vec/${w#vec-}; printf 'VEC %s: ' "${t##*/}"; "$t" 2>&1 | tail -1; ./timeit "$w" true ;;
+    vecv-*)   t=/bench/vec/${w#vecv-}; "$t" 2>&1 | head -120; ./timeit "$w" true ;;   # its first failures, in full
     x87kat)   ./x87_kat; ./x87_kat_unmasked; ./x87_trans; ./timeit x87kat true ;;   # the x87 against hardware's answers
     x87kat3)  for i in 1 2 3; do ./x87_kat | grep -v fldcw; ./x87_kat_unmasked | grep -v fldcw; done; ./timeit x87kat3 true ;;   # is a failure the same one each time?
     poke)     # a kernel patching its own code under the other CPUs' feet: Linux flips a static key by
