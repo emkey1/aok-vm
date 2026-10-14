@@ -34,7 +34,7 @@ kpkg() { case $1 in riscv64) echo "$W/dl-kernel/linux-lts-riscv64.apk" ;; *) ech
 kimage() { case $1 in riscv64) echo "$W/kernel/Image-lts-riscv64" ;; *) echo "$W/kernel/vmlinuz-virt-$(ish_arch "$1")" ;; esac; }
 archive() { case $1 in alpine) echo "alpine-minirootfs-3.24.2-$(ish_arch "$2").tar.xz" ;; devuan) echo "devuan-minirootfs-6.0-$(ish_arch "$2").tar.xz" ;; esac; }
 zipname() { case $1 in alpine) echo "alpine-3.24.2-$(ish_arch "$2").zip" ;; devuan) echo "devuan-6-$(ish_arch "$2").zip" ;; esac; }
-tools() { echo "start-wayland.sh setup-wayland.sh provision-ultimate-$1.sh setup-games.sh aok-sdl-game"; }
+tools() { echo "start-wayland.sh setup-wayland.sh setup-wayland-extras.sh setup-xfce.sh setup-wayfire.sh select-desktop.sh provision-ultimate-$1.sh setup-games.sh aok-sdl-game"; }
 
 arches=; oses=
 for m in $want; do
@@ -74,8 +74,7 @@ for os in $oses; do
     install -m 755 "$ISH/tests/bench-utm/utm/vm-update.sh" "$o/usr/local/bin/aok-update"
     if [ "$os" = alpine ]; then
         mkdir -p "$o/etc/aok-vm"
-        install -m 644 "$here/alpine/inittab" "$o/etc/inittab"
-        for f in boot stop autologin; do install -m 755 "$here/alpine/$f" "$o/etc/aok-vm/$f"; done
+        install -m 755 "$here/alpine/autologin" "$o/etc/aok-vm/autologin"
     fi
     bsdtar -cf "$S/job/in/overlay-$os.tar" --uid 0 --gid 0 -C "$o" .
 done

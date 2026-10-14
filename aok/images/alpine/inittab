@@ -1,8 +1,0 @@
-# A base machine's Alpine boots with busybox's init alone, as iSH-AOK's Alpine root has no OpenRC
-# (`apk add openrc` brings it, with services). The initramfs has already loaded the drivers and taken an
-# address. root is logged in on the display and on the serial terminal; SERIAL is the machine's port.
-::sysinit:/etc/aok-vm/boot
-tty1::respawn:/sbin/getty -n -l /etc/aok-vm/autologin 38400 tty1
-SERIAL::respawn:/sbin/getty -n -l /etc/aok-vm/autologin -L 115200 SERIAL vt100
-::ctrlaltdel:/sbin/reboot
-::shutdown:/etc/aok-vm/stop

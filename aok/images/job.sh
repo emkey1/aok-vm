@@ -29,7 +29,29 @@ while read -r dev os arch archive ser; do
     printf '127.0.0.1 localhost\n127.0.1.1 %s\n::1 localhost ip6-localhost ip6-loopback\n' "$os" > /mnt/etc/hosts
     case $os in
     alpine)
-        sed -i "s/SERIAL/$ser/g" /mnt/etc/inittab
+        # OpenRC, as an Alpine machine is expected to have it (rc-service, rc-update, services at boot):
+        # iSH-AOK's root has none, iSH-AOK starting no services. Added for the machine's architecture
+        # without its install scripts (they are the machine's programs, not this VM's), with the runlevels
+        # a booted Alpine has, less the hardware ones; networking takes eth0 by DHCP as the initramfs did.
+        apkarch=$(cat /mnt/etc/apk/arch)
+        apk --root /mnt --arch "$apkarch" --no-cache --no-scripts add openrc > /dev/null
+        rl() {  # rl LEVEL SERVICE...: those of the services this OpenRC has, in that runlevel
+            lvl=$1; shift; mkdir -p "/mnt/etc/runlevels/$lvl"
+            for s; do
+                [ -e "/mnt/etc/init.d/$s" ] && ln -sf "/etc/init.d/$s" "/mnt/etc/runlevels/$lvl/$s"
+            done
+            return 0
+        }
+        rl sysinit sysfs devfs dmesg      # (sysfs: /sys, which OpenRC mounts only through this service)
+        rl boot hostname bootmisc sysctl seedrng networking localmount
+        rl default local
+        rl shutdown killprocs mount-ro savecache
+        mkdir -p /mnt/etc/network
+        printf 'auto lo\niface lo inet loopback\n\nauto eth0\niface eth0 inet dhcp\n' > /mnt/etc/network/interfaces
+        # Alpine's own inittab (OpenRC), with root logged in on the display and on the serial terminal
+        sed -i 's|^tty1::respawn:/sbin/getty 38400 tty1$|tty1::respawn:/sbin/getty -n -l /etc/aok-vm/autologin 38400 tty1|' /mnt/etc/inittab
+        grep -q "^$ser::" /mnt/etc/inittab ||
+            echo "$ser::respawn:/sbin/getty -n -l /etc/aok-vm/autologin -L 115200 $ser vt100" >> /mnt/etc/inittab
         desktop=provision-ultimate-alpine.sh ;;
     devuan)
         # Its own inittab already logs root in on tty1; the serial terminal too.

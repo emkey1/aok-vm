@@ -77,7 +77,7 @@ D
 # tree (/chosen, "aok,engine") where the machine has one, and in a fw_cfg file that rc.local copies to
 # /run/aok-engine at boot. Neither is there under QEMU's own engine.
 if [ -d /proc/ish ]; then echo "iSH-AOK"; exit 0; fi
-e=$(tr -d '\000' < /proc/device-tree/chosen/aok,engine 2> /dev/null)
+e=$(tr -d '\000' 2> /dev/null < /proc/device-tree/chosen/aok,engine)   # (2> first: a failed < is reported to it)
 [ -n "$e" ] || e=$(cat /run/aok-engine 2> /dev/null)
 echo "${e:-QEMU, without the AOK gadgets}"
 E

@@ -1,9 +1,0 @@
-#!/bin/sh
-# A base machine's Alpine at shutdown (busybox init, no OpenRC): /etc/local.d/*.stop, then everything
-# unmounted or read-only, so the disk is clean for the next start. (busybox's init then signals what is
-# left itself.)
-for f in /etc/local.d/*.stop; do [ -x "$f" ] && "$f"; done
-sync
-umount -a -r 2> /dev/null
-mount -o remount,ro / 2> /dev/null
-exit 0

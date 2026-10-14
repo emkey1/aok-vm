@@ -50,8 +50,11 @@ what iOS gives the app, 512 MB on a 2 GB device; one CPU on a dual-core one).
   scripts `aok-update` brings), `aok-update`, `/AOK/persist`, and a few
   files that let it start by itself (`job.sh`): `/etc/fstab` (the root, and
   `/AOK/persist` when the machine is given it), the host name, root logged in
-  on the serial terminal too, and for Alpine a busybox `inittab` with
-  `boot`/`stop` scripts (`alpine/`), because iSH-AOK's Alpine has no OpenRC.
+  on the serial terminal too, and for Alpine OpenRC, which iSH-AOK's Alpine
+  root does not have (iSH-AOK starts no services) and an Alpine machine is
+  expected to: Alpine's own `openrc` package and `inittab`, root logged in by
+  `alpine/autologin`, the runlevels a booted Alpine has less the hardware
+  ones, and `networking` taking eth0 by DHCP.
   An 8 GB qcow2 that grows as it fills.
 - **The kernel** is Alpine's (linux-virt; linux-lts on riscv64), for both
   distributions, booted directly by UTM.
