@@ -3540,6 +3540,7 @@
 				CEA45F63263519B5002FA97D /* Resources */,
 				FE10574BB7D82DECAAA1E01F /* Copy AOK VM machines */,
 				CE59A7B22ABCCB7C00E5FFBD /* Patch Settings bundle */,
+				FD806A2B5CABFCCD9330BEAA /* Strip QEMU symbols */,
 				CEA45F71263519B5002FA97D /* Embed Libraries */,
 				84A57CC630641CCE00BA5139 /* Embed ExtensionKit Extensions */,
 			);
@@ -3997,6 +3998,40 @@
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
 			shellScript = "#!/bin/sh\n\nPLISTBUDDY=/usr/libexec/PlistBuddy\nROOT_PLIST=\"$SCRIPT_OUTPUT_FILE_0\"\n\nCOUNT=$($PLISTBUDDY -c \"Print :PreferenceSpecifiers\" \"$ROOT_PLIST\" | grep -c '^    }$')\n\nfor ((i = 0; i < COUNT; i++)); do\n    remove=0\n    platform=$($PLISTBUDDY -c \"Print :PreferenceSpecifiers:$i:Platform\" \"$ROOT_PLIST\" 2> /dev/null)\n    if [ ! -z \"$platform\" ]; then\n        if [ \"$platform\" == \"$PLATFORM_FAMILY_NAME\" ]; then\n            echo \"Found entry $i for $platform\"\n            $PLISTBUDDY -c \"Delete :PreferenceSpecifiers:$i:Platform\" \"$ROOT_PLIST\"\n        else\n            echo \"Exclude $i due to Platform\"\n            remove=1\n        fi\n    fi\n    excludetargets=$($PLISTBUDDY -c \"Print :PreferenceSpecifiers:$i:ExcludeTargets\" \"$ROOT_PLIST\" 2> /dev/null | sed '1d;$d' | xargs)\n    if [ ! -z \"$excludetargets\" ]; then\n        found=0\n        for target in $excludetargets; do\n            if [ \"$target\" == \"$TARGET_NAME\" ]; then\n                found=1\n            fi\n        done\n        if [ $found -eq 1 ]; then\n            echo \"Exclude $i due to ExcludeTargets\"\n            remove=1\n        else\n            echo \"Found entry $i for ExcludeTargets\"\n            $PLISTBUDDY -c \"Delete :PreferenceSpecifiers:$i:ExcludeTargets\" \"$ROOT_PLIST\"\n        fi\n    fi\n    if [ $remove -eq 1 ]; then\n        echo \"Removing entry $i\"\n        $PLISTBUDDY -c \"Delete :PreferenceSpecifiers:$i\" \"$ROOT_PLIST\"\n        ((COUNT--))\n        ((i--))\n    fi\ndone\n";
+			showEnvVarsInLog = 0;
+		};
+		FD806A2B5CABFCCD9330BEAA /* Strip QEMU symbols */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Strip QEMU symbols";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-aarch64-softmmu.framework/qemu-aarch64-softmmu",
+				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-aarch64-softmmu.symbols",
+				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-i386-softmmu.framework/qemu-i386-softmmu",
+				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-i386-softmmu.symbols",
+				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-m68k-softmmu.framework/qemu-m68k-softmmu",
+				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-m68k-softmmu.symbols",
+				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-ppc-softmmu.framework/qemu-ppc-softmmu",
+				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-ppc-softmmu.symbols",
+				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-ppc64-softmmu.framework/qemu-ppc64-softmmu",
+				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-ppc64-softmmu.symbols",
+				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-riscv64-softmmu.framework/qemu-riscv64-softmmu",
+				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-riscv64-softmmu.symbols",
+				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-x86_64-softmmu.framework/qemu-x86_64-softmmu",
+				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-x86_64-softmmu.symbols",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/sh\n# AOK VM: the QEMU frameworks without their local symbols, which are more than half of each (the gadgets' labels, two million in one engine; aok/TODO.md). Done in the sysroot, once, before Embed Libraries copies and signs them; each one's first state is kept as lib/NAME.symbols there, with the same UUID, so that atos against it still names a gadget in a crash report.\nset -e\ni=0\nwhile [ $i -lt $SCRIPT_OUTPUT_FILE_COUNT ]; do\n    eval bin=\\$SCRIPT_OUTPUT_FILE_$i\n    eval keep=\\$SCRIPT_OUTPUT_FILE_$((i + 1))\n    i=$((i + 2))\n    [ -f \"$bin\" ] || continue\n    locals=$(\"$DT_TOOLCHAIN_DIR/usr/bin/otool\" -l \"$bin\" | awk '/LC_DYSYMTAB/ { d = 1 } d && $1 == \"nlocalsym\" { print $2; exit }')\n    [ \"${locals:-0}\" -gt 1000 ] || continue\n    cp -p \"$bin\" \"$keep\"\n    \"$DT_TOOLCHAIN_DIR/usr/bin/strip\" -x -o \"$bin\" \"$keep\"\n    echo \"$(basename \"$bin\"): $locals local symbols stripped, kept in $keep\"\ndone\n";
 			showEnvVarsInLog = 0;
 		};
 /* End PBXShellScriptBuildPhase section */
