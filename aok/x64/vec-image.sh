@@ -4,7 +4,8 @@
 # x64/vec/*.c are iSH-AOK's x86 vector tests (its tests/manual/x86 at b08154c0f, copied 2026-10-14 and
 # this repository's own since): SSE to SSE4.2, VEX (AVX, AVX2, FMA3, F16C, BMI), EVEX (AVX-512), MXCSR and
 # the undefined encodings, each carrying its answers (from an AMD Ryzen, or Intel SDE for AVX-512 and the
-# #UD tests) and printing a last line that says PASS or FAIL. They are built static on camd (an x86_64
+# #UD tests) and printing a last line that says PASS or FAIL; amd64_evex_step.c, AVX-512 under a debugger's
+# single step, is this repository's own. They are built static on camd (an x86_64
 # Linux with gcc; CAMD names it), then added to MBP5's gate image (MBP5 names it) as an overlay with this
 # tree's bench/run1.sh, whose `vec` workload runs them all and `vec-NAME` one:
 #     X64_GUEST=x86_64-vec x64run.sh TAG vec SECONDS X64_CPU=max
