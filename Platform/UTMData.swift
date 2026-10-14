@@ -839,13 +839,18 @@ enum AlertItem: Identifiable {
 
     /// Create a new VM by downloading a .zip and extracting it
     /// - Parameter components: Download URL components
-    func downloadUTMZip(from url: URL) {
-        let task = UTMDownloadVMTask(for: url)
+    /// - Parameter sha256: AOK VM: the SHA-256 the zip must have, when its machine list gives one
+    func downloadUTMZip(from url: URL, sha256: String? = nil) {
+        let task = UTMDownloadVMTask(for: url, sha256: sha256)
         listAdd(pendingVM: task.pendingVM)
         Task {
             do {
                 if let wrapped = try await task.download() {
                     let vm = VMData(wrapping: wrapped)
+                    // (one of AOK VM's machines added twice has its UUID twice)
+                    if uuidHasCollision(with: vm) {
+                        uuidRegenerate(for: vm)
+                    }
                     try await self.save(vm: vm)
                     listAdd(vm: vm)
                 }
@@ -856,6 +861,18 @@ enum AlertItem: Identifiable {
         }
     }
 
+    /// AOK VM: add a machine from a zip the app carries (its machine list), as a download would be added.
+    func installUTMZip(at zip: URL) async throws {
+        let url = try UTMDownloadVMTask.unpack(zip: zip, into: UTMData.defaultStorageUrl)
+        UTMDownloadVMTask.fitMemory(of: url)
+        let vm = try VMData(url: url)
+        if uuidHasCollision(with: vm) {
+            uuidRegenerate(for: vm)
+        }
+        try await save(vm: vm)
+        listAdd(vm: vm)
+    }
+    
     private func mountWindowsSupportTools(for vm: any UTMSpiceVirtualMachine) async throws {
         let task = UTMDownloadSupportToolsTask(for: vm)
         if await task.hasExistingSupportTools {

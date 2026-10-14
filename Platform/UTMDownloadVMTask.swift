@@ -14,14 +14,71 @@
 // limitations under the License.
 //
 
+import CryptoKit
 import Foundation
 import Logging
+import os
 import ZIPFoundation
 
 /// Downloads a VM and creates a pending VM placeholder.
 class UTMDownloadVMTask: UTMDownloadTask {
-    init(for url: URL) {
+    /// AOK VM: the SHA-256 the download must have (AOK VM's machine list gives one), lower-case hex.
+    private let expectedSHA256: String?
+    
+    init(for url: URL, sha256: String? = nil) {
+        self.expectedSHA256 = sha256?.lowercased()
         super.init(for: url, named: UTMDownloadVMTask.name(for: url))
+    }
+    
+    /// AOK VM: a machine in a zip that is already here (one the app carries) into `folder`, unpacked as a
+    /// download is. Returns the .utm.
+    static func unpack(zip: URL, into folder: URL) throws -> URL {
+        try UTMDownloadVMTask(for: zip).partialUnzipOnlyUtmVM(zipFileURL: zip, destinationFolder: folder, fileManager: FileManager.default)
+    }
+    
+    /// AOK VM: the machine at `bundle` made to fit this device. Its memory is lowered, never raised, to
+    /// the most that UTM's own estimate (VMConfigSystemView: the guest's memory, twice the translation
+    /// cache, which is a quarter of it, and 128 MB) keeps under 90% of what iOS lets this app have, in
+    /// steps of 64 MB and not below 256 MB. A machine that would use 1 GB takes 1.7 GB by that estimate:
+    /// too much for a device with 2 GB, which gets 512 MB.
+    static func fitMemory(of bundle: URL) {
+        let plist = bundle.appendingPathComponent("config.plist")
+        guard let data = try? Data(contentsOf: plist),
+              var config = try? PropertyListSerialization.propertyList(from: data, options: .mutableContainersAndLeaves, format: nil) as? [String: Any],
+              var system = config["System"] as? [String: Any],
+              let memory = system["MemorySize"] as? Int,
+              ((system["JITCacheSize"] as? Int) ?? 0) == 0 else {
+            return
+        }
+        var available = ProcessInfo.processInfo.physicalMemory
+        #if os(iOS) || os(visionOS)
+        let left = UInt64(os_proc_available_memory())
+        if left > 0 {
+            available = min(available, left)
+        }
+        #endif
+        let mib = Double(available) / 1048576
+        let fits = max(256, (Int((0.9 * mib - 128) / 1.5) / 64) * 64)
+        guard fits < memory else {
+            return
+        }
+        logger.info("AOK VM: \(bundle.lastPathComponent): \(memory) MB of memory is more than this device has room for; \(fits) MB")
+        system["MemorySize"] = fits
+        config["System"] = system
+        if let out = try? PropertyListSerialization.data(fromPropertyList: config, format: .xml, options: 0) {
+            try? out.write(to: plist)
+        }
+    }
+    
+    /// The file's SHA-256, lower-case hex, read a megabyte at a time.
+    static func sha256(of url: URL) throws -> String {
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        var hasher = SHA256()
+        while let data = try handle.read(upToCount: 1 << 20), !data.isEmpty {
+            hasher.update(data: data)
+        }
+        return hasher.finalize().map { String(format: "%02x", $0) }.joined()
     }
     
     static private func name(for url: URL) -> String {
@@ -41,6 +98,9 @@ class UTMDownloadVMTask: UTMDownloadTask {
         let downloadedZip = tempDir.appendingPathComponent(originalFilename)
         var fileURL: URL? = nil
         do {
+            if let expected = expectedSHA256, try Self.sha256(of: location) != expected {
+                throw ChecksumMismatchError()
+            }
             if fileManager.fileExists(atPath: downloadedZip.path) {
                 try fileManager.removeItem(at: downloadedZip)
             }
@@ -48,6 +108,10 @@ class UTMDownloadVMTask: UTMDownloadTask {
             let utmURL = try partialUnzipOnlyUtmVM(zipFileURL: downloadedZip, destinationFolder: UTMData.defaultStorageUrl, fileManager: fileManager)
             /// set the url so we know, if it fails after this step the UTM in the ZIP is corrupted
             fileURL = utmURL
+            /// AOK VM: one of its own machines (it comes with a checksum) is sized to this device
+            if expectedSHA256 != nil {
+                Self.fitMemory(of: utmURL)
+            }
             /// remove the downloaded ZIP file
             try fileManager.removeItem(at: downloadedZip)
             /// load the downloaded VM into the UI
@@ -146,5 +210,12 @@ class UTMDownloadVMTask: UTMDownloadTask {
         var errorDescription: String? {
             NSLocalizedString("Failed to parse the downloaded VM.", comment: "UTMDownloadVMTask")
         }
+    }
+}
+
+/// AOK VM: a download whose SHA-256 is not the one its machine list gives.
+struct ChecksumMismatchError: LocalizedError {
+    var errorDescription: String? {
+        NSLocalizedString("The download is not the machine it should be (its SHA-256 differs), so nothing was added. Try again.", comment: "UTMDownloadVMTask")
     }
 }

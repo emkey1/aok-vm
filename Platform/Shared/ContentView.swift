@@ -85,6 +85,8 @@ struct ContentView: View {
         .onAppear {
             Task {
                 await data.listRefresh()
+                // AOK VM: the machines the app carries, on its first start
+                await AOKMachineCatalog.shared.installBundledOnce(data: data)
                 await releaseHelper.fetchReleaseNotes()
                 if #available(iOS 17, macOS 14, *) {
                     if !releaseHelper.isReleaseNotesShown {

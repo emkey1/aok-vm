@@ -18,6 +18,7 @@ import SwiftUI
 
 struct VMWizardStartViewTCI: View {
     @ObservedObject var wizardState: VMWizardState
+    @State private var isMachinesShown = false
 
     var body: some View {
         VMWizardContent("Start") {
@@ -54,12 +55,18 @@ struct VMWizardStartViewTCI: View {
                         Image(systemName: "doc")
                     }
                 }
-                Link(destination: URL(string: "https://mac.getutm.app/gallery/")!) {
+                // AOK VM: its own machines (iSH-AOK's roots, ReactOS), not UTM's gallery, which is the Mac's
+                Button {
+                    isMachinesShown = true
+                } label: {
                     Label {
-                        Text("Download prebuilt from UTM Gallery…")
+                        Text("Get a Ready-Made Machine…")
                     } icon: {
                         Image(systemName: "arrow.down.doc")
                     }
+                }
+                .sheet(isPresented: $isMachinesShown) {
+                    AOKMachinesView()
                 }
             } header: {
                 Text("Existing")

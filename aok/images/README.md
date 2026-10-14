@@ -25,6 +25,22 @@ on MBP5 makes all eight (or those named, e.g. `devuan-aarch64`) in
 `~/aok-vm-bench/images/machines`, each as `NAME.utm` and `NAME.zip`, in about
 ten minutes. Its header says what it needs.
 
+## In the app
+
+`index.py ZIPDIR` writes `machines.json` (name, line, zip, size, SHA-256 of
+each), which the app carries with the zips of three machines: Alpine and
+Devuan for aarch64, and ReactOS. The Xcode build's "Copy AOK VM machines"
+phase copies them from `aok/images/bundled/` (not in git: copy them there
+from `build.sh`'s `zips/` and aok/reactos's, as `alpine-3.24.2-aarch64.zip`,
+`devuan-6-aarch64.zip`, `reactos-0.4.16.zip`). On its first start the app adds
+those three to the list (`Platform/Shared/AOKMachines.swift`, each once: one
+its user removes stays removed). "+" -> "Get a Ready-Made Machine..." lists all
+nine; the six it does not carry are downloaded from the list's `baseURL`,
+checked against their SHA-256, and a newer list is fetched from `indexURL`.
+A machine added from the list gets no more memory than the device has room
+for (`UTMDownloadVMTask.fitMemory`: UTM's own estimate, under 90% of what iOS
+gives the app; 512 MB on a 2 GB device).
+
 ## A machine
 
 - **The root disk** is the archive iSH-AOK ships for that OS and

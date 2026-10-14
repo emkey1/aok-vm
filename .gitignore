@@ -71,3 +71,6 @@ build*/
 sysroot*/
 .DS_Store
 CodeSigning.xcconfig
+
+# AOK VM: the machines the app carries (aok/images/README.md), made by aok/images/build.sh
+aok/images/bundled/

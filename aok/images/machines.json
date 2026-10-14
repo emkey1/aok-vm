@@ -1,0 +1,88 @@
+{
+ "version": 1,
+ "indexURL": "https://raw.githubusercontent.com/emkey1/ish-AOK-rootfs/main/aok-vm/machines.json",
+ "baseURL": "https://github.com/emkey1/ish-AOK-rootfs/releases/download/aok-vm-machines-1/",
+ "machines": [
+  {
+   "id": "alpine-aarch64",
+   "name": "Alpine 3.24.2 (aarch64)",
+   "architecture": "aarch64",
+   "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
+   "file": "alpine-3.24.2-aarch64.zip",
+   "size": 41746934,
+   "sha256": "82d489f5689f888c83f9fee5b8a94527fe29672d0499fdd60035263cadf9e7fe"
+  },
+  {
+   "id": "devuan-aarch64",
+   "name": "Devuan 6 (aarch64)",
+   "architecture": "aarch64",
+   "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
+   "file": "devuan-6-aarch64.zip",
+   "size": 97414026,
+   "sha256": "4e7c6562cbb88350eabe432c04e1520580d8a157c667ac9a141e59473380b51e"
+  },
+  {
+   "id": "reactos",
+   "name": "ReactOS",
+   "architecture": "i386",
+   "summary": "ReactOS 0.4.16, installed: a free system that runs Windows programs, on the x86 engine.",
+   "file": "reactos-0.4.16.zip",
+   "size": 159397718,
+   "sha256": "7108f748c37bf47043b4fe93badc4d59742ab4c81276aa87c289056534a08cad"
+  },
+  {
+   "id": "alpine-x86_64",
+   "name": "Alpine 3.24.2 (x86_64)",
+   "architecture": "x86_64",
+   "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
+   "file": "alpine-3.24.2-x86_64.zip",
+   "size": 50231000,
+   "sha256": "dc68192806fc9d21d7de8db23f1cd9f64a2839cdead5c843a9b03c7e2b40d4e7"
+  },
+  {
+   "id": "alpine-x86",
+   "name": "Alpine 3.24.2 (x86)",
+   "architecture": "i386",
+   "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
+   "file": "alpine-3.24.2-x86.zip",
+   "size": 31838903,
+   "sha256": "f4f8f04408b6a4afeff87024bf8e60ed2dc17ba878e78b3ae01e192d986c9a4a"
+  },
+  {
+   "id": "alpine-riscv64",
+   "name": "Alpine 3.24.2 (riscv64)",
+   "architecture": "riscv64",
+   "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
+   "file": "alpine-3.24.2-riscv64.zip",
+   "size": 27196995,
+   "sha256": "332801b1a524a47c6ff81da2081d287972d87aa97ba29bf52a87f9ee16ef42e2"
+  },
+  {
+   "id": "devuan-x86_64",
+   "name": "Devuan 6 (x86_64)",
+   "architecture": "x86_64",
+   "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
+   "file": "devuan-6-x86_64.zip",
+   "size": 107264336,
+   "sha256": "5d4b931e293278d4c4b5ce498f5e0e03419646860e7ffbe2c4f26933a3d899bc"
+  },
+  {
+   "id": "devuan-x86",
+   "name": "Devuan 6 (x86)",
+   "architecture": "i386",
+   "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
+   "file": "devuan-6-x86.zip",
+   "size": 89968539,
+   "sha256": "c51bb53208e85709ce35cbf041a6ea653475480e54b1c310f3c9fcba46663653"
+  },
+  {
+   "id": "devuan-riscv64",
+   "name": "Devuan 6 (riscv64)",
+   "architecture": "riscv64",
+   "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
+   "file": "devuan-6-riscv64.zip",
+   "size": 82352030,
+   "sha256": "e03d60ba5335fb3dd7f531e42cb8b5fa20fd829fe75d70f502bd6b3a9c3d0127"
+  }
+ ]
+}
