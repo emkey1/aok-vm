@@ -146,6 +146,7 @@ def devuan(outdir, d):
         '-append "root=/dev/vda rw console=%s console=tty0 net.ifnames=0 quiet"' % A["serial"],
     ]
     vm["QEMU"]["RNGDevice"] = True
+    vm["Sharing"]["AOKPersist"] = True      # iSH-AOK's /AOK/persist, mounted there by the image's fstab
     vm["Input"]["UsbBusSupport"] = "3.0"
     vm["Display"] = [dict(display(), Hardware="virtio-ramfb-gl")]
     vm["Network"] = [network(mac(6))]

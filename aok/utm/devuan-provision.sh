@@ -134,6 +134,10 @@ ls /mnt/var/cache/apt/archives/*.deb | wc -l
 echo devuan > /mnt/etc/hostname
 printf '127.0.0.1 localhost\n127.0.1.1 devuan\n' > /mnt/etc/hosts
 printf '/dev/vda / ext4 errors=remount-ro 0 1\n' > /mnt/etc/fstab
+# iSH-AOK's /AOK/persist, when the machine's Sharing setting gives it (VirtFS tag aokpersist; the share's
+# files are reported as the user's own, as in iSH-AOK). nofail: a machine without it boots as before.
+printf 'aokpersist /AOK/persist 9p trans=virtio,version=9p2000.L,nofail 0 0\n' >> /mnt/etc/fstab
+mkdir -p /mnt/AOK/persist
 cat > /mnt/usr/sbin/policy-rc.d <<'P'
 #!/bin/sh
 exit 101
