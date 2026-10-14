@@ -18,6 +18,7 @@ The user's list (2026-10-14), with what each needs. In the order that unblocks t
 - **The name everywhere, and the bundle id.** Still waiting on the user: bundle id `app.ish.aok.vm` and a new App Group (an account change), the product's file name ("UTM SE.app"), and the screens that still say UTM (settings, About, the donation page, the documentation links).
 - **Xcode builds the engines** and **the sysroot from source** (the "AOK VM from Xcode" entry below), so that a release does not depend on MBP5's tree and a 90-day CI artifact.
 - **Public repositories** (aok-vm, aok-gadgets), the user's to decide; until then iSH-AOK and the QEMU fork keep copies of the shared gadget sources.
+- **After the release: tell upstream** (the user, 2026-10-14) about the AOK engine's per-architecture front ends in QEMU (RISC-V, ARM64, x86-64 and 32-bit x86: target/*/tcg/aok, the engine study in aok/docs): UTM (osy) and the tctiSH QEMU it builds on (iamrecursion), at least. Not before the release, and each message or PR at the user's word when the time comes.
 
 ## Open
 
