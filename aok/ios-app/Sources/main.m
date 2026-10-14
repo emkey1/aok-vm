@@ -163,6 +163,10 @@ static void *run_qemu(void *arg) {
     say([NSString stringWithFormat:@"DONE %s status=%d thermal=%ld", env_or("AOKQ_LABEL", "riscv64-aokq-1"), status,
          (long) NSProcessInfo.processInfo.thermalState]);
     qemu_cleanup(status);
+    // The screen was kept on for the run; it is not the device's to keep on after it. Left in front with
+    // the idle timer off, this app held an M4 iPad's screen on all night, and the iPad was found
+    // half-responsive in the morning (2026-10-14).
+    dispatch_async(dispatch_get_main_queue(), ^{ UIApplication.sharedApplication.idleTimerDisabled = NO; });
     if (getenv("AOKQ_EXIT"))
         exit(0);
     return NULL;

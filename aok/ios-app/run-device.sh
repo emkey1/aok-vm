@@ -10,7 +10,9 @@
 dev=$1; label=$2; aok=$3; wl=$4; secs=${5:-900}; smp=${6:-1}
 id=app.ish.aok-qemu-bench
 out=$(mktemp -d)
-env="{\"QEMU_AOK\":\"$aok\",\"AOKQ_LABEL\":\"$label\",\"AOKQ_WORKLOADS\":\"$wl\",\"AOKQ_SMP\":\"$smp\"${AOKQ_ENV:+,$AOKQ_ENV}}"
+# AOKQ_EXIT: the app quits once the run is done, rather than staying in front of whoever picks the device up
+# next (its results stay in its container, which is where this reads them).
+env="{\"QEMU_AOK\":\"$aok\",\"AOKQ_LABEL\":\"$label\",\"AOKQ_WORKLOADS\":\"$wl\",\"AOKQ_SMP\":\"$smp\",\"AOKQ_EXIT\":\"1\"${AOKQ_ENV:+,$AOKQ_ENV}}"
 xcrun devicectl device process launch --device "$dev" --terminate-existing --environment-variables "$env" $id \
     > "$out/launch.log" 2>&1 || { cat "$out/launch.log"; exit 1; }
 pull() {
