@@ -1,0 +1,159 @@
+#!/bin/sh
+# aok-sdl-game -- start an SDL game from /usr/games the way it works best
+# under iSH-AOK. Installed by /AOK/tools/setup-games.sh as
+# /usr/local/bin/aok-sdl-game, with a symlink per game (/usr/local/bin/sky,
+# /usr/local/bin/freedoom1, ...) that PATH finds before /usr/games.
+#
+#   - sound through the app's /dev/dsp (SDL's OSS driver)
+#   - the Wayland desktop, when there is one
+#   - OpenGL on the GPU (zink) for the games named in /etc/aok-games.conf's
+#     AOK_GAMES_GPU, in software for the rest: zink gives only OpenGL 2.1 /
+#     ES 2.0, and older GPUs (A10X) cannot run it at all
+#
+# The desktop exports LIBGL_ALWAYS_SOFTWARE=1 to everything it starts, so the
+# GPU list overrides it; AOK_GAMES_GL=gpu or =software in the environment
+# overrides the list for one run. Sound and video variables already set win.
+#
+# The same script serves a machine of its own (a VM made from these tools,
+# no /proc/ish): there sound is the machine's ALSA card, and "the GPU" is the
+# GL driver of its display device (virgl on a virtio-gpu) for what draws with
+# GLES or SDL's renderer, and zink on its Vulkan device for the games named in
+# AOK_GAMES_ZINK: the ones that draw with OpenGL's fixed pipeline, which
+# virgl on a GLES host cannot (UTM's: every draw is dropped, a black window).
+# AOK_GAMES_GL=virgl or =zink picks one of the two for a run.
+name=${0##*/}
+if [ "$name" = aok-sdl-game ]; then
+    echo "aok-sdl-game: run it through a game's symlink (see /AOK/tools/setup-games.sh)" >&2
+    exit 2
+fi
+
+AOK_GAMES_GPU=
+AOK_GAMES_ZINK=
+[ -r /etc/aok-games.conf ] && . /etc/aok-games.conf
+IN_AOK=0; [ -d /proc/ish ] && IN_AOK=1
+
+# Sound: SDL's OSS driver, and OpenAL's, on the app's /dev/dsp. On a machine
+# of its own, its sound card through ALSA, unless a sound server is running
+# for SDL to find by itself.
+if [ -w /dev/dsp ]; then
+    export SDL_AUDIODRIVER="${SDL_AUDIODRIVER:-dsp}"
+    export ALSOFT_DRIVERS="${ALSOFT_DRIVERS:-oss}"
+elif [ "$IN_AOK" = 0 ] && [ -e /proc/asound/card0 ]; then
+    if ! [ -S "${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/pulse/native" ]; then
+        export SDL_AUDIODRIVER="${SDL_AUDIODRIVER:-alsa}"
+        export ALSOFT_DRIVERS="${ALSOFT_DRIVERS:-alsa}"
+    fi
+elif [ "$IN_AOK" = 0 ]; then
+    # No sound card at all: silent, rather than a game that gives up because
+    # no device opens (Trigger Rally did, with OpenAL).
+    export SDL_AUDIODRIVER="${SDL_AUDIODRIVER:-dummy}"
+    export ALSOFT_DRIVERS="${ALSOFT_DRIVERS:-null}"
+fi
+[ -n "${WAYLAND_DISPLAY:-}" ] && export SDL_VIDEODRIVER="${SDL_VIDEODRIVER:-wayland}"
+
+# The desktop's X display, for the X11-only games: the Xwayland lock whose pid
+# is the running compositor's (start-wayland.sh's rule; a terminal started
+# before it could tell may not have DISPLAY).
+x_display() {
+    for lock in /tmp/.X*-lock; do
+        [ -f "$lock" ] || continue
+        pid=""
+        read -r pid < "$lock" 2>/dev/null
+        case "$(cat /proc/"$pid"/comm 2>/dev/null)" in
+            labwc|sway) lock=${lock#/tmp/.X}; echo ":${lock%-lock}"; return ;;
+        esac
+    done
+}
+
+target="/usr/games/$name"
+
+case "$name" in
+    # SFML and GLEW draw through X11 only: Xwayland, which has the GPU too.
+    etr|trigger-rally)
+        [ -z "${DISPLAY:-}" ] && DISPLAY=$(x_display) && export DISPLAY
+        export SDL_VIDEODRIVER=x11
+        ;;
+    # Debian's launcher runs the game in a bubblewrap sandbox, which needs
+    # namespaces AOK does not have; and its Vulkan renderer is the one that
+    # reaches the GPU (its OpenGL one needs 3.0, zink here has 2.1).
+    warzone2100)
+        target=/usr/games/warzone2100.real
+        case " $* " in *" --gfxbackend"*) ;; *) set -- --gfxbackend=vulkan "$@" ;; esac
+        ;;
+esac
+
+# Is this process in its terminal's foreground process group? A background
+# one (`freedoom1 &`, or under timeout(1)) that touches the terminal is
+# stopped by SIGTTOU instead of waiting for a key. /proc/self/stat after the
+# command name: state, ppid, pgrp, session, tty_nr, tpgid.
+aok_in_foreground() {
+    _st=$(sed 's/.*) //' /proc/$$/stat 2>/dev/null) || return 1
+    set -- $_st
+    [ -n "$3" ] && [ "$3" = "$6" ]
+}
+
+# One key from the terminal, echo off; the terminal is put back even on ^C.
+# The distro's stty and dd where they exist (any root has them), else
+# whatever PATH finds: SmallCLUE's stty has had -g since 929ce11.
+aok_wait_key() {
+    _stty=/bin/stty; [ -x "$_stty" ] || _stty=stty
+    _dd=/bin/dd; [ -x "$_dd" ] || _dd=dd
+    if ! _saved=$("$_stty" -g 2>/dev/null); then
+        read -r _ || true
+        return
+    fi
+    trap '"$_stty" "$_saved" 2>/dev/null; exit 130' INT TERM HUP
+    "$_stty" -icanon -echo min 1 time 0 2>/dev/null
+    "$_dd" bs=1 count=1 >/dev/null 2>&1
+    "$_stty" "$_saved" 2>/dev/null
+    trap - INT TERM HUP
+}
+
+# Chocolate Doom plays its music on an emulated OPL3 (Nuked OPL3) inside the
+# audio callback. On a 5th-generation iPad (2 CPUs) that thread took 97% of a
+# core at the title screen, and Freedoom's timedemo ran at 12.6 fps against
+# 36.9 with -nomusic (sound effects kept) and 37.5 with no sound at all. With
+# 2 CPUs or fewer the music goes, unless asked for: AOK_DOOM_MUSIC=1, or
+# -nomusic/-nosound already given. A10X (3) and up keep it.
+case "$name" in
+    chocolate-doom|doom|freedoom1|freedoom2)
+        cpus=$(nproc 2>/dev/null || getconf _NPROCESSORS_ONLN 2>/dev/null || echo 4)
+        case " $* " in *" -nomusic "*|*" -nosound "*) cpus=99 ;; esac
+        if [ "${AOK_DOOM_MUSIC:-0}" != 1 ] && [ "$cpus" -le 2 ] 2>/dev/null; then
+            set -- -nomusic "$@"
+            cat >&2 <<EOF
+$name: this device has $cpus CPUs, and Doom's music (an emulated OPL3
+synthesizer) needs a whole one of them -- with it the game runs at about a
+third of its speed. Starting without music; sound effects stay on.
+To keep the music anyway: AOK_DOOM_MUSIC=1 $name
+EOF
+            if [ -t 0 ] && [ -t 2 ] && aok_in_foreground; then
+                printf 'Press any key to continue...' >&2
+                aok_wait_key
+                printf '\n' >&2
+            fi
+        fi
+        ;;
+esac
+
+gl=${AOK_GAMES_GL:-}
+if [ -z "$gl" ]; then
+    case " $AOK_GAMES_GPU " in
+        *" $name "*) gl=gpu ;;
+        *) gl=software ;;
+    esac
+fi
+if [ "$IN_AOK" = 0 ] && [ "$gl" = gpu ]; then
+    case " $AOK_GAMES_ZINK " in *" $name "*) gl=zink ;; *) gl=virgl ;; esac
+fi
+if [ "$gl" = virgl ]; then
+    export LIBGL_ALWAYS_SOFTWARE=0      # the display device's own driver
+    unset MESA_LOADER_DRIVER_OVERRIDE
+elif [ "$gl" = gpu ] || [ "$gl" = zink ]; then
+    export LIBGL_ALWAYS_SOFTWARE=0 MESA_LOADER_DRIVER_OVERRIDE=zink
+else
+    export LIBGL_ALWAYS_SOFTWARE=1 SDL_RENDER_DRIVER="${SDL_RENDER_DRIVER:-software}"
+    unset MESA_LOADER_DRIVER_OVERRIDE
+fi
+
+exec "$target" "$@"

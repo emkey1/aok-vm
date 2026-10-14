@@ -64,7 +64,7 @@ while read -r dev os arch archive ser; do
   iSH-AOK's $os root file system, as a machine of its own on AOK VM.
 
     aok-update
-        iSH-AOK's /AOK/tools scripts, brought up to date
+        the /AOK/tools scripts, brought up to date
     sh /AOK/tools/$desktop
         a desktop and the "ultimate" tool set: what you want, downloaded
     /AOK/persist

@@ -4,7 +4,7 @@ The machines AOK VM ships and offers are iSH-AOK's own root file systems, as
 machines of their own: Alpine 3.24.2 and Devuan 6, for aarch64, x86_64, x86
 (i386) and riscv64, the same OS and architecture combinations iSH-AOK has.
 Small on purpose: what else someone wants (a desktop, games, the "ultimate"
-tool set) is iSH-AOK's scripts in `/AOK/tools`, run in the machine.
+tool set) is the scripts in `/AOK/tools` (`aok/machine`), run in the machine.
 
 | Machine | Bundle | Zipped |
 |---|---|---|

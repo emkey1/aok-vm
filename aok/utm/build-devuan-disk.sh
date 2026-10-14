@@ -13,10 +13,9 @@
 # rebuilt: remove it to start over.
 # Out: devuan/devuan-riscv64.qcow2, devuan/vmlinuz, devuan/initrd.img.
 #
-# build-devuan-disk.sh ultimate -- then make that machine the "ultimate" one: with iSH-AOK's own
-# provisioning and Wayland scripts in /AOK/tools (copy opt/AOK/tools/provision-ultimate-devuan.sh,
-# setup-wayland.sh, setup-wayland-extras.sh, start-wayland.sh and, as wayland/, build-release-guard.sh and
-# ish_wl_release_guard.c of opt/AOK/tools/wayland to ~/aok-vm-bench/aok-tools first) and already run. They are run in the machine itself, booted with its own kernel on the same QEMU, by
+# build-devuan-disk.sh ultimate -- then make that machine the "ultimate" one: with the provisioning and
+# Wayland scripts of aok/machine/tools in /AOK/tools (copy them to ~/aok-vm-bench/aok-tools first) and
+# already run. They are run in the machine itself, booted with its own kernel on the same QEMU, by
 # rc.local's aokjob= hook (devuan-provision.sh), exactly as its owner would run them; devuan-ultimate-job.sh
 # is the job. An hour or so, most of it package scripts.
 # build-devuan-disk.sh desktop-test -- boot it with a display, start the desktop, and leave a picture of
@@ -78,7 +77,7 @@ if [ "$1" = ultimate ] || [ "$1" = tools ]; then
     [ -f devuan.img ] && [ -d "$W/aok-tools" ] || { echo "needs devuan/devuan.img and $W/aok-tools"; exit 1; }
     rm -rf job job.tar bootout.img && mkdir -p job/tools
     cp "$here/devuan-provision.sh" job/run.sh && echo tools > job/mode
-    cp "$here/vm-update.sh" job/
+    cp "$here/../machine/aok-update" job/
     for f in "$W"/aok-tools/*; do
         case $f in */provision-ultimate-alpine.sh) ;; *) cp -r "$f" job/tools/ ;; esac
     done

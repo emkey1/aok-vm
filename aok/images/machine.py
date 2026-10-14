@@ -46,7 +46,7 @@ def config(os_name, arch):
     name = "%s (%s)" % (title, a["label"])
     notes = ("iSH-AOK's %s root file system for %s, as a machine of its own: the same files iSH-AOK "
              "imports, with an Alpine kernel. root is logged in on the display and the serial terminal. "
-             "Small on purpose: `aok-update` brings iSH-AOK's /AOK/tools scripts, and "
+             "Small on purpose: `aok-update` brings the /AOK/tools scripts, and "
              "/AOK/tools/provision-ultimate-%s.sh a desktop and the rest, downloaded when wanted. "
              "/AOK/persist is iSH-AOK's shared directory." % (title, a["label"], os_name))
     drive = lambda image, kind, iface, k: {

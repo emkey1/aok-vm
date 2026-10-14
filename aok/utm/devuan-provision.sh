@@ -67,8 +67,8 @@ exec sh /AOK/tools/start-wayland.sh "$@"
 D
         chmod 755 /mnt/usr/local/bin/desktop
         # `sudo aok-update`: these scripts again from the repository, for a machine whose disk is by then
-        # its user's (vm-update.sh).
-        [ -f "$here/vm-update.sh" ] && install -m 755 "$here/vm-update.sh" /mnt/usr/local/bin/aok-update
+        # its user's (aok/machine/aok-update).
+        [ -f "$here/aok-update" ] && install -m 755 "$here/aok-update" /mnt/usr/local/bin/aok-update
     fi
     # `aok-engine`, and a line at login: which engine runs this machine (the AOK gadget engine says so).
     cat > /mnt/usr/local/bin/aok-engine <<'E'

@@ -6,15 +6,14 @@
 # A machine is three files: an Alpine kernel (linux-virt, linux-lts on riscv64: the same kernels as the
 # Alpine guests of this directory, in $W/kernel and $W/dl-kernel), an initramfs made here (busybox, and the
 # drivers that reach the root disk; init), and a root disk: an 8 GB qcow2 with the archive iSH-AOK ships
-# for that OS and architecture, the kernel's modules, /AOK/tools (iSH-AOK's scripts, as aok-update brings
-# them), aok-update, and the few files that make it start by itself (job.sh says which). The disks are made
+# for that OS and architecture, the kernel's modules, /AOK/tools and aok-update (aok/machine), and the few
+# files that make it start by itself (job.sh says which). The disks are made
 # in the arm64 Alpine build VM of build-devuan-disk.sh, on the Mac's own CPU, where an ext4 file system can
 # be made with the files' owners; the rest is done here.
 #
 #   ROOTFS  where iSH-AOK's archives are (default $OUT/rootfs): devuan-minirootfs-6.0-ARCH.tar.xz and
 #           alpine-minirootfs-3.24.2-ARCH.tar.xz, ARCH being iSH-AOK's names (aarch64, x86_64, x86, riscv64):
 #           the repository root has the two aarch64 ones, emkey1/ish-AOK-rootfs the rest
-#   ISH     an iSH-AOK checkout, for opt/AOK/tools and tests/bench-utm/utm/vm-update.sh (default ~/git/ish-AOK)
 #   OUT     where the machines go (default $W/images): OUT/machines/NAME.utm, and the zip AOK VM carries
 #           or downloads in OUT/zips (alpine-3.24.2-ARCH.zip, devuan-6-ARCH.zip; index.py lists them)
 set -e
@@ -22,7 +21,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 W=${W:-$HOME/aok-vm-bench}
 OUT=${OUT:-$W/images}
 ROOTFS=${ROOTFS:-$OUT/rootfs}
-ISH=${ISH:-$HOME/git/ish-AOK}
+M=$here/../machine
 export PATH=/opt/homebrew/bin:$PATH
 all="alpine-aarch64 alpine-x86_64 alpine-i386 alpine-riscv64 devuan-aarch64 devuan-x86_64 devuan-i386 devuan-riscv64"
 want=${*:-$all}
@@ -70,8 +69,8 @@ done
 # What every machine of a distribution gets on its disk.
 for os in $oses; do
     o=$S/o-$os; rm -rf "$o"; mkdir -p "$o/AOK/tools" "$o/AOK/persist" "$o/usr/local/bin"
-    for t in $(tools "$os"); do install -m 755 "$ISH/opt/AOK/tools/$t" "$o/AOK/tools/$t"; done
-    install -m 755 "$ISH/tests/bench-utm/utm/vm-update.sh" "$o/usr/local/bin/aok-update"
+    for t in $(tools "$os"); do install -m 755 "$M/tools/$t" "$o/AOK/tools/$t"; done
+    install -m 755 "$M/aok-update" "$o/usr/local/bin/aok-update"
     if [ "$os" = alpine ]; then
         mkdir -p "$o/etc/aok-vm"
         install -m 755 "$here/alpine/autologin" "$o/etc/aok-vm/autologin"

@@ -128,7 +128,7 @@ struct AOKMachinesView: View {
                 } header: {
                     Text("Download")
                 } footer: {
-                    Text("Each is iSH-AOK's own root file system as a machine of its own, kept small: in it, `aok-update` brings iSH-AOK's /AOK/tools scripts, which add a desktop and the rest when you want them.")
+                    Text("Each is iSH-AOK's own root file system as a machine of its own, kept small: in it, `aok-update` brings the /AOK/tools scripts, which add a desktop and the rest when you want them.")
                 }
             }
             .navigationTitle("Get a Machine")
