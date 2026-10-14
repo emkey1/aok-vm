@@ -32,7 +32,9 @@ import Virtualization // for getting network interfaces
     var appGroupIdentifier: String? {
         let appGroup = Bundle.main.infoDictionary?["AppGroupIdentifier"] as? String
         if let appGroup, !appGroup.hasPrefix("invalid.") {
-            return appGroup
+            // AOK VM: as signed, which a sideloading tool's copy has under another name (virglrenderer's
+            // shared memory is named inside it, and a name outside the app's groups is refused).
+            return UTMSignedAppGroups.group(appGroup)
         }
         return nil
     }

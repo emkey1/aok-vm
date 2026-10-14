@@ -31,11 +31,29 @@ It is three repositories:
 It needs the released Xcode 27. Step 2 is not part of the Xcode build yet
 (`TODO.md`).
 
+## Releasing
+
+1. Raise `CURRENT_PROJECT_VERSION` in `Build.xcconfig` (App Store Connect
+   takes each build number once), commit, push.
+2. `bash aok/release.sh` on the Mac that signs: one archive, and from it
+   the App Store IPA (upload it to TestFlight with Apple's Transporter) and
+   the sideloaders' IPA, `AOK-VM-VERSION-BUILD.ipa`
+   (`aok/utm/sideload-ipa.sh`: ad hoc signed with the app's entitlements,
+   so that AltStore and the like give it its App Groups).
+3. Try the build from TestFlight's internal testing.
+4. `bash aok/release.sh publish`: the GitHub release `vVERSION-BUILD`
+   with the sideloaders' IPA and `aok/RELEASE-NOTES.md`, at the commit it
+   was built from (the archive is not made again).
+
+No CI builds it: the engines and the sysroot are built outside Xcode, on
+two Macs (`TODO.md`).
+
 ## What is under `aok/`
 
 | | |
 |---|---|
-| `utm/` | the engine build and install, the app build, `install-utm.sh` (app and machines onto a device), `make-vm.py` (ready-made machines: the Alpine console guests of all four architectures, Devuan with a desktop), and what builds the Devuan disks |
+| `release.sh` | a release: the archive, the App Store IPA, the sideloaders' IPA, and with `publish` the GitHub release ("Releasing" above) |
+| `utm/` | the engine build and install, the app build, `sideload-ipa.sh`, `install-utm.sh` (app and machines onto a device), `make-vm.py` (ready-made machines: the Alpine console guests of all four architectures, Devuan with a desktop), and what builds the Devuan disks |
 | `reactos/` | ReactOS for the PC machines: `build.sh` makes the installed disk that `make-vm.py` puts in "ReactOS.utm", from the release CD, by itself |
 | `icon/` | the icon's sources |
 | `docs/engine-study.md` | the whole account: why, each front end, results, the bugs worth remembering |
