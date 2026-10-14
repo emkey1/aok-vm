@@ -1,6 +1,9 @@
 #!/bin/bash
 # x64gate.sh [SECONDS] -- the x86 front end's gates, both guests at once: each transcript against QEMU_AOK=0's
 # (logs/x64/ref-*.log and ref32-*.log, which x64run.sh makes with QEMU_AOK=0 the same way). A line a gate.
+# But for their floating point: TCG's SSE is not x86's where fptest looks (which of two NaNs), so since 2026-10-15
+# the references' fptest lines, and the CHECK and STRESS lines that hash them, are the AOK engine's, as
+# x64fpcheck.sh found them the hardware's (the same binaries on camd). The TCG-made ones are ref-*.tcg.log.
 W=$HOME/aok-vm-bench; secs=${1:-1800}
 g() {   # NAME REF WORKLOADS [ENV=VAL...]
     local tag=$1 ref=$2 list=$3; shift 3
