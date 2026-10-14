@@ -32,7 +32,7 @@ struct VMConfigInputView: View {
                 if config.usbBusSupport != .disabled {
                     Section(header: Text("USB Sharing")) {
                         if !jb_has_usb_entitlement() {
-                            Text("USB sharing not supported in this build of UTM.")
+                            Text("USB sharing not supported in this build of AOK VM.")
                         }
                         Toggle(isOn: $config.hasUsbSharing) {
                             Text("Share USB devices from host")

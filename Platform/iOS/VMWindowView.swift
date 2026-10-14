@@ -117,7 +117,7 @@ struct VMWindowView: View {
                     session.powerDown()
                 }, secondaryButton: .cancel(Text("No")))
             case .terminateApp:
-                return Alert(title: Text("Are you sure you want to exit UTM?"), primaryButton: .destructive(Text("Yes")) {
+                return Alert(title: Text("Are you sure you want to exit AOK VM?"), primaryButton: .destructive(Text("Yes")) {
                     session.powerDown(isKill: true)
                 }, secondaryButton: .cancel(Text("No")))
             case .restart:
@@ -144,7 +144,7 @@ struct VMWindowView: View {
                     }
                 })
             case .memoryWarning:
-                return Alert(title: Text("Running low on memory! UTM might soon be killed by iOS. You can prevent this by decreasing the amount of memory and/or JIT cache assigned to this VM"), dismissButton: .cancel(Text("OK")) {
+                return Alert(title: Text("Running low on memory! AOK VM might soon be killed by iOS. You can prevent this by decreasing the amount of memory and/or JIT cache assigned to this VM"), dismissButton: .cancel(Text("OK")) {
                     session.didReceiveMemoryWarning()
                 })
             }

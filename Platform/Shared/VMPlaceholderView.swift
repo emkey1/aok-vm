@@ -102,12 +102,22 @@ fileprivate struct SecondRow: View {
     @Environment(\.openURL) private var openURL
 
     var body: some View {
+        #if os(iOS) || os(visionOS)
+        // AOK VM: its own guide and its own issues, not UTM's (whose developers do not support the fork)
+        TileButton(Label(String.guide, systemImage: "book.circle")) {
+            openURL(URL(string: "https://github.com/emkey1/aok-vm/blob/aok-vm/aok/README.md")!)
+        }
+        TileButton(Label(String.support, systemImage: "questionmark.circle")) {
+            openURL(URL(string: "https://github.com/emkey1/aok-vm/issues")!)
+        }
+        #else
         TileButton(Label(String.guide, systemImage: "book.circle")) {
             openURL(URL(string: "https://docs.getutm.app/basics/basics/")!)
         }
         TileButton(Label(String.support, systemImage: "questionmark.circle")) {
             openURL(URL(string: "https://docs.getutm.app/")!)
         }
+        #endif
     }
 }
 

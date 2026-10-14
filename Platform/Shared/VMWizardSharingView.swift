@@ -22,7 +22,7 @@ struct VMWizardSharingView: View {
     
     var body: some View {
         VMWizardContent("Shared Directory") {
-            DetailedSection("Shared Directory Path", description: "Optionally select a directory to make accessible inside the VM. Note that support for shared directories varies by the guest operating system and may require additional guest drivers to be installed. See UTM support pages for more details.") {
+            DetailedSection("Shared Directory Path", description: "Optionally select a directory to make accessible inside the VM. Note that support for shared directories varies by the guest operating system and may require additional guest drivers to be installed. See UTM's documentation for more details.") {
                 FileBrowseField(url: $wizardState.sharingDirectoryURL, isFileImporterPresented: $isFileImporterPresented)
                 
                 if !wizardState.useAppleVirtualization {

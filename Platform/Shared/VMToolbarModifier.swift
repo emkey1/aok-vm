@@ -168,7 +168,7 @@ struct UTMPreferenceButtonToolbarContent: ToolbarContent {
             } label: {
                 Label("Preferences", systemImage: "gear")
                     .labelStyle(.iconOnly)
-            }.help("Show UTM preferences")
+            }.help("Show AOK VM preferences")
         }
     }
 }

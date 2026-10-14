@@ -183,7 +183,7 @@ private struct HardwareOptions: View {
                     }
                 }
             if !isArchitectureSupported {
-                Text("The selected architecture is unsupported in this version of UTM.")
+                Text("The selected architecture is unsupported in this version of AOK VM.")
                     .foregroundColor(.red)
             }
             VMConfigConstantPicker("System", selection: $target, type: config.architecture.targetType)
