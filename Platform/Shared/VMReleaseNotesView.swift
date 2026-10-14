@@ -18,7 +18,8 @@ import SwiftUI
 
 struct VMReleaseNotesView: View {
     @ObservedObject var helper: UTMReleaseHelper
-    @State private var isShowAll: Bool = false
+    // AOK VM: all of its notes at once (its own are short), without "Show All"
+    @State private var isShowAll: Bool = true
     @Environment(\.presentationMode) private var presentationMode: Binding<PresentationMode>
     
     let ignoreSections = ["Highlights", "Installation"]
