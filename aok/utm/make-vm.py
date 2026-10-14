@@ -47,6 +47,7 @@ WORKLOADS = "coremark,nbody,python,xz,sha256,awk"
 # (kernel/vmlinuz-virt-x86_64 with initramfs-x86_64.cpio; kernel/vmlinuz-virt-x86 with initramfs-x86.cpio):
 # a PC, with a CPU that has rdrand and a kernel told to trust it, since without a source of entropy the
 # guest waits a quarter of a minute for some, and with no network card, the image having no modules.
+# With ARCH=i386 and XP_DISK naming an empty 20 GB qcow2, also "Windows XP.utm" (windows_xp() below).
 ARCH = os.environ.get("ARCH", "riscv64")
 A = {
     "riscv64": {"label": "RISC-V", "serial": "ttyS0", "kernel": "Image-lts-riscv64",
@@ -165,6 +166,44 @@ def devuan(outdir, d):
     write(outdir, vm, {n: os.path.join(d, n) for n in ("vmlinuz", "initrd.img", "devuan-%s.qcow2" % ARCH)})
 
 
+def windows_xp(outdir, disk):
+    """
+    "Windows XP.utm": UTM's own gallery template for XP (512 MB, a 20 GB IDE disk, VGA), with an empty
+    IDE CD drive for the installation disc, which is the user's to supply (UTM's page names Microsoft's
+    en_windows_xp_professional_sp3_Nov_2013_Incl_SATA_Drivers.iso). Choose it in the machine's CD drive
+    and start: SeaBIOS boots the CD, and setup takes it from there. DISK is an empty qcow2 of 20 GB.
+
+    The machine is what XP has drivers for out of the box: the i440FX PC ("pc": IDE, not AHCI, which XP
+    lacks), a Realtek 8139 network card, and a USB tablet beside the PS/2 keyboard, so that the pointer
+    goes where the finger or the trackpad does. The clock is local time, as Windows keeps it. No sound
+    card: XP has no driver for any of QEMU's that UTM offers, and the simulator stops UTM when a guest
+    opens one. One CPU, which is XP's uniprocessor kernel and the gadgets' fastest case.
+    """
+    vm = base("Windows XP",
+              "Windows XP, 32-bit, on the AOK gadget engine. Put your Windows XP installation ISO in the CD "
+              "drive, start, and install with the defaults.",
+              vm_uuid(8), cpus=1, memory=512)
+    vm["System"]["Target"] = "pc"
+    vm["System"]["CPUFlagsAdd"] = []
+    vm["QEMU"]["RTCLocalTime"] = True
+    vm["QEMU"]["PS2Controller"] = True
+    vm["Input"]["UsbBusSupport"] = "2.0"
+    vm["Information"]["Icon"] = "windows-xp"
+    vm["Display"] = [{"Hardware": "VGA", "DynamicResolution": False, "UpscalingFilter": "Linear",
+                      "DownscalingFilter": "Linear", "NativeResolution": False}]
+    vm["Network"] = [{"Mode": "Emulated", "Hardware": "rtl8139", "MacAddress": mac(8),
+                      "IsolateFromHost": False, "PortForward": []}]
+    vm["Drive"] = [
+        {"ImageName": "windows-xp.qcow2", "ImageType": "Disk", "Interface": "IDE", "InterfaceVersion": 1,
+         "Identifier": str(uuid.UUID(int=0xA0C0A0C0_0000_4000_8000_0000000000C8 + A["n"] * 0x100)).upper(),
+         "ReadOnly": False},
+        {"ImageType": "CD", "Interface": "IDE", "InterfaceVersion": 1,
+         "Identifier": str(uuid.UUID(int=0xA0C0A0C0_0000_4000_8000_0000000000D8 + A["n"] * 0x100)).upper(),
+         "ReadOnly": True},
+    ]
+    write(outdir, vm, {"windows-xp.qcow2": disk})
+
+
 def main():
     outdir, kernel, initramfs, efi_vars = sys.argv[1:5]
     if len(sys.argv) > 5:
@@ -184,6 +223,8 @@ def main():
     console["Network"] = [] if X86 else [network(mac(1))]
     console["Drive"] = direct_boot(1)
     write(outdir, console, {A["kernel"]: kernel, A["initramfs"]: initramfs})
+    if ARCH == "i386" and os.environ.get("XP_DISK"):
+        windows_xp(outdir, os.environ["XP_DISK"])
     if ARCH != "riscv64":
         return      # (the display and firmware machines below are the RISC-V study's)
 
