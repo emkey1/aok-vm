@@ -749,7 +749,11 @@ import Virtualization // for getting network interfaces
     }
     
     @QEMUArgumentBuilder private var drivesArguments: [QEMUArgument] {
-        var busInterfaceMap: [String: Int] = [:]
+        // AOK VM: a PC given a Linux kernel loads it with an option ROM that QEMU puts at bootindex 0
+        // (hw/i386/x86-common.c), and QEMU refuses a second device at an index already used ("The bootindex
+        // 0 has already been used"), so that such a machine never started: its drives count from 1.
+        let kernelBoot = isPcCompatible && drives.contains { $0.imageType == .linuxKernel && $0.imageURL != nil }
+        var busInterfaceMap: [String: Int] = kernelBoot ? ["boot": 1] : [:]
         let disableBootindex = shouldDisableBootIndex
         for drive in drives {
             let hasImage = !drive.isExternal && drive.imageURL != nil
