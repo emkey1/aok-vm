@@ -145,7 +145,7 @@ struct ContentView: View {
     
     private func handleURL(url: URL) {
         if let components = URLComponents(url: url, resolvingAgainstBaseURL: false),
-           components.scheme?.lowercased() == "utm",
+           ["utm", "aokvm"].contains(components.scheme?.lowercased() ?? ""),
            components.host == "downloadVM",
            let urlParameter = components.queryItems?.first(where: { $0.name == "url" })?.value,
            let url = URL(string: urlParameter) {

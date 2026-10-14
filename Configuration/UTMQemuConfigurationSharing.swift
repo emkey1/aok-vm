@@ -30,10 +30,14 @@ struct UTMQemuConfigurationSharing: Codable {
     /// SPICE clipboard sharing.
     var hasClipboardSharing: Bool = false
     
+    /// iSH-AOK's /AOK/persist, given to the guest as the VirtFS tag "aokpersist".
+    var hasAOKPersist: Bool = false
+    
     enum CodingKeys: String, CodingKey {
         case directoryShareMode = "DirectoryShareMode"
         case isDirectoryShareReadOnly = "DirectoryShareReadOnly"
         case hasClipboardSharing = "ClipboardSharing"
+        case hasAOKPersist = "AOKPersist"
     }
     
     init() {
@@ -44,6 +48,7 @@ struct UTMQemuConfigurationSharing: Codable {
         directoryShareMode = try values.decode(QEMUFileShareMode.self, forKey: .directoryShareMode)
         isDirectoryShareReadOnly = try values.decode(Bool.self, forKey: .isDirectoryShareReadOnly)
         hasClipboardSharing = try values.decode(Bool.self, forKey: .hasClipboardSharing)
+        hasAOKPersist = try values.decodeIfPresent(Bool.self, forKey: .hasAOKPersist) ?? false
     }
     
     func encode(to encoder: Encoder) throws {
@@ -51,6 +56,26 @@ struct UTMQemuConfigurationSharing: Codable {
         try container.encode(directoryShareMode, forKey: .directoryShareMode)
         try container.encode(isDirectoryShareReadOnly, forKey: .isDirectoryShareReadOnly)
         try container.encode(hasClipboardSharing, forKey: .hasClipboardSharing)
+        try container.encode(hasAOKPersist, forKey: .hasAOKPersist)
+    }
+}
+
+// MARK: - iSH-AOK's /AOK/persist
+
+extension UTMQemuConfigurationSharing {
+    /// The App Group whose container holds iSH-AOK's /AOK/persist (its AOK/persist directory). This app is
+    /// signed by the same team and is a member of the group as well, so on a device both apps see one
+    /// directory.
+    static let aokPersistAppGroup = "group.app.ish.iSH-AOK"
+    
+    /// That directory, made if iSH-AOK has not run yet. Nil when this build is not in the group.
+    static var aokPersistUrl: URL? {
+        guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: aokPersistAppGroup) else {
+            return nil
+        }
+        let url = container.appendingPathComponent("AOK", isDirectory: true).appendingPathComponent("persist", isDirectory: true)
+        try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true)
+        return url
     }
 }
 

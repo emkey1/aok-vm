@@ -38,6 +38,12 @@ struct VMConfigSharingView: View {
                             Text("Read Only")
                         })
                     }
+                }
+                
+                DetailedSection("iSH-AOK", description: "Linux guests mount it with: mount -t 9p -o trans=virtio,version=9p2000.L aokpersist /AOK/persist") {
+                    Toggle(isOn: $config.hasAOKPersist, label: {
+                        Text("Share /AOK/persist")
+                    })
                 }.globalFileImporter(isPresented: $isImporterPresented, allowedContentTypes: [.folder]) { result in
                     data.busyWorkAsync {
                         let url = try result.get()

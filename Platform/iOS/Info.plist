@@ -47,6 +47,16 @@
 				<string>UTM</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>app.ish.aok.vm</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>aokvm</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>

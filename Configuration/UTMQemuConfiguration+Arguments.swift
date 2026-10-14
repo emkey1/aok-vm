@@ -1234,6 +1234,29 @@ import Virtualization // for getting network interfaces
                 "mount_tag=share"
             }
         }
+        // iSH-AOK's /AOK/persist, beside the shared directory: a Linux guest mounts it with
+        // `mount -t 9p -o trans=virtio,version=9p2000.L aokpersist /AOK/persist`. No mapping of owners
+        // and modes into extended attributes: iSH-AOK reads the same files and sees the host's.
+        if system.architecture.hasSharingSupport && sharing.hasAOKPersist, let url = UTMQemuConfigurationSharing.aokPersistUrl {
+            f("-fsdev")
+            "local"
+            "id=aokpersist"
+            "path="
+            url
+            "security_model=none"
+            f()
+            f("-device")
+            if system.architecture == .s390x {
+                "virtio-9p-ccw"
+            } else if system.architecture == .m68k {
+                "virtio-9p-device"
+            } else {
+                "virtio-9p-pci"
+            }
+            "fsdev=aokpersist"
+            "mount_tag=aokpersist"
+            f()
+        }
     }
     
     private func cleanupName(_ name: String) -> String {

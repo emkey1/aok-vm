@@ -152,8 +152,17 @@ enum AlertItem: Identifiable {
         var list = virtualMachines
         for i in list.indices.reversed() {
             let vm = list[i]
-            if let registryEntry = vm.registryEntry, !fileManager.fileExists(atPath: registryEntry.package.path) {
+            guard let registryEntry = vm.registryEntry else {
+                continue
+            }
+            // Where the bundle is is what its bookmark finds (package.url), not the path saved beside it:
+            // that one goes stale whenever the app's container moves (a restore, a migration, every
+            // reinstall in the simulator), and checking it wrapped every machine as unavailable although
+            // it had just loaded through its bookmark, and kept it so, the bundle being "already listed".
+            if !fileManager.fileExists(atPath: registryEntry.package.url.path) {
                 list[i] = VMData(from: registryEntry)
+            } else if registryEntry.package.path != registryEntry.package.url.path, let wrapped = vm.wrapped {
+                try? await wrapped.updateRegistryFromConfig()   // save where it is now
             }
         }
         // now look for and add new VMs in default storage
