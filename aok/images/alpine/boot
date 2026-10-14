@@ -1,0 +1,16 @@
+#!/bin/sh
+# What OpenRC's boot would do on a base machine, which has none: the kernel's file systems, the root read
+# and write, the host name, /etc/fstab (iSH-AOK's /AOK/persist among it, when the machine is given it),
+# and /etc/local.d/*.start, Alpine's place for one's own.
+mount -t proc proc /proc 2> /dev/null
+mount -t sysfs sys /sys 2> /dev/null
+mkdir -p /dev/pts /dev/shm
+mount -t devpts -o gid=5,mode=620 devpts /dev/pts 2> /dev/null
+mount -t tmpfs -o mode=1777 shm /dev/shm 2> /dev/null
+mount -o remount,rw /
+mkdir -p /run /tmp && chmod 1777 /tmp
+mount -t tmpfs -o mode=755 run /run 2> /dev/null
+hostname -F /etc/hostname 2> /dev/null
+mount -a 2> /dev/null
+for f in /etc/local.d/*.start; do [ -x "$f" ] && "$f"; done
+exit 0

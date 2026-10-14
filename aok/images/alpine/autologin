@@ -1,0 +1,3 @@
+#!/bin/sh
+# getty's login program on a base machine: root, without a password, as iSH-AOK starts its roots.
+exec /bin/login -f root

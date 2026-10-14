@@ -1,0 +1,64 @@
+#!/bin/busybox sh
+# /init of a base machine's initramfs (build.sh): busybox and the drivers that reach the root disk, from
+# the machine's own Alpine kernel. It mounts the root (root=, /dev/vda by default), loads every other
+# driver the machine's devices want from the root's /lib/modules, takes an address by DHCP, and hands
+# over to the root's own /sbin/init. The root is iSH-AOK's root file system as iSH-AOK ships it, which
+# for Devuan has neither modprobe nor a DHCP client: both are done here, for either distribution.
+# aok.shell on the kernel command line: a shell before the hand-over.
+# (the kernel gives /init no PATH, and the libc's default has no /sbin, where udhcpc is)
+export PATH=/sbin:/usr/sbin:/bin:/usr/bin
+/bin/busybox mkdir -p /proc /sys /dev /newroot /tmp /usr/bin /usr/sbin /sbin
+/bin/busybox --install -s
+mount -t devtmpfs dev /dev
+mount -t proc proc /proc
+mount -t sysfs sys /sys
+root=/dev/vda; shell=
+for x in $(cat /proc/cmdline); do
+    case $x in
+    root=*) root=${x#root=} ;;
+    aok.shell) shell=1 ;;
+    esac
+done
+# The modules are gzipped and each load tries finit_module() first, which the kernel reports as an error.
+printk=$(cat /proc/sys/kernel/printk); echo 1 > /proc/sys/kernel/printk
+for m in virtio_pci virtio_blk crc32c ext4; do modprobe -q "$m" 2> /dev/null; done
+n=0
+while [ ! -b "$root" ] && [ $n -lt 100 ]; do sleep 0.1; n=$((n + 1)); done
+if ! mount -o rw "$root" /newroot; then
+    echo "aok: cannot mount the root, $root: a shell (exit to try again)"
+    sh; mount -o rw "$root" /newroot || exec sh
+fi
+# Every other driver, from the root's own modules. A driver that binds can expose more devices, hence
+# the passes. One alias per modprobe: given several, busybox's gives up at the first that names no module.
+mkdir -p /lib/modules && mount --bind /newroot/lib/modules /lib/modules
+seen=
+for pass in 1 2 3 4; do
+    now=$(find /sys/devices -name modalias -type f -exec cat {} + 2> /dev/null | sort -u)
+    [ "$now" = "$seen" ] && break
+    seen=$now
+    echo "$now" | while read -r a; do modprobe -qb "$a" 2> /dev/null; done
+done
+# Those no device asks for: packet sockets (DHCP), and the VirtFS share AOK VM gives as /AOK/persist.
+for m in af_packet 9pnet_virtio 9p; do modprobe -q "$m" 2> /dev/null; done
+umount /lib/modules
+echo "$printk" > /proc/sys/kernel/printk
+# The network: QEMU's user-mode one, by DHCP. Bounded, so a machine with no network still boots. What
+# happened is in the root's /var/log/aok-init.log.
+L=/newroot/var/log/aok-init.log
+mkdir -p /newroot/var/log
+{
+    echo "$(date) aok init: root $root"
+    ifconfig lo 127.0.0.1 up
+    for n in /sys/class/net/eth*; do
+        [ -e "$n" ] || continue
+        n=${n##*/}
+        ifconfig "$n" up
+        busybox timeout 12 udhcpc -i "$n" -n -q -t 5 -T 1 -s /udhcpc.sh
+        echo "udhcpc $n: $?"
+    done
+    ifconfig
+} > "$L" 2>&1
+[ -n "$shell" ] && { echo "aok: the root is at /newroot; exit to start it"; sh; }
+mount --move /dev /newroot/dev
+umount /proc /sys
+exec switch_root /newroot /sbin/init
