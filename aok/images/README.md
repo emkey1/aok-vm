@@ -22,8 +22,9 @@ bash aok/images/build.sh
 ```
 
 on MBP5 makes all eight (or those named, e.g. `devuan-aarch64`) in
-`~/aok-vm-bench/images/machines`, each as `NAME.utm` and `NAME.zip`, in about
-ten minutes. Its header says what it needs.
+`~/aok-vm-bench/images/machines` as `NAME.utm`, and their zips in
+`~/aok-vm-bench/images/zips` (`alpine-3.24.2-ARCH.zip`, `devuan-6-ARCH.zip`),
+in about ten minutes. Its header says what it needs.
 
 ## In the app
 
