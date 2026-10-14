@@ -864,7 +864,7 @@ enum AlertItem: Identifiable {
     /// AOK VM: add a machine from a zip the app carries (its machine list), as a download would be added.
     func installUTMZip(at zip: URL) async throws {
         let url = try UTMDownloadVMTask.unpack(zip: zip, into: UTMData.defaultStorageUrl)
-        UTMDownloadVMTask.fitMemory(of: url)
+        UTMDownloadVMTask.fitToDevice(url)
         let vm = try VMData(url: url)
         if uuidHasCollision(with: vm) {
             uuidRegenerate(for: vm)

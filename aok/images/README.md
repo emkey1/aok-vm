@@ -39,8 +39,9 @@ its user removes stays removed). "+" -> "Get a Ready-Made Machine..." lists all
 nine; the six it does not carry are downloaded from the list's `baseURL`,
 checked against their SHA-256, and a newer list is fetched from `indexURL`.
 A machine added from the list gets no more memory than the device has room
-for (`UTMDownloadVMTask.fitMemory`: UTM's own estimate, under 90% of what iOS
-gives the app; 512 MB on a 2 GB device).
+for, and no more CPUs than leave one core to the app
+(`UTMDownloadVMTask.fitToDevice`: UTM's own memory estimate, under 90% of
+what iOS gives the app, 512 MB on a 2 GB device; one CPU on a dual-core one).
 
 ## A machine
 
