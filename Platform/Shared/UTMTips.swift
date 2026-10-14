@@ -21,16 +21,17 @@ struct UTMTipDonate: Tip {
     @Parameter
     static var timesLaunched: Int = 0
 
+    // AOK VM: a fork; the donation it asks for is to UTM (UTMDonateView)
     var title: Text {
         Text("Support UTM")
     }
 
     var message: Text? {
-        Text("Enjoying the app? Consider making a donation to support development.")
+        Text("AOK VM is a fork of UTM, not made by UTM's developers. Enjoying it? Please consider a donation to UTM, whose work it is built on.")
     }
 
     var actions: [Action] {
-        Action(id: "donate", title: "Donate")
+        Action(id: "donate", title: "Donate to UTM")
         Action(id: "no-thanks", title: "No Thanks")
     }
 

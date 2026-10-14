@@ -40,9 +40,21 @@ struct UTMDonateView: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12.632, style: .continuous))
                         .frame(width: 72, height: 72)
                 }
-                Text("Your support is the driving force that helps UTM stay independent. Your contribution, no matter the size, makes a significant difference. It enables us to develop new features and maintain existing ones. Thank you for considering a donation to support us.")
+                // AOK VM: a fork, so no donation is AOK VM's to take, and UTM's own in-app donations
+                // (StoreView) belong to UTM's App Store listing and do not exist for this app: the
+                // donation it asks for is to UTM, directly.
+                Text("AOK VM is a fork of UTM: UTM's app, with the AOK gadget engine of iSH-AOK in its QEMU. It is made by the iSH-AOK project, not by UTM's developers, who do not support it: please report AOK VM's problems to iSH-AOK, not to them.")
                     .padding()
-                StoreView()
+                Text("But AOK VM rests on their work, and UTM is independent and lives on donations. If you enjoy AOK VM, please consider a donation to UTM.")
+                    .padding(.horizontal)
+                List {
+                    Link(destination: URL(string: "https://github.com/sponsors/utmapp")!) {
+                        Label("Sponsor UTM on GitHub", systemImage: "heart.fill")
+                    }
+                    Link(destination: URL(string: "https://github.com/emkey1/ish-AOK/issues")!) {
+                        Label("Report a problem with AOK VM", systemImage: "exclamationmark.bubble")
+                    }
+                }
             }.navigationTitle("Support UTM")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
