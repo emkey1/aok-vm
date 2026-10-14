@@ -4,7 +4,7 @@
 # Starting a VM takes a tap: UTM for iOS has no way to start one from outside. Afterwards
 # Documents/NAME.utm/Data/debug.log holds the QEMU command line and QEMU's messages.
 set -e
-dev=$1; vms=${2:-$HOME/aok-utm/vms}; id=app.ish.aok.UTM-SE
+dev=$1; vms=${2:-$HOME/aok-utm/vms}; id=app.ish.aok.vm
 xcrun devicectl device install app --device "$dev" "$HOME/aok-utm/dd/Build/Products/Release-iphoneos/UTM SE.app" |
     grep -E "bundleID|ERROR"
 for v in "$vms"/*.utm; do
