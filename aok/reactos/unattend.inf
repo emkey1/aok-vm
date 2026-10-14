@@ -1,0 +1,28 @@
+[Unattend]
+Signature = "$ReactOS$"
+UnattendSetupEnabled = yes
+DestinationDiskNumber = 0
+DestinationPartitionNumber = 1
+InstallationDirectory=ReactOS
+BootLoaderLocation=2
+FullName="AOK VM"
+ComputerName="REACTOS"
+TimeZoneIndex=85
+FormatPartition=1
+AutoPartition = 1
+FsType = 0
+LocaleID = 409
+
+[GuiRunOnce]
+%SystemRoot%\system32\reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v AutoAdminLogon /t REG_SZ /d 1 /f
+%SystemRoot%\system32\reg.exe add "HKLM\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v DefaultUserName /t REG_SZ /d Administrator /f
+
+[Display]
+BitsPerPel = 32
+XResolution = 1024
+YResolution = 768
+VRefresh = 0
+
+[Shell]
+DefaultThemesOff = no
+CustomDefaultThemeFile = "%WINDIR%\Resources\Themes\Lautus\lautus.msstyles"

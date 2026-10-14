@@ -36,6 +36,7 @@ It needs the released Xcode 27. Step 2 is not part of the Xcode build yet
 | | |
 |---|---|
 | `utm/` | the engine build and install, the app build, `install-utm.sh` (app and machines onto a device), `make-vm.py` (ready-made machines: the Alpine console guests of all four architectures, Devuan with a desktop), and what builds the Devuan disks |
+| `reactos/` | ReactOS for the PC machines: `build.sh` makes the installed disk that `make-vm.py` puts in "ReactOS.utm", from the release CD, by itself |
 | `icon/` | the icon's sources |
 | `docs/engine-study.md` | the whole account: why, each front end, results, the bugs worth remembering |
 | `TODO.md` | what is open |
