@@ -24,6 +24,9 @@ for w in "$@"; do
     simdtest-*) ./simdtest -b "${w#simdtest-}"; ./timeit "$w" true ;;   # one bucket of it, a line an encoding
     x86test)  ./x86test; ./timeit x86test true ;;           # x86 and x86_64: the integer instructions
     x86testv) ./x86test -v; ./timeit x86testv true ;;       # every result of it
+    vec)      # x86_64: the vector tests (x64/vec, iSH-AOK's, each with its answers), their last lines
+        for t in /bench/vec/*; do printf 'VEC %s: ' "${t##*/}"; "$t" 2>&1 | tail -1; done; ./timeit vec true ;;
+    vec-*)    t=/bench/vec/${w#vec-}; printf 'VEC %s: ' "${t##*/}"; "$t" 2>&1 | tail -1; ./timeit "$w" true ;;
     x87kat)   ./x87_kat; ./x87_kat_unmasked; ./x87_trans; ./timeit x87kat true ;;   # the x87 against hardware's answers
     x87kat3)  for i in 1 2 3; do ./x87_kat | grep -v fldcw; ./x87_kat_unmasked | grep -v fldcw; done; ./timeit x87kat3 true ;;   # is a failure the same one each time?
     poke)     # a kernel patching its own code under the other CPUs' feet: Linux flips a static key by
