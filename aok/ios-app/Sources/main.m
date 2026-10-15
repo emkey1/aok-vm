@@ -15,6 +15,9 @@
 //   AOKQ_WORKLOADS  comma separated, as bench/run1.sh names them; default the six of the race
 //   AOKQ_SMP        guest CPUs, default 1
 //   AOKQ_EXIT       exit when the guest has shut down, so that QEMU_AOK_STATS (printed at exit) is written
+//   AOKQ_HOLD       keep the screen on this many seconds after the run (then exit, with AOKQ_EXIT), so a
+//                   device with a short Auto-Lock does not lock between one run and the next
+//   AOKQ_HOLD_ONLY  run nothing: keep the screen on for AOKQ_HOLD seconds (default an hour), then let go
 // QEMU's own messages go to Documents/qemu.log, the guest's console to Documents/serial.log.
 // QEMU can be started once per process, so one launch is one run.
 
@@ -101,7 +104,26 @@ static void *reader(void *arg) {
     return NULL;
 }
 
+// The screen stays on for @secs more seconds, and is then the device's again: an app left in front with the
+// idle timer off held an M4 iPad's screen on all night, and the iPad was found half-responsive in the morning
+// (2026-10-14). So a hold always ends.
+static void hold_then_let_go(long secs) {
+    if (secs > 0) {
+        say([NSString stringWithFormat:@"HOLD %ld s", secs]);
+        sleep((unsigned) secs);
+    }
+    dispatch_async(dispatch_get_main_queue(), ^{ UIApplication.sharedApplication.idleTimerDisabled = NO; });
+    if (getenv("AOKQ_EXIT")) {
+        usleep(200000);
+        exit(0);
+    }
+}
+
 static void *run_qemu(void *arg) {
+    if (getenv("AOKQ_HOLD_ONLY")) {
+        hold_then_let_go(atol(env_or("AOKQ_HOLD", "3600")));
+        return NULL;
+    }
     NSString *bundle = NSBundle.mainBundle.resourcePath;
     // The label's first part is the guest, one of the Mac race's four. The 32-bit PC guest runs on the
     // x86-64 QEMU, as it does in the VM app. An x86 guest gets rdrand and a kernel told to trust it: with
@@ -163,12 +185,8 @@ static void *run_qemu(void *arg) {
     say([NSString stringWithFormat:@"DONE %s status=%d thermal=%ld", env_or("AOKQ_LABEL", "riscv64-aokq-1"), status,
          (long) NSProcessInfo.processInfo.thermalState]);
     qemu_cleanup(status);
-    // The screen was kept on for the run; it is not the device's to keep on after it. Left in front with
-    // the idle timer off, this app held an M4 iPad's screen on all night, and the iPad was found
-    // half-responsive in the morning (2026-10-14).
-    dispatch_async(dispatch_get_main_queue(), ^{ UIApplication.sharedApplication.idleTimerDisabled = NO; });
-    if (getenv("AOKQ_EXIT"))
-        exit(0);
+    // The screen was kept on for the run, and for AOKQ_HOLD seconds after it if asked (hold_then_let_go).
+    hold_then_let_go(atol(env_or("AOKQ_HOLD", "0")));
     return NULL;
 }
 
