@@ -6,8 +6,10 @@ The same machine on every architecture, as far as UTM lets it be: the AOK gadget
 them and 1 GB, the Alpine kernel and initramfs booted directly (no firmware, no boot loader), the root
 on a VirtIO disk (8 GB, growing as it fills), QEMU's user-mode network on a VirtIO card, a display with
 a USB keyboard and tablet, root logged in on it and on the serial terminal, a VirtIO random number
-source, and iSH-AOK's /AOK/persist shared (the machine's Sharing setting). The PCs are q35 machines with
-the CPU QEMU names for the architecture.
+source, and iSH-AOK's /AOK/persist shared (the machine's Sharing setting). The PCs are q35 machines: the
+x86_64 one with QEMU's max CPU less LA57 (AVX-512 is the AOK engine's, and costs nothing measured: the
+Devuan machine's sort, grep/sed/awk, spawns, find and gzip took the same time as under qemu64, sha256sum
+a third), the 32-bit one with qemu32 (EVEX in 32-bit code is not the engine's yet).
 """
 import os
 import plistlib
@@ -23,7 +25,9 @@ OSES = {
 ARCHES = {
     "aarch64": {"label": "aarch64", "target": "virt", "cpu": "default", "serial": "ttyAMA0",
                 "display": "virtio-ramfb", "n": 0},
-    "x86_64": {"label": "x86_64", "target": "q35", "cpu": "qemu64", "serial": "ttyS0",
+    # max: what the AOK engine computes, AVX-512 among it (and SHA-NI, which glibc's sha256 takes: 2.9x);
+    # not LA57, whose five-level page tables a guest kernel would then walk on every TLB miss
+    "x86_64": {"label": "x86_64", "target": "q35", "cpu": "max", "remove": ["la57"], "serial": "ttyS0",
                "display": "virtio-vga", "n": 1},
     "i386": {"label": "x86", "target": "q35", "cpu": "qemu32", "serial": "ttyS0",
              "display": "virtio-vga", "n": 2},
@@ -59,7 +63,7 @@ def config(os_name, arch):
                         "UUID": ident(0, n)},
         "System": {
             "Architecture": arch, "Target": a["target"], "CPU": a["cpu"],
-            "CPUFlagsAdd": [], "CPUFlagsRemove": [],
+            "CPUFlagsAdd": [], "CPUFlagsRemove": a.get("remove", []),
             "CPUCount": 2, "ForceMulticore": False, "MemorySize": 1024, "JITCacheSize": 0,
         },
         "QEMU": {

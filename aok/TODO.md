@@ -17,6 +17,7 @@ iSH-AOK's recent JIT work, in the engine, in this order. Ported, not shared: sin
 4. **The other x86 additions that apply to a machine.** Done for what a Linux guest hands off, 2026-10-15 (emkey1/qemu b2f39da): bit strings, cmpxchg16b, 16-bit adc/sbb/cmov, popcnt, swapgs, rdtscp, cpuid, verr/verw, fs/gs base, xsave family, iret, syscall/sysret, mov cr, invlpg, clac/stac, sti;jmp, SSE2's missing integer ops; hand-offs over the gate benchmarks 1.07M to 65k (64-bit), 752k to 143k (32-bit, before its 16-bit cmov and verw). Left of the list below: MMX, the 0x67 forms, BCD, string I/O, int/sysenter/sysexit, segment loads, sti;ret.
    Was: RDTSCP/RDPID, the 0x67 forms, MMX, string, BCD, LOOP and the rest iSH-AOK made gadgets, by the hand-off ranking (`QEMU_AOK_STATS=2`, `x64/classify.py`). Not the UMIP spoofs (a machine's own kernel owns SGDT and SIDT).
 5. **The machines and the release.** The x86 machines' CPU model offering AVX-512 (`images/machine.py`; new zips replace the published ones only at the user's word), the M4 and the A10X, then `release.sh`.
+   CPU model chosen 2026-10-15: x86_64 machines `max` less `la57` (machine.py). Measured on the Devuan x86_64 machine (MBP5, two rounds, one machine at a time): sha256sum of 300 MB 2.5 s against qemu64's 7.4 s; sort, grep/sed/awk, 400 spawns, find and gzip the same within 3%; `max` without AVX-512 the same as with it. The 32-bit machines stay qemu32. Zips not rebuilt yet: the published ones keep qemu64 until the user says to replace them.
 
 ## Before the first release
 
