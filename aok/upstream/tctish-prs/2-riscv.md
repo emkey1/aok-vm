@@ -18,16 +18,16 @@
 
 ## Benchmarks
 
-Host CPU cycles, Alpine 3.24 on `-M virt -cpu rv64`, one guest CPU, between a program's first line of output and its last, median of two runs. Apple M5 Max; last column the same ratio on an iPad Pro (M4).
+Host CPU cycles, Alpine 3.24 on `-M virt -cpu rv64`, one guest CPU, between a program's first line of output and its last, median of two runs. Apple M5 Max; the last two columns are the same ratio on an iPad Pro (M4, two runs) and a 2017 iPad Pro (A10X, four runs, all on its performance cores).
 
-| Workload | TCTI | AOK gadgets | TCTI / AOK | M4 |
-|---|--:|--:|--:|--:|
-| CoreMark | 11.7 G | 6.1 G | 1.91 | 1.90 |
-| n-body (doubles) | 10.1 G | 3.2 G | 3.13 | 2.77 |
-| Python | 32.5 G | 10.3 G | 3.16 | 3.18 |
-| xz -3 | 8.5 G | 5.1 G | 1.66 | 1.70 |
-| sha256sum | 5.1 G | 2.9 G | 1.72 | 1.75 |
-| awk | 11.5 G | 4.5 G | 2.56 | 2.58 |
+| Workload | TCTI | AOK gadgets | TCTI / AOK | M4 | A10X |
+|---|--:|--:|--:|--:|--:|
+| CoreMark | 11.7 G | 6.1 G | 1.91 | 1.90 | 1.62 |
+| n-body (doubles) | 10.1 G | 3.2 G | 3.13 | 2.77 | 2.17 |
+| Python | 32.5 G | 10.3 G | 3.16 | 3.18 | 2.53 |
+| xz -3 | 8.5 G | 5.1 G | 1.66 | 1.70 | 1.64 |
+| sha256sum | 5.1 G | 2.9 G | 1.72 | 1.75 | 1.52 |
+| awk | 11.5 G | 4.5 G | 2.56 | 2.58 | 2.52 |
 
 Fused pairs alone (iSH-AOK's first table, 332 pairs, M5 Max, five interleaved runs): CoreMark 1.08x, Python 1.10x, xz 1.14x, sha256sum 1.09x, awk 1.08x, n-body 1.04x. In a boot and those programs, 220,000 pairs fused out of 697,000 translated instructions.
 

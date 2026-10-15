@@ -4,11 +4,11 @@
 
 ---
 
-This series adds a second translator to TCG for AArch64 hosts that may not generate code at run time. A front end turns guest instructions straight into a stream of pointers to precompiled gadgets, **one gadget per guest instruction**, instead of going through TCG ops and TCTI's one dispatch per op. On the same guest programs it takes **1.7 to 3.7 times fewer host cycles than TCTI** in this tree, for RISC-V, AArch64, x86-64 and 32-bit x86 guests, on a Mac and on an iPad alike.
+This series adds a second translator to TCG for AArch64 hosts that may not generate code at run time. A front end turns guest instructions straight into a stream of pointers to precompiled gadgets, **one gadget per guest instruction**, instead of going through TCG ops and TCTI's one dispatch per op. On the same guest programs it takes **1.7 to 3.7 times fewer host cycles than TCTI** in this tree on an Apple M5 Max, 1.5 to 3.7 on an iPad's M4 and 1.4 to 4.4 on a 2017 iPad's A10X, for RISC-V, AArch64, x86-64 and 32-bit x86 guests.
 
 It is off unless configured (`--enable-aok-gadgets`), and `QEMU_AOK=0` turns it off at run time in the same binary. Nothing outside system emulation on an AArch64 host changes.
 
-The series:
+As discussed in tctiSH/tctiSH#3. The series:
 
 1. **this PR**: the core in `accel/tcg` (no guest uses it yet), a TCG fix it exposed, and the design notes
 2. RISC-V front end (#…)
@@ -57,7 +57,7 @@ Host CPU cycles a program takes under TCTI (`QEMU_AOK=0`, same binary) divided b
 | sha256sum | 1.72 (1.75) | 2.43 (2.45) | 1.69 (1.77) | 2.37 (2.34) |
 | awk | 2.56 (2.58) | 2.71 (2.96) | 2.41 (2.35) | 3.09 (3.30) |
 
-Machines: `-M virt -cpu rv64`, `-M virt -cpu cortex-a72`, `-M q35 -cpu qemu64,+rdrand`, `-M q35 -cpu qemu32,+rdrand`. Each front-end PR has its absolute numbers.
+On a 2017 iPad Pro (A10X, four runs each, all on its performance cores) the same table runs 1.43 to 4.38. Machines: `-M virt -cpu rv64`, `-M virt -cpu cortex-a72`, `-M q35 -cpu qemu64,+rdrand`, `-M q35 -cpu qemu32,+rdrand`. Each front-end PR has its absolute numbers and the A10X's column.
 
 ## Testing
 
