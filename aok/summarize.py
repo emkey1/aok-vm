@@ -9,7 +9,10 @@ each core class and the host moves work between them when it throttles:
     mixed   anything else; dropped
 
 Logs from the first cycwrap, which did not report the share, are classified by effective clock speed instead
-(>= 4.0 GHz is super, <= 2.2 GHz is mid). For each state, guest arch and workload this prints the median over
+(>= 4.0 GHz is super, <= 2.2 GHz is mid). A chip whose counters do not split its cores reports a share of 0
+throughout, so its samples are all "mid" whatever they ran on: the A10X, which runs either its performance or
+its efficiency cluster and never both (its effective clock, cycles over CPU time, says which: ~2.3 GHz is the
+performance cluster). For each state, guest arch and workload this prints the median over
 samples of host cycles, host instructions and host CPU seconds per engine, and each engine's ratio to AOK
 (above 1 means it needs more than AOK does).
 """
@@ -44,7 +47,8 @@ engines = [e for e in known if any(k[2] == e for k in rows)]
 others = [e for e in engines if e != "aok"]
 order = ["coremark", "nbody", "python", "xz", "sha256", "awk"]
 med = statistics.median
-titles = {"super": "fastest cores (Super), ~4.3 GHz", "mid": "mid-tier cores (Performance), throttled"}
+titles = {"super": "fastest cores (Super), ~4.3 GHz",
+          "mid": "cores outside the fastest class (an M-series chip's mid-tier; on an A10X, all samples)"}
 for state in ("super", "mid"):
     for a in sorted({k[1] for k in rows if k[0] == state}):
         print(f"\n===== {a} guest on the {titles[state]} =====")
