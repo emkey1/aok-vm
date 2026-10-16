@@ -17,6 +17,15 @@
 import Combine
 import SwiftUI
 
+extension UTMQemuConfiguration {
+    /// AOK VM: the settings of display `index` (a SPICE monitor ID), or the defaults for a display the machine has
+    /// and the configuration does not list. A Quadra 800 always has its framebuffer: with no display configured,
+    /// `displays[index]` trapped the app when the window menu or the display's view looked it up.
+    @MainActor func display(at index: Int) -> UTMQemuConfigurationDisplay {
+        displays.indices.contains(index) ? displays[index] : UTMQemuConfigurationDisplay()
+    }
+}
+
 struct VMDisplayHostedView: UIViewControllerRepresentable {
     internal class Coordinator: VMDisplayViewControllerDelegate {
         let vm: any UTMSpiceVirtualMachine
@@ -37,19 +46,19 @@ struct VMDisplayHostedView: UIViewControllerRepresentable {
         }
         
         @MainActor var qemuDisplayUpscaler: MTLSamplerMinMagFilter {
-            vmConfig.displays[device.configIndex].upscalingFilter.metalSamplerMinMagFilter
+            vmConfig.display(at: device.configIndex).upscalingFilter.metalSamplerMinMagFilter
         }
         
         @MainActor var qemuDisplayDownscaler: MTLSamplerMinMagFilter {
-            vmConfig.displays[device.configIndex].downscalingFilter.metalSamplerMinMagFilter
+            vmConfig.display(at: device.configIndex).downscalingFilter.metalSamplerMinMagFilter
         }
         
         @MainActor var qemuDisplayIsDynamicResolution: Bool {
-            vmConfig.displays[device.configIndex].isDynamicResolution
+            vmConfig.display(at: device.configIndex).isDynamicResolution
         }
         
         @MainActor var qemuDisplayIsNativeResolution: Bool {
-            vmConfig.displays[device.configIndex].isNativeResolution
+            vmConfig.display(at: device.configIndex).isNativeResolution
         }
         
         @MainActor var qemuHasClipboardSharing: Bool {

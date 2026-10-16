@@ -38,6 +38,9 @@ struct VMToolbarDisplayMenuView: View {
                         switch device {
                         case .serial(_, let index):
                             MenuLabel("Serial \(index): \(session.qemuConfig.serials[index].target.prettyValue)", systemImage: "rectangle.connected.to.line.below").tag(device as VMWindowState.Device?)
+                        case .display(_, let index) where !session.qemuConfig.displays.indices.contains(index):
+                            // AOK VM: a display the configuration does not list (UTMQemuConfiguration.display(at:))
+                            MenuLabel("Display \(index)", systemImage: "display").tag(device as VMWindowState.Device?)
                         case .display(_, let index):
                             MenuLabel("Display \(index): \(session.qemuConfig.displays[index].hardware.prettyValue)", systemImage: "display").tag(device as VMWindowState.Device?)
                         }
@@ -59,6 +62,8 @@ struct VMToolbarDisplayMenuView: View {
                             switch device {
                             case .serial(_, let index):
                                 MenuLabel("Serial \(index): \(session.qemuConfig.serials[index].target.prettyValue)", systemImage: "rectangle.connected.to.line.below").tag(device as VMWindowState.Device?)
+                            case .display(_, let index) where !session.qemuConfig.displays.indices.contains(index):
+                                MenuLabel("Display \(index)", systemImage: "display").tag(device as VMWindowState.Device?)
                             case .display(_, let index):
                                 MenuLabel("Display \(index): \(session.qemuConfig.displays[index].hardware.prettyValue)", systemImage: "display").tag(device as VMWindowState.Device?)
                             }

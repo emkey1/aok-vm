@@ -51,7 +51,9 @@ built=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$ARCHIVE/Products/A
 [ "$built" = "$B" ] || { echo "the archive is build $built, Build.xcconfig says $B" >&2; exit 1; }
 
 # The App Store IPA.
-if [ ! -f "$OUT/appstore-$B/UTM SE.ipa" ]; then
+# Named for the product (AOK VM.ipa since build 7, UTM SE.ipa before).
+ASIPA=$(ls "$OUT/appstore-$B"/*.ipa 2> /dev/null | head -1)
+if [ -z "$ASIPA" ]; then
     cat > "$OUT/appstore-options.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -70,7 +72,8 @@ EOF
         -exportOptionsPlist "$OUT/appstore-options.plist" -allowProvisioningUpdates > "$OUT/appstore-$B.log" 2>&1 ||
         { grep -i "error" "$OUT/appstore-$B.log" | head -10; exit 1; }
 fi
-echo "App Store (Transporter): $OUT/appstore-$B/UTM SE.ipa"
+ASIPA=$(ls "$OUT/appstore-$B"/*.ipa | head -1)
+echo "App Store (Transporter): $ASIPA"
 
 # The sideloaders' IPA.
 bash "$R/aok/utm/sideload-ipa.sh" "$ARCHIVE" "$IPA"
