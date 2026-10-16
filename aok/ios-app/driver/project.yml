@@ -1,0 +1,39 @@
+name: AOKDriver
+options:
+  bundleIdPrefix: app.ish.aok
+  deploymentTarget:
+    iOS: "15.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: UYU5FM4LQ4
+    CODE_SIGN_STYLE: Automatic
+    SWIFT_VERSION: "5.0"
+targets:
+  AOKDriverHost:
+    type: application
+    platform: iOS
+    sources: [Host]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.ish.aok.driver
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+  AOKDriverUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources: [UITests]
+    dependencies:
+      - target: AOKDriverHost
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.ish.aok.driver.uitests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_TARGET_NAME: AOKDriverHost
+schemes:
+  AOKDriver:
+    build:
+      targets:
+        AOKDriverHost: all
+        AOKDriverUITests: [test]
+    test:
+      targets: [AOKDriverUITests]

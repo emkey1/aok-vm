@@ -1,0 +1,8 @@
+# The driver's project is source (no xcodegen on the Mac that signs), unlike the bench app's generated one.
+!project.yml
+!AOKDriver.xcodeproj
+xcuserdata/
+dd/
+*.xcresult
+run-*.log
+*.out
