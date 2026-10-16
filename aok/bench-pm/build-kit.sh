@@ -5,9 +5,10 @@
 # a static busybox and xz, and the race's programs (timeit, CoreMark, n-body, fptest, memtest) and data,
 # under the same /init and /bench/run1.sh as the other four guests.
 #   docker run --rm -v ~/aok-guest-kit:/kit -v aok-kit-build:/build debian:trixie bash /kit/build-kit.sh [ppc|m68k ...]
-# The kit directory holds this script, coremark.tar.gz (setup-roots.sh fetches it), and aok/bench's init, run1.sh,
-# check.sh, timeit.c, nbody.c, fptest.c, memtest.c and gen_data.py. Out: KIT/ppc and KIT/m68k, a vmlinux and an
-# initramfs.cpio each, which cyc-pm.sh boots from ~/aok-vm-bench/kit on MBP5. Docker here is colima (give it CPUs).
+# The kit directory holds this script, coremark.tar.gz (setup-roots.sh fetches it), aok/bench's init, run1.sh,
+# check.sh, timeit.c, nbody.c, fptest.c, memtest.c and gen_data.py, and this directory's mixer.c. Out: KIT/ppc and
+# KIT/m68k, a vmlinux and an initramfs.cpio each, which cyc-pm.sh boots from ~/aok-vm-bench/kit on MBP5. Docker
+# here is colima (give it CPUs).
 set -e
 ARCHES=${*:-ppc m68k}
 export DEBIAN_FRONTEND=noninteractive
@@ -34,6 +35,10 @@ for a in $ARCHES; do
     $B/linux/scripts/config --file $K/.config -e BLK_DEV_INITRD -e RD_GZIP -e SERIAL_PMACZILOG \
         -e SERIAL_PMACZILOG_CONSOLE -e DEVTMPFS -e DEVTMPFS_MOUNT -e PROC_FS -e SYSFS -e TMPFS
     [ $a = m68k ] && $B/linux/scripts/config --file $K/.config -e SERIAL_PMACZILOG_TTYS
+    # The PowerMac's sound (snd-powermac: AWACS/Screamer through DBDMA), with OSS's /dev/dsp for the "sound"
+    # workload, which plays data through it for QEMU's wav audiodev to record.
+    [ $a = ppc ] && $B/linux/scripts/config --file $K/.config -e SOUND -e SND -e SND_POWERMAC -e SND_OSSEMUL \
+        -e SND_PCM_OSS -e SND_MIXER_OSS -e I2C -e I2C_POWERMAC
     make -s -C $B/linux O=$K ARCH=$KA CROSS_COMPILE=$CC_- olddefconfig
     make -s -C $B/linux O=$K ARCH=$KA CROSS_COMPILE=$CC_- -j"$(nproc)" vmlinux
     cp $K/vmlinux $O/vmlinux
@@ -58,9 +63,16 @@ for a in $ARCHES; do
     $G -O2 -o $R/bench/nbody /kit/nbody.c -lm
     $G -O1 -ffp-contract=off -fno-math-errno -o $R/bench/fptest /kit/fptest.c -lm
     $G -O2 -o $R/bench/memtest /kit/memtest.c
+    [ $a = ppc ] && $G -O2 -o $R/bench/mixer /kit/mixer.c
     (cd $B/coremark && $G -O2 -I. -Ilinux -Iposix -DFLAGS_STR="\"-O2 -static\"" -DPERFORMANCE_RUN=1 -DITERATIONS=0 \
         core_list_join.c core_main.c core_matrix.c core_state.c core_util.c posix/core_portme.c -o $R/bench/coremark -lrt)
     cp /kit/run1.sh /kit/check.sh $R/bench/; cp /kit/init $R/init; chmod +x $R/init $R/bench/*.sh
+    # "sound": 256 KB through /dev/dsp (the kit's own workload, added to its copy of run1.sh)
+    printf '%s\n' '#!/bin/sh' 'cat /proc/asound/cards; ls /dev/dsp* 2>&1; /bench/mixer' \
+        'dd if=/bench/data1.bin of=/dev/dsp bs=4096 count=64 2>&1 | tail -1; echo "SOUND rc=$?"' > $R/bench/sound.sh
+    chmod +x $R/bench/sound.sh
+    sed -i 's|^    \*)        ./timeit "$w" true ;;|    sound)    sh /bench/sound.sh; ./timeit sound true ;;\n    *)        ./timeit "$w" true ;;|' $R/bench/run1.sh
+    grep -q '^    sound)' $R/bench/run1.sh || { echo "run1.sh: no sound case"; exit 1; }
     [ -f /kit/data.bin ] || python3 /kit/gen_data.py /kit/data.bin 8
     cp /kit/data.bin $R/bench/data.bin
     head -c 2097152 /kit/data.bin > $R/bench/data2.bin
