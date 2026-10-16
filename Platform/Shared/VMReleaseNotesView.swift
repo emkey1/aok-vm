@@ -22,7 +22,8 @@ struct VMReleaseNotesView: View {
     @State private var isShowAll: Bool = true
     @Environment(\.presentationMode) private var presentationMode: Binding<PresentationMode>
     
-    let ignoreSections = ["Highlights", "Installation"]
+    // AOK VM: its own "Highlights" are shown like the rest (UTM leaves its own out of the list)
+    let ignoreSections = ["Installation"]
     
     var body: some View {
         VStack {
@@ -32,8 +33,8 @@ struct VMReleaseNotesView: View {
                         .font(.largeTitle)
                         .padding(.bottom)
                     VStack(alignment: .leading) {
-                        Notes(section: helper.releaseNotes.first!, isProminent: true)
-                            .padding(.bottom, 0.5)
+                        // AOK VM: every section once, in order, under its title. UTM shows its first section
+                        // untitled above the list as well, which showed AOK VM's newest build twice.
                         if isShowAll {
                             ForEach(helper.releaseNotes) { section in
                                 if !ignoreSections.contains(section.title) {
