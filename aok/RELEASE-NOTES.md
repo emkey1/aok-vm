@@ -1,5 +1,10 @@
-# AOK VM 1.0 (release candidate 3)
-## New in build 6
+# AOK VM 1.0 (release candidate 4)
+## New in build 7
+* **PowerPC and 68k Macs on the newer engine**: the PowerPC (mac99, g3beige, and 64-bit) and 68k (Quadra 800) machines now run on the same QEMU as every other machine here (tctiSH's, with its threaded interpreter), in place of the older QEMU they had: 1.4 to 2.2 times faster on PowerPC and 1.1 to 2.1 times on 68k in our benchmarks. PowerPC Macs keep the Screamer sound device that Mac OS 9 expects.
+* **CDs and removable disks**: a machine that started with an ISO, or had a disc, disk or floppy put in later, stopped with "Parameter 'file-locking-mode' is unexpected".
+* **A TPM on ARM64 and RISC-V machines**: a "virt" machine with its TPM on no longer refuses to start.
+* Crash reports and system notices name the app AOK VM, not UTM SE.
+## In build 6
 * **A smaller app**: 32-bit PC machines run on the x86-64 engine, as they already did, without a second copy of it; Devuan for ARM64 is now a download (+, then Get a Ready-Made Machine), like the other Devuan machines; and the firmware for machines AOK VM has no engine for (LoongArch, 32-bit ARM) and the Secure Boot firmware for ARM64 are gone.
 * An ARM64 machine with a TPM boots the regular UEFI firmware, without enforcing Secure Boot.
 * The engine has the newest changes of the QEMU it is built on (tctiSH's).

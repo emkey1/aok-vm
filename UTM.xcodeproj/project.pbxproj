@@ -3534,12 +3534,12 @@
 			buildPhases = (
 				CE11C03B2BD46F7600E103A0 /* Generate Info.plist */,
 				AE57F1A0B6C24D3E8F90A1B2 /* Drop unused firmware */,
+				FD806A2B5CABFCCD9330BEAA /* Strip QEMU symbols */,
 				CEA45E24263519B5002FA97D /* Sources */,
 				CEA45F23263519B5002FA97D /* Frameworks */,
 				CEA45F63263519B5002FA97D /* Resources */,
 				FE10574BB7D82DECAAA1E01F /* Copy AOK VM machines */,
 				CE59A7B22ABCCB7C00E5FFBD /* Patch Settings bundle */,
-				FD806A2B5CABFCCD9330BEAA /* Strip QEMU symbols */,
 				CEA45F71263519B5002FA97D /* Embed Libraries */,
 				84A57CC630641CCE00BA5139 /* Embed ExtensionKit Extensions */,
 			);

@@ -1,6 +1,7 @@
 #!/bin/bash
 # build-qemu-utm.sh [ios-tci|ios_simulator-tci] [configure] -- cross-build the AOK-gadgets QEMU (src-aok,
-# branch utm-se) as UTM SE's RISC-V, ARM64 and x86 engines, for devices (the default) or for the arm64 simulator.
+# branch utm-gl with AOK_GL=1, as aok/ENGINE names it) as UTM SE's RISC-V, ARM64, x86, PowerPC and 68k engines,
+# for devices (the default) or for the arm64 simulator.
 #
 # UTM's iOS-SE app loads one QEMU shared library per guest architecture from its sysroot's Frameworks. This
 # builds ours for riscv64, aarch64 and x86_64 the way UTM's scripts/build_dependencies.sh builds QEMU for the "ios-tci" platform
