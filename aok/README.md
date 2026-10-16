@@ -43,7 +43,10 @@ It needs the released Xcode 27. Step 2 is not part of the Xcode build yet
 3. Try the build from TestFlight's internal testing.
 4. `bash aok/release.sh publish`: the GitHub release `vVERSION-BUILD`
    with the sideloaders' IPA and `aok/RELEASE-NOTES.md`, at the commit it
-   was built from (the archive is not made again).
+   was built from (the archive is not made again). The IPA is attached
+   twice, the second time as `AOK-VM.ipa`: the name the permanent link
+   https://github.com/emkey1/aok-vm/releases/latest/download/AOK-VM.ipa
+   fetches from whichever release is the latest.
 
 No CI builds it: the engines and the sysroot are built outside Xcode, on
 two Macs (`TODO.md`).

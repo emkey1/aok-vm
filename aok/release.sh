@@ -2,7 +2,8 @@
 # release.sh [publish] -- an AOK VM release from this checkout, on the Mac that signs: one archive, signed by the
 # team, and from it the App Store IPA (for TestFlight: upload it with Apple's Transporter, since Xcode's own upload
 # fails for this account) and the sideloaders' IPA (utm/sideload-ipa.sh). "publish" then makes the GitHub release
-# vVERSION-BUILD of emkey1/aok-vm, with the sideloaders' IPA, at the commit both were built from.
+# vVERSION-BUILD of emkey1/aok-vm, with the sideloaders' IPA (also as AOK-VM.ipa, for the permanent link
+# .../releases/latest/download/AOK-VM.ipa), at the commit both were built from.
 #
 # The version and build are Build.xcconfig's MARKETING_VERSION and CURRENT_PROJECT_VERSION. App Store Connect takes
 # a build number once, so raise CURRENT_PROJECT_VERSION, commit and push before a new one. Run it once without
@@ -80,15 +81,19 @@ bash "$R/aok/utm/sideload-ipa.sh" "$ARCHIVE" "$IPA"
 
 [ "$1" = publish ] || exit 0
 NOTES=$(mktemp)
-trap 'rm -f "$NOTES"' EXIT
+# The same IPA again as AOK-VM.ipa: the name the permanent link fetches,
+# https://github.com/$REPO/releases/latest/download/AOK-VM.ipa (as Foray's README does with Foray.dmg).
+LATEST=$(mktemp -d)
+trap 'rm -rf "$NOTES" "$LATEST"' EXIT
+cp "$IPA" "$LATEST/AOK-VM.ipa"
 sed '1d' aok/RELEASE-NOTES.md > "$NOTES"
 cat >> "$NOTES" <<EOF
 
 ## Installing
 
 * **TestFlight:** $TESTFLIGHT
-* **Sideloading:** \`$(basename "$IPA")\` is for AltStore, SideStore, Sideloadly and the like, which sign it again under your own Apple ID. AOK VM finds its App Groups under the names that signing gives them. "Share /AOK/persist" reaches iSH-AOK's /AOK/persist when iSH-AOK was sideloaded the same way, with the same Apple ID; otherwise it is a directory of AOK VM's own. A free Apple ID does not get the increased memory limit, and machines are sized to the memory the app is given.
+* **Sideloading:** \`$(basename "$IPA")\` (the same file as \`AOK-VM.ipa\`, which https://github.com/$REPO/releases/latest/download/AOK-VM.ipa always fetches from the newest release) is for AltStore, SideStore, Sideloadly and the like, which sign it again under your own Apple ID. AOK VM finds its App Groups under the names that signing gives them. "Share /AOK/persist" reaches iSH-AOK's /AOK/persist when iSH-AOK was sideloaded the same way, with the same Apple ID; otherwise it is a directory of AOK VM's own. A free Apple ID does not get the increased memory limit, and machines are sized to the memory the app is given.
 
 Problems: https://github.com/$REPO/issues
 EOF
-gh release create "$TAG" -R $REPO --target "$HEAD" --title "AOK VM $V ($B)" --notes-file "$NOTES" "$IPA"
+gh release create "$TAG" -R $REPO --target "$HEAD" --title "AOK VM $V ($B)" --notes-file "$NOTES" "$IPA" "$LATEST/AOK-VM.ipa"

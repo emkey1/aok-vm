@@ -5,6 +5,12 @@ the AOK gadget engine. What the fork is, how to build it and what it
 changes: [`aok/README.md`](aok/README.md). What follows is UTM's own README,
 which describes the project this is based on.
 
+**Install:** [TestFlight](https://testflight.apple.com/join/wzDUq3rP), or for
+AltStore, SideStore, Sideloadly and the like,
+[download AOK VM](https://github.com/emkey1/aok-vm/releases/latest/download/AOK-VM.ipa)
+(always the latest version; the [releases page](https://github.com/emkey1/aok-vm/releases/latest)
+has the notes).
+
 ---
 
 #  UTM
