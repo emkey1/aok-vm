@@ -56,7 +56,7 @@ if [ ! -f build.ninja ] || [ "$1" = configure ]; then
     "$W/src-aok/configure" --prefix="$OUT" --host=aarch64-apple-darwin --cross-prefix="" --objcc="$OBJCC" \
         --enable-shared-lib --disable-cocoa --disable-sdl --disable-coreaudio --disable-slirp-smbd \
         --enable-ucontext --with-coroutine=libucontext \
-        --enable-tcg-threaded-interpreter --target-list=riscv64-softmmu,aarch64-softmmu,x86_64-softmmu \
+        --enable-tcg-threaded-interpreter --target-list=riscv64-softmmu,aarch64-softmmu,x86_64-softmmu,ppc-softmmu,ppc64-softmmu,m68k-softmmu \
         --extra-cflags=-Wno-unused-command-line-argument --extra-ldflags=-Wl,-no_deduplicate \
         --extra-ldflags=-Wl,-random_uuid --extra-ldflags=-Wl,-no_compact_unwind \
         --enable-aok-gadgets --enable-spice --enable-spice-protocol --enable-slirp --enable-fdt=system \
