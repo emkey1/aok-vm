@@ -23,7 +23,7 @@ import TipKit
 
 // on visionOS, there is no text to show more than UTM
 #if WITH_QEMU_TCI && !os(visionOS)
-let productName = "UTM SE"
+let productName = "AOK VM"
 #elseif WITH_REMOTE && !os(visionOS)
 let productName = "UTM Remote"
 #else
