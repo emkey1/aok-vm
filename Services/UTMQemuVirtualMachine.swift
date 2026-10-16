@@ -864,7 +864,7 @@ extension UTMQemuVirtualMachine {
     /// - Parameter systemArchitecture: QEMU architecture
     /// - Returns: true if UTM is compiled with the supporting binaries
     internal static func isSupported(systemArchitecture: QEMUArchitecture) -> Bool {
-        let arch = systemArchitecture.rawValue
+        let arch = engineArchitecture(systemArchitecture).rawValue
         let bundleURL = Bundle.main.bundleURL
         #if os(macOS)
         let contentsURL = bundleURL.appendingPathComponent("Contents", isDirectory: true)
@@ -878,6 +878,13 @@ extension UTMQemuVirtualMachine {
         return FileManager.default.fileExists(atPath: framework.path)
     }
     
+    /// AOK VM: the engine a guest architecture runs on. A 32-bit PC runs on the x86-64 engine, which has the
+    /// gadgets (theirs are offsets into a CPU state with 64-bit registers) and runs 32-bit code as well, as
+    /// any PC made since 2004 does; the app carries no i386 engine (UTMQemuSystem starts the same one).
+    static func engineArchitecture(_ architecture: QEMUArchitecture) -> QEMUArchitecture {
+        architecture == .i386 ? .x86_64 : architecture
+    }
+
     /// Check if the current VM target is supported by the host
     @MainActor var isSupported: Bool {
         return UTMQemuVirtualMachine.isSupported(systemArchitecture: config.system.architecture)

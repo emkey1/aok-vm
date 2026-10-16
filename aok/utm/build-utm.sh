@@ -10,7 +10,7 @@
 #            on (7eadb056, 5.0.6: run 36090554968 on github.com/utmapp/UTM, which GitHub keeps for 90 days),
 #            or what UTM's scripts/build_dependencies.sh builds from source
 #   engines  aok/utm/build-qemu-utm.sh, then install-qemu-utm.sh: the AOK-gadgets QEMU (emkey1/qemu,
-#            branch utm-gl) as the sysroot's riscv64, aarch64, x86_64 and i386 QEMU
+#            branch utm-gl) as the sysroot's riscv64, aarch64 and x86_64 QEMU (x86_64 runs the 32-bit PCs too)
 #
 # From Xcode, with no script: with those two in place and CodeSigning.xcconfig written (below), open
 # UTM.xcodeproj, choose the scheme "AOK VM" and a device, and press Run. What Xcode does not build is

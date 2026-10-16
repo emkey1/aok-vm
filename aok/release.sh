@@ -8,7 +8,7 @@
 # a build number once, so raise CURRENT_PROJECT_VERSION, commit and push before a new one. Run it once without
 # "publish", try the build (TestFlight's internal testing), then again with "publish": an archive of the same
 # commit is used again, not rebuilt. Needs what utm/build-utm.sh needs (the sysroot with the engines in it,
-# CodeSigning.xcconfig), the three machines in images/bundled (images/README.md), and gh signed in for "publish".
+# CodeSigning.xcconfig), the two machines in images/bundled (images/README.md), and gh signed in for "publish".
 # Out: $OUT (~/aok-utm/archives): AOKVM-VERSION-BUILD.xcarchive, appstore-BUILD/, AOK-VM-VERSION-BUILD.ipa.
 set -e
 R=$(cd "$(dirname "$0")/.." && pwd)

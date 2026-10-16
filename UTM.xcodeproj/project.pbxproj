@@ -929,7 +929,6 @@
 		CEA45FA2263519B5002FA97D /* json-glib-1.0.0.framework in Embed Libraries */ = {isa = PBXBuildFile; fileRef = CE2D63E222653C7400FC7E63 /* json-glib-1.0.0.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		CEA45FA3263519B5002FA97D /* pixman-1.0.framework in Embed Libraries */ = {isa = PBXBuildFile; fileRef = CE2D641922653C7600FC7E63 /* pixman-1.0.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		CEA45FA4263519B5002FA97D /* jpeg.62.framework in Embed Libraries */ = {isa = PBXBuildFile; fileRef = CE2D63D922653C7300FC7E63 /* jpeg.62.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
-		CEA45FA7263519B5002FA97D /* qemu-i386-softmmu.framework in Embed Libraries */ = {isa = PBXBuildFile; fileRef = CE2D63D722653C7300FC7E63 /* qemu-i386-softmmu.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		CEA45FA8263519B5002FA97D /* spice-client-glib-2.0.8.framework in Embed Libraries */ = {isa = PBXBuildFile; fileRef = CE2D63FE22653C7500FC7E63 /* spice-client-glib-2.0.8.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		CEA45FA9263519B5002FA97D /* opus.0.framework in Embed Libraries */ = {isa = PBXBuildFile; fileRef = CE2D640322653C7500FC7E63 /* opus.0.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		CEA45FAA263519B5002FA97D /* gstsdp-1.0.0.framework in Embed Libraries */ = {isa = PBXBuildFile; fileRef = CE2D641622653C7500FC7E63 /* gstsdp-1.0.0.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -1674,7 +1673,6 @@
 				CEA45FA2263519B5002FA97D /* json-glib-1.0.0.framework in Embed Libraries */,
 				CEA45FA3263519B5002FA97D /* pixman-1.0.framework in Embed Libraries */,
 				CEA45FA4263519B5002FA97D /* jpeg.62.framework in Embed Libraries */,
-				CEA45FA7263519B5002FA97D /* qemu-i386-softmmu.framework in Embed Libraries */,
 				CEA45FA8263519B5002FA97D /* spice-client-glib-2.0.8.framework in Embed Libraries */,
 				CEA45FA9263519B5002FA97D /* opus.0.framework in Embed Libraries */,
 				CEA45FAA263519B5002FA97D /* gstsdp-1.0.0.framework in Embed Libraries */,
@@ -3535,6 +3533,7 @@
 			buildConfigurationList = CEA45FB6263519B5002FA97D /* Build configuration list for PBXNativeTarget "iOS-SE" */;
 			buildPhases = (
 				CE11C03B2BD46F7600E103A0 /* Generate Info.plist */,
+				AE57F1A0B6C24D3E8F90A1B2 /* Drop unused firmware */,
 				CEA45E24263519B5002FA97D /* Sources */,
 				CEA45F23263519B5002FA97D /* Frameworks */,
 				CEA45F63263519B5002FA97D /* Resources */,
@@ -3866,6 +3865,30 @@
 			shellScript = "#!/bin/sh\n\nPLISTBUDDY=/usr/libexec/PlistBuddy\nROOT_PLIST=\"$SCRIPT_OUTPUT_FILE_0\"\n\nCOUNT=$($PLISTBUDDY -c \"Print :PreferenceSpecifiers\" \"$ROOT_PLIST\" | grep -c '^    }$')\n\nfor ((i = 0; i < COUNT; i++)); do\n    remove=0\n    platform=$($PLISTBUDDY -c \"Print :PreferenceSpecifiers:$i:Platform\" \"$ROOT_PLIST\" 2> /dev/null)\n    if [ ! -z \"$platform\" ]; then\n        if [ \"$platform\" == \"$PLATFORM_FAMILY_NAME\" ]; then\n            echo \"Found entry $i for $platform\"\n            $PLISTBUDDY -c \"Delete :PreferenceSpecifiers:$i:Platform\" \"$ROOT_PLIST\"\n        else\n            echo \"Exclude $i due to Platform\"\n            remove=1\n        fi\n    fi\n    excludetargets=$($PLISTBUDDY -c \"Print :PreferenceSpecifiers:$i:ExcludeTargets\" \"$ROOT_PLIST\" 2> /dev/null | sed '1d;$d' | xargs)\n    if [ ! -z \"$excludetargets\" ]; then\n        found=0\n        for target in $excludetargets; do\n            if [ \"$target\" == \"$TARGET_NAME\" ]; then\n                found=1\n            fi\n        done\n        if [ $found -eq 1 ]; then\n            echo \"Exclude $i due to ExcludeTargets\"\n            remove=1\n        else\n            echo \"Found entry $i for ExcludeTargets\"\n            $PLISTBUDDY -c \"Delete :PreferenceSpecifiers:$i:ExcludeTargets\" \"$ROOT_PLIST\"\n        fi\n    fi\n    if [ $remove -eq 1 ]; then\n        echo \"Removing entry $i\"\n        $PLISTBUDDY -c \"Delete :PreferenceSpecifiers:$i\" \"$ROOT_PLIST\"\n        ((COUNT--))\n        ((i--))\n    fi\ndone\n";
 			showEnvVarsInLog = 0;
 		};
+		AE57F1A0B6C24D3E8F90A1B2 /* Drop unused firmware */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Drop unused firmware";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/$(SYSROOT_DIR)/share/qemu/edk2-loongarch64-code.fd",
+				"$(SRCROOT)/$(SYSROOT_DIR)/share/qemu/edk2-loongarch64-vars.fd",
+				"$(SRCROOT)/$(SYSROOT_DIR)/share/qemu/edk2-arm-code.fd",
+				"$(SRCROOT)/$(SYSROOT_DIR)/share/qemu/edk2-aarch64-secure-code.fd",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "#!/bin/sh\n# AOK VM: firmware for machines it has no engine for, or that boot another way, out of the app (160 MB of its installed size), by taking them out of the sysroot before Resources copies its share/qemu: LoongArch's, 32-bit ARM's code (its variables are AArch64's too, and stay), and the secure AArch64 code (a machine with a TPM gets the plain one: UTMQemuConfiguration+Arguments). The files are this phase's outputs, which is what lets a sandboxed script phase remove them; once gone they stay gone.\nset -e\ni=0\nwhile [ $i -lt $SCRIPT_OUTPUT_FILE_COUNT ]; do\n    eval f=\\$SCRIPT_OUTPUT_FILE_$i\n    rm -f \"$f\"\n    i=$((i + 1))\ndone\n";
+			showEnvVarsInLog = 0;
+		};
 		FE10574BB7D82DECAAA1E01F /* Copy AOK VM machines */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -3876,7 +3899,6 @@
 			inputPaths = (
 				"$(SRCROOT)/aok/images/machines.json",
 				"$(SRCROOT)/aok/images/bundled/alpine-3.24.2-aarch64.zip",
-				"$(SRCROOT)/aok/images/bundled/devuan-6-aarch64.zip",
 				"$(SRCROOT)/aok/images/bundled/reactos-0.4.16.zip",
 				"$(SRCROOT)/aok/RELEASE-NOTES.md",
 			);
@@ -3886,7 +3908,6 @@
 			outputPaths = (
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/machines.json",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/alpine-3.24.2-aarch64.zip",
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/devuan-6-aarch64.zip",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/reactos-0.4.16.zip",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKReleaseNotes.md",
 			);
@@ -4016,8 +4037,6 @@
 			outputPaths = (
 				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-aarch64-softmmu.framework/qemu-aarch64-softmmu",
 				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-aarch64-softmmu.symbols",
-				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-i386-softmmu.framework/qemu-i386-softmmu",
-				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-i386-softmmu.symbols",
 				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-m68k-softmmu.framework/qemu-m68k-softmmu",
 				"$(SRCROOT)/$(SYSROOT_DIR)/lib/qemu-m68k-softmmu.symbols",
 				"$(SRCROOT)/$(SYSROOT_DIR)/Frameworks/qemu-ppc-softmmu.framework/qemu-ppc-softmmu",

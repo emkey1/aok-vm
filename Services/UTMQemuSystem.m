@@ -283,7 +283,10 @@ static int startQemu(UTMProcess *process, int argc, const char *argv[], const ch
         }
     }
     dispatch_group_wait(group, DISPATCH_TIME_FOREVER);
-    NSString *name = [NSString stringWithFormat:@"qemu-%@-softmmu", self.architecture];
+    // AOK VM: a 32-bit PC runs on the x86-64 engine, the one with the gadgets (UTMQemuVirtualMachine's
+    // engineArchitecture); the app carries no i386 engine.
+    NSString *engine = [self.architecture isEqualToString:@"i386"] ? @"x86_64" : self.architecture;
+    NSString *name = [NSString stringWithFormat:@"qemu-%@-softmmu", engine];
     [self startProcess:name completion:completion];
 }
 

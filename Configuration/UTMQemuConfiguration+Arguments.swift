@@ -607,7 +607,10 @@ import Virtualization // for getting network interfaces
         }
         if qemu.hasUefiBoot, let prefix = UTMQemuConfigurationQEMU.uefiImagePrefix(forArchitecture: system.architecture) {
             let secure = isSecureBootUsed ? "-secure" : ""
-            let bios = resourceURL.appendingPathComponent("\(prefix)\(secure)-code.fd")
+            // AOK VM carries no secure AArch64 image (64 MB, for Secure Boot under a TPM): such a machine
+            // gets the plain one, which boots it without enforcing Secure Boot, rather than no firmware.
+            let chosenBios = resourceURL.appendingPathComponent("\(prefix)\(secure)-code.fd")
+            let bios = FileManager.default.fileExists(atPath: chosenBios.path) ? chosenBios : resourceURL.appendingPathComponent("\(prefix)-code.fd")
             let vars = qemu.efiVarsURL ?? URL(fileURLWithPath: "/\(QEMUPackageFileName.efiVariables.rawValue)")
             if !hasCustomBios && FileManager.default.fileExists(atPath: bios.path) {
                 f("-drive")

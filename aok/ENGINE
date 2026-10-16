@@ -1,4 +1,4 @@
 The QEMU this app is built around: the AOK gadgets fork.
 repository https://github.com/emkey1/qemu
 branch     utm-gl
-commit     8717bcfd1633af207c1b84a1afa7cfd3f3fe8a8a
+commit     42d4af38b73bd34eac6b87ce933416b1bfd62505
