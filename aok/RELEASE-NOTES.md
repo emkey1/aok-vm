@@ -1,4 +1,7 @@
 # AOK VM 1.0 (release candidate 4)
+## New in build 9
+* **x86-64 machines boot faster**: a machine whose CPU is left at "Default" now gets the gadget engine's own CPU (QEMU's max, without LA57, as AOK VM's ready-made machines have), not Skylake-Client, which made Linux switch on its Meltdown and MDS defences: a page-table switch and a buffer clear on every system call. The Arch Linux ISO boots 20% faster. A Windows machine may notice the new processor once.
+* **Memory near the end of a page**: on every machine the threaded interpreter runs (PowerPC and 68k throughout, the others where the gadget engine hands over), a load or store in the last few bytes of a memory page could read or write another page instead, at random and more often when the device was busy. Fixed.
 ## New in build 8
 * **PowerPC and 68k Macs on the newer engine**: the PowerPC (mac99, g3beige, and 64-bit) and 68k (Quadra 800) machines now run on the same QEMU as every other machine here (tctiSH's, with its threaded interpreter), in place of the older QEMU they had: 1.4 to 2.2 times faster on PowerPC and 1.1 to 2.1 times on 68k in our benchmarks. PowerPC Macs keep the Screamer sound device that Mac OS 9 expects.
 * **CDs and removable disks**: a machine that started with an ISO, or had a disc, disk or floppy put in later, stopped with "Parameter 'file-locking-mode' is unexpected".

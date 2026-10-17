@@ -440,9 +440,23 @@ import Virtualization // for getting network interfaces
                 // ARM64 QEMU does not support "-cpu default" so we hard code a sensible default
                 f("-cpu")
                 f("cortex-a15")
-            } else if system.architecture == .x86_64, let cpu = highestIntelCPUConfigurationForHost() {
+            } else if system.architecture == .x86_64 {
+                #if arch(x86_64)
+                if let cpu = highestIntelCPUConfigurationForHost() {
+                    f("-cpu")
+                    f(cpu)
+                }
+                #else
+                // AOK VM: on an ARM host, the AOK engine's own CPU, as AOK VM's machines have it
+                // (aok/images/machine.py). QEMU's max offers what the engine runs (AVX-512, SHA,
+                // ADX ...) and, unlike Skylake-Client, tells the guest it is not affected by
+                // Meltdown, MDS and their kin, whose mitigations (a page-table switch and a
+                // buffer clear on every system call, a TLB flush in QEMU each time) made the Arch
+                // ISO's boot 25% longer. LA57 off: a guest kernel would walk five-level page
+                // tables on every TLB miss.
                 f("-cpu")
-                f(cpu)
+                f("max,-la57")
+                #endif
             }
         } else {
             f("-cpu")
