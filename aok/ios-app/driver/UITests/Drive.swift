@@ -62,6 +62,15 @@ final class Drive: XCTestCase {
     }
 
     func test68k() { start("AOK 68k Console", wait: 75) }
+
+    /// One of the two x86-64 test machines (CPU Default; cores Default, and 1), which run the four parallel checks
+    /// (stresst) and leave a shell: started from the list and given `wait` seconds. The screen has the result
+    /// (devicectl's screenshot), Data/debug.log the QEMU command line: -cpu, -smp and -accel.
+    func x86(_ name: String, wait: UInt32) {
+        start(name, wait: wait)
+    }
+    func testX86Default() { x86("AOK x86-64 Default", wait: 420) }
+    func testX86One() { x86("AOK x86-64 One Core", wait: 600) }
     func testPPC() { start("AOK PowerPC Console", wait: 120) }
 
     /// The window menu's Current Window: picks the device whose label starts with `prefix`.
