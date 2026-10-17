@@ -48,6 +48,24 @@ for a in $ARCHES; do
             mv "$W/bench/x86test.$a.tmp" "$W/bench/x86test.$a"
         fi
         "$ISH" -f "$R" /bin/sh -c 'cat > /bench/x86test && chmod +x /bench/x86test' < "$W/bench/x86test.$a"
+        # tsotest: x86's memory order between CPUs, for a guest whose CPUs run in parallel (thread=multi).
+        if [ ! -s "$W/bench/tsotest.$a" ] || [ "$W/bench/tsotest.c" -nt "$W/bench/tsotest.$a" ]; then
+            "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > tsotest.c &&
+                gcc -O2 -pthread -static -o tsotest tsotest.c && cat tsotest' \
+                < "$W/bench/tsotest.c" > "$W/bench/tsotest.$a.tmp"
+            mv "$W/bench/tsotest.$a.tmp" "$W/bench/tsotest.$a"
+        fi
+        "$ISH" -f "$R" /bin/sh -c 'cat > /bench/tsotest && chmod +x /bench/tsotest' < "$W/bench/tsotest.$a"
+        # kmovtest (x86_64): AVX-512's opmask moves, from and to the extended registers too.
+        if [ $a = x86_64 ]; then
+            if [ ! -s "$W/bench/kmovtest.$a" ] || [ "$W/bench/kmovtest.c" -nt "$W/bench/kmovtest.$a" ]; then
+                "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > kmovtest.c &&
+                    gcc -O1 -static -o kmovtest kmovtest.c && cat kmovtest' \
+                    < "$W/bench/kmovtest.c" > "$W/bench/kmovtest.$a.tmp"
+                mv "$W/bench/kmovtest.$a.tmp" "$W/bench/kmovtest.$a"
+            fi
+            "$ISH" -f "$R" /bin/sh -c 'cat > /bench/kmovtest && chmod +x /bench/kmovtest' < "$W/bench/kmovtest.$a"
+        fi
         # n-body through the x87 (32-bit only: Alpine's compiler makes SSE2 code of it there otherwise, so
         # the plain workload says nothing of the x87).
         if [ $a = x86 ]; then

@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/mman.h>
+#include <cpuid.h>
 
 typedef unsigned long W;
 #define FL 0x8d5UL              /* CF PF AF ZF SF OF */
@@ -204,6 +205,46 @@ static void shifts(void)
         __asm__ volatile(FLAGS_IN "shld $11, %k[b], %k[a]\n shrd $3, %[b], %[a]" FLAGS_OUT
                          : [a] "+q" (a), [fo] "=&r" (fo) : [b] "q" (b), [fi] "r" (fi) : "cc");
         mix(a); mix(fo & 0xc5);
+    }
+    end();
+}
+
+/*
+ * adcx and adox (ADX): each adds with one flag as its carry (CF, OF) and changes no other. From popf's flags;
+ * in two chains at once, as bignum code runs them, from an add's or a sub's flags (an engine's lazy state); and
+ * from memory. Without ADX (CPUID 7.0 EBX bit 19) the group is one fixed value.
+ */
+static void adx(void)
+{
+    unsigned ea, eb, ec, ed;
+
+    begin("adx");
+    if (!__get_cpuid_count(7, 0, &ea, &eb, &ec, &ed) || !(eb & (1u << 19))) {
+        mix(0);
+        end();
+        return;
+    }
+#define X_ADX(M, b) BIN("adcx", M, FL); BIN("adox", M, FL);
+    WIDE(X_ADX)
+    for (int i = 0; i < N; i++) {
+        W a = val(), b = val(), c = val(), d = val(), e = val(), m = val(), fo;
+#if BITS == 64
+        W f = val();
+        __asm__ volatile("add %[e], %[f]\n adcx %[b], %[a]\n adox %[d], %[c]\n adcx %[c], %[b]\n adox %[a], %[d]"
+                         FLAGS_OUT
+                         : [a] "+r" (a), [b] "+r" (b), [c] "+r" (c), [d] "+r" (d), [f] "+r" (f), [fo] "=&r" (fo)
+                         : [e] "r" (e) : "cc");
+        mix(f);
+#else
+        __asm__ volatile("add %[e], %[c]\n adcx %[b], %[a]\n adox %[a], %[c]\n adcx %[c], %[b]" FLAGS_OUT
+                         : [a] "+r" (a), [b] "+r" (b), [c] "+r" (c), [fo] "=&r" (fo) : [e] "r" (e) : "cc");
+#endif
+        mix(a); mix(b); mix(c); mix(d); mix(fo & FL);
+        a = val(); b = val(); c = val(); e = val();
+        __asm__ volatile("sub %[e], %[c]\n adox %[m], %[a]\n adcx %[m], %[b]\n adcxl %k[m], %k[c]" FLAGS_OUT
+                         : [a] "+r" (a), [b] "+r" (b), [c] "+r" (c), [fo] "=&r" (fo) : [e] "r" (e), [m] "m" (m)
+                         : "cc");
+        mix(a); mix(b); mix(c); mix(fo & FL);
     }
     end();
 }
@@ -540,6 +581,7 @@ int main(int argc, char **argv)
     arith();
     shifts();
     muldiv();
+    adx();
     conds();
     strings();
     memory();

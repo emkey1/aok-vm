@@ -24,6 +24,8 @@ for w in "$@"; do
     simdtest-*) ./simdtest -b "${w#simdtest-}"; ./timeit "$w" true ;;   # one bucket of it, a line an encoding
     x86test)  ./x86test; ./timeit x86test true ;;           # x86 and x86_64: the integer instructions
     x86testv) ./x86test -v; ./timeit x86testv true ;;       # every result of it
+    tsotest)  ./tsotest; ./timeit tsotest true ;;            # x86's memory order between parallel CPUs
+    kmovtest) ./kmovtest; ./timeit kmovtest true ;;          # x86_64: AVX-512's opmask moves
     vec)      # x86_64: the vector tests (x64/vec, iSH-AOK's, each with its answers), their last lines
         for t in /bench/vec/*; do printf 'VEC %s: ' "${t##*/}"; "$t" 2>&1 | tail -1; done; ./timeit vec true ;;
     vec-*)    t=/bench/vec/${w#vec-}; printf 'VEC %s: ' "${t##*/}"; "$t" 2>&1 | tail -1; ./timeit "$w" true ;;
