@@ -502,7 +502,7 @@ import Virtualization // for getting network interfaces
         let hostPcoreLogicalCpu = Int(Self.sysctlIntRead("hw.perflevel0.logicalcpu"))
         // in ARM we can only emulate other weak architectures
         let weakArchitectures: [QEMUArchitecture] = [.alpha, .arm, .aarch64, .avr, .mips, .mips64, .mipsel, .mips64el, .ppc, .ppc64, .riscv32, .riscv64, .xtensa, .xtensaeb]
-        if weakArchitectures.contains(system.architecture) {
+        if weakArchitectures.contains(system.architecture) || isParallelX86 {
             if hostPcorePhysicalCpu > 0 {
                 return (hostPcorePhysicalCpu, hostPcoreLogicalCpu)
             } else {
@@ -519,6 +519,18 @@ import Virtualization // for getting network interfaces
         #endif
     }
     
+    /// AOK VM: an x86 guest on an ARM host runs its CPUs in parallel, as the weak architectures' guests do. QEMU
+    /// will not by itself, x86's memory order being stronger than ARM's; the AOK engine's memory gadgets keep it
+    /// with barriers when the guest's CPUs run in parallel (aok/bench/tsotest.c, with QEMU_AOK_X86_NOMB as its
+    /// control).
+    private var isParallelX86: Bool {
+        #if arch(arm64)
+        return system.architecture == .x86_64 || system.architecture == .i386
+        #else
+        return false
+        #endif
+    }
+
     private var isHypervisorUsed: Bool {
         system.architecture.hasHypervisorSupport && qemu.hasHypervisor
     }
@@ -552,7 +564,7 @@ import Virtualization // for getting network interfaces
         } else {
             f("-accel")
             "tcg"
-            if system.isForceMulticore {
+            if system.isForceMulticore || (isParallelX86 && emulatedCpuCount.1 > 1) {
                 "thread=multi"
             }
             let tbSize = system.jitCacheSize > 0 ? system.jitCacheSize : system.memorySize / 4

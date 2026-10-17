@@ -5,6 +5,8 @@
 //   lb   load buffering: x; y = 1 against y; x = 1. Each load seeing the other's later store is forbidden.
 //   sb   store buffering: x = 1; y against y = 1; x. Both loads seeing 0 is ALLOWED (x86's store buffer), and
 //        real hardware shows it: the count says the threads did overlap.
+// Each runs in lockstep, each side waiting at every slot for the other to have done the one before: under an
+// emulator the two would otherwise seldom meet. sb's count is the witness that they did.
 //   lock a lock-prefixed add and xadd from every thread at once: the total must be exact.
 //   spin a cmpxchg spinlock around a plain read-modify-write of a counter: exact too.
 //
@@ -50,6 +52,8 @@ static void go_wait(void)
 #endif
 #define FENCE() __asm__ volatile("" ::: "memory")
 
+static volatile int done[2];             /* lockstep: the slots each side has finished */
+
 static void *side(void *arg)
 {
     int me = (int)(intptr_t)arg;
@@ -64,6 +68,11 @@ static void *side(void *arg)
         case 4: x[k] = 1; FENCE(); r0[k] = y[k]; break;                /* sb */
         case 5: y[k] = 1; FENCE(); r1[k] = x[k]; break;
         }
+        {
+            __atomic_store_n(&done[me], k + 1, __ATOMIC_RELEASE);
+            while (__atomic_load_n(&done[!me], __ATOMIC_ACQUIRE) < k + 1) {
+            }
+        }
     }
     return NULL;
 }
@@ -77,6 +86,7 @@ static long round_of(int t, long *seen)
     memset((void *)x, 0, N * sizeof(int));
     memset((void *)y, 0, N * sizeof(int));
     which = t;
+    done[0] = done[1] = 0;
     go_init(2);
     pthread_create(&a, NULL, side, (void *)0);
     pthread_create(&b, NULL, side, (void *)1);
