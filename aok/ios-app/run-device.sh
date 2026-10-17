@@ -23,7 +23,7 @@ pull() {
 }
 end=$((SECONDS + secs))
 while [ $SECONDS -lt $end ]; do
-    sleep 5
+    sleep ${AOKQ_POLL:-30}
     pull results.txt || continue
     # This run's part: from its last START line on.
     awk -v l="$label" '$1 == "START" && $2 == l { n = 0 } { a[n++] = $0 } END { for (i = 0; i < n; i++) print a[i] }' \

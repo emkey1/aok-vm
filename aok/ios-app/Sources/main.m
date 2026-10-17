@@ -14,6 +14,8 @@
 //   AOKQ_LABEL      the WL lines' label, e.g. riscv64-aokq-1 (arch-engine-round, as summarize.py wants)
 //   AOKQ_WORKLOADS  comma separated, as bench/run1.sh names them; default the six of the race
 //   AOKQ_SMP        guest CPUs, default 1
+//   AOKQ_ACCEL      QEMU's -accel, default tcg,tb-size=256 (tcg,tb-size=256,thread=multi: the CPUs in parallel)
+//   AOKQ_CPU        QEMU's -cpu, default the guest's (qemu64,+rdrand for x86_64)
 //   AOKQ_EXIT       exit when the guest has shut down, so that QEMU_AOK_STATS (printed at exit) is written
 //   AOKQ_HOLD       keep the screen on this many seconds after the run (then exit, with AOKQ_EXIT), so a
 //                   device with a short Auto-Lock does not lock between one run and the next
@@ -151,7 +153,7 @@ static void *run_qemu(void *arg) {
     NSArray<NSString *> *args = @[
         [NSString stringWithFormat:@"qemu-system-%s", guests[g].qemu], @"-M", @(guests[g].machine),
         @"-cpu", @(env_or("AOKQ_CPU", guests[g].cpu)), @"-smp", @(env_or("AOKQ_SMP", "1")),
-        @"-m", @"1024", @"-accel", @"tcg,tb-size=256", @"-display", @"none", @"-monitor", @"none",
+        @"-m", @"1024", @"-accel", @(env_or("AOKQ_ACCEL", "tcg,tb-size=256")), @"-display", @"none", @"-monitor", @"none",
         @"-serial", [@"file:" stringByAppendingString:serial], @"-no-reboot", @"-L", bundle,
         @"-kernel", [bundle stringByAppendingPathComponent:@(guests[g].kernel)],
         @"-initrd", [bundle stringByAppendingPathComponent:@(guests[g].initrd)],
@@ -177,8 +179,10 @@ static void *run_qemu(void *arg) {
     int (*qemu_main_loop)(void) = dlsym(dll, "qemu_main_loop");
     void (*qemu_cleanup)(int) = dlsym(dll, "qemu_cleanup");
     if (!qemu_init || !qemu_main_loop || !qemu_cleanup) { say(@"ERROR QEMU's entry points are missing"); return NULL; }
-    say([NSString stringWithFormat:@"START %s QEMU_AOK=%s smp=%s thermal=%ld", env_or("AOKQ_LABEL", "riscv64-aokq-1"),
-         env_or("QEMU_AOK", "1"), env_or("AOKQ_SMP", "1"), (long) NSProcessInfo.processInfo.thermalState]);
+    say([NSString stringWithFormat:@"START %s QEMU_AOK=%s smp=%s accel=%s cpu=%s thermal=%ld",
+         env_or("AOKQ_LABEL", "riscv64-aokq-1"), env_or("QEMU_AOK", "1"), env_or("AOKQ_SMP", "1"),
+         env_or("AOKQ_ACCEL", "tcg,tb-size=256"), env_or("AOKQ_CPU", "default"),
+         (long) NSProcessInfo.processInfo.thermalState]);
     qemu_init(argc, argv);
     int status = qemu_main_loop();
     usleep(300000);     // let the reader drain the console
