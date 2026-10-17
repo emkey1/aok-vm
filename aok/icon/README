@@ -1,4 +1,4 @@
-The icon of "AOK VM", iSH-AOK's build of UTM SE with the AOK gadget engine (build-utm.sh copies AppIcon.icon
+The icon of "AOK VM", the fork of UTM SE with the AOK gadget engine (build-app.sh copies AppIcon.icon
 over UTM's own before it builds).
 
 aokvm.svg        the artwork: iSH-AOK's window and wordmark in front of a stack of machines, a chain of

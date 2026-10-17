@@ -19,13 +19,13 @@ It is three repositories:
 ## Building
 
 1. **Dependencies.** UTM's prebuilt sysroot for the platform, unpacked at
-   the repository's root (`aok/utm/build-utm.sh` says where it comes from).
-2. **Engines.** `aok/utm/build-qemu-utm.sh [ios-tci|ios_simulator-tci]`
+   the repository's root (`aok/app/build-app.sh` says where it comes from).
+2. **Engines.** `aok/app/build-engines.sh [ios-tci|ios_simulator-tci]`
    cross-builds the QEMU of `aok/ENGINE` against that sysroot, and
-   `install-qemu-utm.sh` puts it in as the sysroot's riscv64, aarch64,
+   `install-engines.sh` puts it in as the sysroot's riscv64, aarch64,
    x86_64 and i386 QEMU (a 32-bit PC guest runs on the x86-64 engine).
 3. **The app.** Open `UTM.xcodeproj`, choose the scheme **AOK VM** and a
-   device, Run. Or `aok/utm/build-utm.sh device|sim`, which also writes
+   device, Run. Or `aok/app/build-app.sh device|sim`, which also writes
    `CodeSigning.xcconfig` when there is none.
 
 It needs the released Xcode 27. Step 2 is not part of the Xcode build yet
@@ -38,7 +38,7 @@ It needs the released Xcode 27. Step 2 is not part of the Xcode build yet
 2. `bash aok/release.sh` on the Mac that signs: one archive, and from it
    the App Store IPA (upload it to TestFlight with Apple's Transporter) and
    the sideloaders' IPA, `AOK-VM-VERSION-BUILD.ipa`
-   (`aok/utm/sideload-ipa.sh`: ad hoc signed with the app's entitlements,
+   (`aok/app/sideload-ipa.sh`: ad hoc signed with the app's entitlements,
    so that AltStore and the like give it its App Groups).
 3. Try the build from TestFlight's internal testing.
 4. `bash aok/release.sh publish`: the GitHub release `vVERSION-BUILD`
@@ -56,7 +56,7 @@ two Macs (`TODO.md`).
 | | |
 |---|---|
 | `release.sh` | a release: the archive, the App Store IPA, the sideloaders' IPA, and with `publish` the GitHub release ("Releasing" above) |
-| `utm/` | the engine build and install, the app build, `sideload-ipa.sh`, `install-utm.sh` (app and machines onto a device), `make-vm.py` (ready-made machines: the Alpine console guests of all four architectures, Devuan with a desktop), and what builds the Devuan disks |
+| `app/` | the engine build and install, the app build, `start-vm.sh` (start a machine with no tap), `sideload-ipa.sh`, `install-app.sh` (app and machines onto a device), `make-vm.py` (ready-made machines: the Alpine console guests of all four architectures, Devuan with a desktop), and what builds the Devuan disks |
 | `reactos/` | ReactOS for the PC machines: `build.sh` makes the installed disk that `make-vm.py` puts in "ReactOS.utm", from the release CD, by itself |
 | `icon/` | the icon's sources |
 | `docs/engine-study.md` | the whole account: why, each front end, results, the bugs worth remembering |
@@ -75,7 +75,7 @@ script that refreshes them inside a machine (`aok-update`) is kept there,
 at the address installed machines fetch it from.
 
 The scripts keep their working files outside the tree: `~/aok-vm-bench` on
-the Mac that cross-builds (QEMU builds, guest images, logs) and `~/aok-utm`
+the Mac that cross-builds (QEMU builds, guest images, logs) and `~/aok-vm-work`
 on the Mac that signs (derived data, machine bundles).
 
 ## Licences

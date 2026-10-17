@@ -88,7 +88,7 @@ struct ContentView: View {
                 // AOK VM: the machines the app carries, on its first start
                 await AOKMachineCatalog.shared.installBundledOnce(data: data)
                 #if os(iOS)
-                // AOK VM, for unattended device tests (aok/utm/start-vm.sh): AOKVM_START in the launch
+                // AOK VM, for unattended device tests (aok/app/start-vm.sh): AOKVM_START in the launch
                 // environment names a machine to start, with no tap and so with no UI automation (which iOS
                 // makes ask for Touch ID). Only a debugger or devicectl sets an app's environment.
                 if let name = ProcessInfo.processInfo.environment["AOKVM_START"],

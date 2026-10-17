@@ -30,7 +30,7 @@
             <BuildableReference
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "CEA45E1F263519B5002FA97D"
-               BuildableName = "UTM SE.app"
+               BuildableName = "AOK VM.app"
                ReferencedContainer = "container:UTM.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -61,7 +61,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CEA45E1F263519B5002FA97D"
-            BuildableName = "UTM SE.app"
+            BuildableName = "AOK VM.app"
             ReferencedContainer = "container:UTM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>
@@ -79,7 +79,7 @@
          <BuildableReference
             BuildableIdentifier = "primary"
             BlueprintIdentifier = "CEA45E1F263519B5002FA97D"
-            BuildableName = "UTM SE.app"
+            BuildableName = "AOK VM.app"
             ReferencedContainer = "container:UTM.xcodeproj">
          </BuildableReference>
       </BuildableProductRunnable>

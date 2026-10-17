@@ -12,7 +12,7 @@ if [ "$name" = --stop ]; then
     xcrun devicectl device info processes --device "$dev" --json-output "$t" > /dev/null 2>&1
     pid=$(python3 -c 'import json, sys
 for p in json.load(open(sys.argv[1]))["result"]["runningProcesses"]:
-    if p.get("executable", "").endswith("UTM%20SE.app/AOK%20VM") or p.get("executable", "").endswith("UTM SE.app/AOK VM"):
+    if p.get("executable", "").endswith("AOK%20VM.app/AOK%20VM") or p.get("executable", "").endswith("AOK VM.app/AOK VM"):
         print(p["processIdentifier"])' "$t" | head -1)
     rm -f "$t"
     [ -n "$pid" ] && xcrun devicectl device process terminate --device "$dev" --pid "$pid" > /dev/null 2>&1 &&

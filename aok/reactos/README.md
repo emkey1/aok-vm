@@ -15,7 +15,7 @@ bash aok/reactos/build.sh ~/aok-vm-bench/reactos-build
 Then the bundle, beside the 32-bit console machine:
 
 ```bash
-ARCH=i386 REACTOS_DISK=~/aok-vm-bench/reactos-build/reactos.qcow2 python3 aok/utm/make-vm.py OUTDIR KERNEL INITRAMFS EFI_VARS
+ARCH=i386 REACTOS_DISK=~/aok-vm-bench/reactos-build/reactos.qcow2 python3 aok/app/make-vm.py OUTDIR KERNEL INITRAMFS EFI_VARS
 ```
 
 ## What is worth knowing

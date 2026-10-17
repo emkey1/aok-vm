@@ -13,7 +13,7 @@ for a in $ARCHES; do
     case $a in aarch64) dev=$DEV/alpine-arm64-324 ;; riscv64) dev=$DEV/alpine-riscv64-test ;;
                x86_64) dev=$DEV/alpine-amd64-test ;; x86) dev=$DEV/alpine-i386-test ;; esac
     if [ ! -s "$W/bench/fptest.$a" ] || [ "$W/bench/fptest.c" -nt "$W/bench/fptest.$a" ]; then
-        "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > fptest.c &&
+        "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/aok-vm-tests && cd /tmp/aok-vm-tests && cat > fptest.c &&
             gcc -O1 -static -ffp-contract=off -fno-math-errno -o fptest fptest.c -lm && cat fptest' \
             < "$W/bench/fptest.c" > "$W/bench/fptest.$a.tmp"
         mv "$W/bench/fptest.$a.tmp" "$W/bench/fptest.$a"
@@ -21,7 +21,7 @@ for a in $ARCHES; do
     "$ISH" -f "$R" /bin/sh -c 'cat > /bench/fptest && chmod +x /bench/fptest' < "$W/bench/fptest.$a"
     # memtest: -O2, and no -mstrict-align games: one load or store instruction per access is the point.
     if [ ! -s "$W/bench/memtest.$a" ] || [ "$W/bench/memtest.c" -nt "$W/bench/memtest.$a" ]; then
-        "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > memtest.c &&
+        "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/aok-vm-tests && cd /tmp/aok-vm-tests && cat > memtest.c &&
             gcc -O2 -static -o memtest memtest.c && cat memtest' \
             < "$W/bench/memtest.c" > "$W/bench/memtest.$a.tmp"
         mv "$W/bench/memtest.$a.tmp" "$W/bench/memtest.$a"
@@ -31,7 +31,7 @@ for a in $ARCHES; do
     # another way than its reference does (the QEMU plug-in's AArch64 front end runs them on the host).
     if [ "$a" = aarch64 ]; then
         if [ ! -s "$W/bench/simdtest.$a" ] || [ "$W/bench/simdtest.c" -nt "$W/bench/simdtest.$a" ]; then
-            "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > simdtest.c &&
+            "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/aok-vm-tests && cd /tmp/aok-vm-tests && cat > simdtest.c &&
                 gcc -O2 -static -o simdtest simdtest.c && cat simdtest' \
                 < "$W/bench/simdtest.c" > "$W/bench/simdtest.$a.tmp"
             mv "$W/bench/simdtest.$a.tmp" "$W/bench/simdtest.$a"
@@ -42,7 +42,7 @@ for a in $ARCHES; do
     # compilers seldom emit and other systems' code is full of. For the QEMU plug-in's x86 front end.
     case $a in x86_64|x86)
         if [ ! -s "$W/bench/x86test.$a" ] || [ "$W/bench/x86test.c" -nt "$W/bench/x86test.$a" ]; then
-            "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > x86test.c &&
+            "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/aok-vm-tests && cd /tmp/aok-vm-tests && cat > x86test.c &&
                 gcc -O1 -mno-red-zone -static -o x86test x86test.c && cat x86test' \
                 < "$W/bench/x86test.c" > "$W/bench/x86test.$a.tmp"
             mv "$W/bench/x86test.$a.tmp" "$W/bench/x86test.$a"
@@ -50,7 +50,7 @@ for a in $ARCHES; do
         "$ISH" -f "$R" /bin/sh -c 'cat > /bench/x86test && chmod +x /bench/x86test' < "$W/bench/x86test.$a"
         # tsotest: x86's memory order between CPUs, for a guest whose CPUs run in parallel (thread=multi).
         if [ ! -s "$W/bench/tsotest.$a" ] || [ "$W/bench/tsotest.c" -nt "$W/bench/tsotest.$a" ]; then
-            "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > tsotest.c &&
+            "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/aok-vm-tests && cd /tmp/aok-vm-tests && cat > tsotest.c &&
                 gcc -O2 -pthread -static -o tsotest tsotest.c && cat tsotest' \
                 < "$W/bench/tsotest.c" > "$W/bench/tsotest.$a.tmp"
             mv "$W/bench/tsotest.$a.tmp" "$W/bench/tsotest.$a"
@@ -59,7 +59,7 @@ for a in $ARCHES; do
         # kmovtest (x86_64): AVX-512's opmask moves, from and to the extended registers too.
         if [ $a = x86_64 ]; then
             if [ ! -s "$W/bench/kmovtest.$a" ] || [ "$W/bench/kmovtest.c" -nt "$W/bench/kmovtest.$a" ]; then
-                "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > kmovtest.c &&
+                "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/aok-vm-tests && cd /tmp/aok-vm-tests && cat > kmovtest.c &&
                     gcc -O1 -static -o kmovtest kmovtest.c && cat kmovtest' \
                     < "$W/bench/kmovtest.c" > "$W/bench/kmovtest.$a.tmp"
                 mv "$W/bench/kmovtest.$a.tmp" "$W/bench/kmovtest.$a"
@@ -70,7 +70,7 @@ for a in $ARCHES; do
         # the plain workload says nothing of the x87).
         if [ $a = x86 ]; then
             if [ ! -s "$W/bench/nbody87.$a" ] || [ "$W/bench/nbody.c" -nt "$W/bench/nbody87.$a" ]; then
-                "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > nbody.c &&
+                "$ISH" -f "$dev" /bin/sh -e -c 'mkdir -p /tmp/aok-vm-tests && cd /tmp/aok-vm-tests && cat > nbody.c &&
                     gcc -O2 -static -mfpmath=387 -mno-sse -o nbody87 nbody.c -lm && cat nbody87' \
                     < "$W/bench/nbody.c" > "$W/bench/nbody87.$a.tmp"
                 mv "$W/bench/nbody87.$a.tmp" "$W/bench/nbody87.$a"
@@ -84,7 +84,7 @@ for a in $ARCHES; do
             src=$HOME/git/ish-AOK/tests/manual/x86/$t.c
             [ -f "$src" ] || src=$W/bench/$t.c
             if [ ! -s "$W/bench/$t.$a" ] || [ "$src" -nt "$W/bench/$t.$a" ]; then
-                "$ISH" -f "$dev" /bin/sh -e -c "mkdir -p /tmp/bench-utm && cd /tmp/bench-utm && cat > $t.c &&
+                "$ISH" -f "$dev" /bin/sh -e -c "mkdir -p /tmp/aok-vm-tests && cd /tmp/aok-vm-tests && cat > $t.c &&
                     gcc -O1 -static -o $t $t.c -lm && cat $t" < "$src" > "$W/bench/$t.$a.tmp"
                 mv "$W/bench/$t.$a.tmp" "$W/bench/$t.$a"
             fi
@@ -104,7 +104,7 @@ for a in $ARCHES; do
     bsdtar -c --format=newc -f "$W/initramfs-$a.cpio" "@$R/data/bench-root.tar"
     ls -la "$W/initramfs-$a.cpio"
 done
-# For a VM front end (aok/utm): the riscv64 image followed by a second archive with the kernel
+# For a VM front end (aok/app): the riscv64 image followed by a second archive with the kernel
 # package's modules, which the kernel unpacks over the first. /init loads drivers only when they are there,
 # so the race's image is the same guest without them.
 M=$W/dl-kernel/modules-riscv64

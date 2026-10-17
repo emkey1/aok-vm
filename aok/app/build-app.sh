@@ -1,7 +1,7 @@
 #!/bin/bash
-# build-utm.sh [device|sim] -- build AOK VM (this repository's iOS-SE target, through the scheme "AOK VM")
-# around the sysroot that install-qemu-utm.sh prepared, on the Mac that signs. The product is a signed
-# "UTM SE.app" under $DD/Build/Products/Release-iphoneos (or -iphonesimulator); DD is ~/aok-utm/dd unless set.
+# build-app.sh [device|sim] -- build AOK VM (this repository's iOS-SE target, through the scheme "AOK VM")
+# around the sysroot that install-engines.sh prepared, on the Mac that signs. The product is a signed
+# "AOK VM.app" under $DD/Build/Products/Release-iphoneos (or -iphonesimulator); DD is ~/aok-vm-work/dd unless set.
 #
 # What has to be in the checkout first:
 #   sysroot  UTM's prebuilt dependencies for the platform, unpacked at the repository's root as
@@ -9,7 +9,7 @@
 #            Sysroot-ios-tci-arm64 artifact of UTM's own Build workflow for the commit this fork is based
 #            on (7eadb056, 5.0.6: run 36090554968 on github.com/utmapp/UTM, which GitHub keeps for 90 days),
 #            or what UTM's scripts/build_dependencies.sh builds from source
-#   engines  aok/utm/build-qemu-utm.sh, then install-qemu-utm.sh: the AOK-gadgets QEMU (emkey1/qemu,
+#   engines  aok/app/build-engines.sh, then install-engines.sh: the AOK-gadgets QEMU (emkey1/qemu,
 #            branch aok-vm) as the sysroot's riscv64, aarch64, x86_64 (it runs the 32-bit PCs too), ppc, ppc64
 #            and m68k QEMU
 #
@@ -31,7 +31,7 @@
 # What this fork changes in UTM's front end is in its commits (git log 7eadb056..), each with its reason.
 set -e
 R=$(cd "$(dirname "$0")/../.." && pwd)
-DD=${DD:-$HOME/aok-utm/dd}
+DD=${DD:-$HOME/aok-vm-work/dd}
 cd "$R"
 [ -f CodeSigning.xcconfig ] || cat > CodeSigning.xcconfig <<'XC'
 DEVELOPMENT_TEAM = UYU5FM4LQ4
@@ -51,7 +51,7 @@ esac
 xcodebuild -scheme "AOK VM" -destination "$dest" -configuration Release ARCHS=arm64 -derivedDataPath "$DD" \
     -skipPackagePluginValidation -skipMacroValidation $extra build > "$DD/build-${1:-device}.log" 2>&1 ||
     { grep "error:" "$DD/build-${1:-device}.log" | sort -u | head -20; exit 1; }
-if plutil -p "$DD/Build/Products/$products/UTM SE.app/Settings.bundle/Root.plist" | grep -q 'ExcludeTargets\|"Platform"'; then
+if plutil -p "$DD/Build/Products/$products/AOK VM.app/Settings.bundle/Root.plist" | grep -q 'ExcludeTargets\|"Platform"'; then
     echo "the settings page was not patched for this target (Patch Settings bundle did not run)"; exit 1
 fi
-ls -d "$DD/Build/Products/$products/UTM SE.app"
+ls -d "$DD/Build/Products/$products/AOK VM.app"

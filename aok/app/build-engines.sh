@@ -1,28 +1,30 @@
 #!/bin/bash
-# build-qemu-utm.sh [ios-tci|ios_simulator-tci] [configure] -- cross-build the AOK-gadgets QEMU (src-aok,
-# branch aok-vm with AOK_GL=1, as aok/ENGINE names it) as UTM SE's RISC-V, ARM64, x86, PowerPC and 68k engines,
+# build-engines.sh [ios-tci|ios_simulator-tci] [configure] -- cross-build the AOK-gadgets QEMU (src-aok,
+# branch aok-vm with AOK_GL=1, as aok/ENGINE names it) as AOK VM's RISC-V, ARM64, x86, PowerPC and 68k engines,
 # for devices (the default) or for the arm64 simulator.
 #
-# UTM's iOS-SE app loads one QEMU shared library per guest architecture from its sysroot's Frameworks. This
-# builds ours for riscv64, aarch64 and x86_64 the way UTM's scripts/build_dependencies.sh builds QEMU for the "ios-tci" platform
-# (same compiler setup, same configure flags, same deployment target) against UTM's prebuilt dependencies,
-# plus --enable-aok-gadgets, and without OpenGL: UTM's GL display path is patches to its own QEMU fork that
-# this tree does not carry. The result is installed under utm/qemu-out-PLATFORM; install-qemu-utm.sh puts it
-# in the sysroot.
+# AOK VM (UTM's iOS-SE app) loads one QEMU shared library per guest architecture from its sysroot's
+# Frameworks. This builds ours for all six the way UTM's scripts/build_dependencies.sh builds QEMU for the
+# "ios-tci" platform (same compiler setup, same configure flags, same deployment target) against UTM's prebuilt
+# dependencies, plus --enable-aok-gadgets; AOK_GL=1 adds OpenGL and virglrenderer (the GL port in the aok-vm
+# branch). The result is installed under engines/qemu-out-PLATFORM(-gl); install-engines.sh puts it in the
+# sysroot.
 #
-# Needs: utm/UTM (UTM's checkout) with sysroot-PLATFORM-arm64 unpacked in it (the Sysroot-PLATFORM-arm64
-# artifact of UTM's Build workflow), Xcode, and Homebrew's meson ninja pkg-config.
+# Needs: engines/UTM, a checkout of UTM (utmapp/UTM) at the commit this fork is based on, with
+# sysroot-PLATFORM-arm64 unpacked in it (the Sysroot-PLATFORM-arm64 artifact of UTM's Build workflow), Xcode,
+# and Homebrew's meson ninja pkg-config. The build directories hold absolute paths: moving engines/ means
+# deleting engines/build-qemu-* (the next run configures them again).
 set -e
 W=${W:-$HOME/aok-vm-bench}
-U=$W/utm
+E=$W/engines
 PLAT=ios-tci
 case $1 in ios-tci|ios_simulator-tci) PLAT=$1; shift ;; esac
-PREFIX=$U/UTM/sysroot-$PLAT-arm64
-OUT=$U/qemu-out-$PLAT${AOK_GL:+-gl}
+PREFIX=$E/UTM/sysroot-$PLAT-arm64
+OUT=$E/qemu-out-$PLAT${AOK_GL:+-gl}
 export PATH=/opt/homebrew/bin:$PATH
 
 # The sysroot's .pc files name the CI machine's path. A corrected copy, so that the sysroot stays as shipped.
-PC=$U/pc-$PLAT
+PC=$E/pc-$PLAT
 mkdir -p "$PC"
 for f in "$PREFIX"/lib/pkgconfig/*.pc "$PREFIX"/share/pkgconfig/*.pc; do
     sed -e "s|^prefix=.*|prefix=$PREFIX|" "$f" > "$PC/$(basename "$f")"
@@ -52,7 +54,7 @@ export SDKROOT="$(xcrun --sdk macosx --show-sdk-path)"
 # GL=1: with OpenGL (UTM's ANGLE-backed epoxy) and virglrenderer, which needs the GL port (in the aok-vm branch).
 GL="--disable-opengl --disable-virglrenderer"
 [ -n "$AOK_GL" ] && GL="--enable-opengl --enable-virglrenderer --disable-dbus-display"
-mkdir -p "$U/build-qemu-$PLAT${AOK_GL:+-gl}" && cd "$U/build-qemu-$PLAT${AOK_GL:+-gl}"
+mkdir -p "$E/build-qemu-$PLAT${AOK_GL:+-gl}" && cd "$E/build-qemu-$PLAT${AOK_GL:+-gl}"
 if [ ! -f build.ninja ] || [ "$1" = configure ]; then
     "$W/src-aok/configure" --prefix="$OUT" --host=aarch64-apple-darwin --cross-prefix="" --objcc="$OBJCC" \
         --enable-shared-lib --disable-cocoa --disable-sdl --disable-coreaudio --disable-slirp-smbd \

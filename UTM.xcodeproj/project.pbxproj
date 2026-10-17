@@ -2193,7 +2193,7 @@
 		CEA3EDFA30168B9000AAA8E4 /* QEMURenderServer.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = QEMURenderServer.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEA3EDFD30168C9900AAA8E4 /* QEMURenderServer.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = QEMURenderServer.entitlements; sourceTree = "<group>"; };
 		CEA3EE13301C15DD00AAA8E4 /* QEMURenderServer-unsigned.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = "QEMURenderServer-unsigned.entitlements"; sourceTree = "<group>"; };
-		CEA45FB9263519B5002FA97D /* UTM SE.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "UTM SE.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		CEA45FB9263519B5002FA97D /* AOK VM.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "AOK VM.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		CEA51F862A81EAB700DDD7FA /* VMToolbarOrnamentModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VMToolbarOrnamentModifier.swift; sourceTree = "<group>"; };
 		CEA9053725F981E900801E7C /* usb-1.0.0.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = "usb-1.0.0.framework"; path = "$(SYSROOT_DIR)/Frameworks/usb-1.0.0.framework"; sourceTree = "<group>"; };
 		CEA9058725FC69D100801E7C /* usbredirhost.1.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = usbredirhost.1.framework; path = "$(SYSROOT_DIR)/Frameworks/usbredirhost.1.framework"; sourceTree = "<group>"; };
@@ -3066,7 +3066,7 @@
 				CE2D93BE24AD46670059923A /* UTM.app */,
 				CE2D951C24AD48BE0059923A /* UTM.app */,
 				CEBDA1DA24D8BDDA0010B5EC /* QEMUHelper.xpc */,
-				CEA45FB9263519B5002FA97D /* UTM SE.app */,
+				CEA45FB9263519B5002FA97D /* AOK VM.app */,
 				CE9A352D26533A51005077CF /* JailbreakInterposer.framework */,
 				8401FD62269BE9C500265F0D /* QEMULauncher.app */,
 				84E3A8F0293DB37E0024A740 /* utmctl */,
@@ -3563,7 +3563,7 @@
 				CE231D552BE03636006D6DC3 /* SwiftCopyfile */,
 			);
 			productName = UTM;
-			productReference = CEA45FB9263519B5002FA97D /* UTM SE.app */;
+			productReference = CEA45FB9263519B5002FA97D /* AOK VM.app */;
 			productType = "com.apple.product-type.application";
 		};
 		CEBDA1D924D8BDDA0010B5EC /* QEMUHelper */ = {
@@ -5760,7 +5760,7 @@
 				PLATFORM_SUFFIX = "-TCI";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_PREFIX:default=com.utmapp).vm";
 				PRODUCT_MODULE_NAME = UTM;
-				PRODUCT_NAME = "UTM SE";
+				PRODUCT_NAME = "AOK VM";
 				EXECUTABLE_NAME = "AOK VM";
 				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_SE:default=)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";
@@ -5801,7 +5801,7 @@
 				PLATFORM_SUFFIX = "-TCI";
 				PRODUCT_BUNDLE_IDENTIFIER = "$(PRODUCT_BUNDLE_PREFIX:default=com.utmapp).vm";
 				PRODUCT_MODULE_NAME = UTM;
-				PRODUCT_NAME = "UTM SE";
+				PRODUCT_NAME = "AOK VM";
 				EXECUTABLE_NAME = "AOK VM";
 				PROVISIONING_PROFILE_SPECIFIER = "$(PROVISIONING_PROFILE_SPECIFIER_SE:default=)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator xros xrsimulator";

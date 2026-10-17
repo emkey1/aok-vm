@@ -1,20 +1,20 @@
 #!/bin/bash
 # release.sh [publish] -- an AOK VM release from this checkout, on the Mac that signs: one archive, signed by the
 # team, and from it the App Store IPA (for TestFlight: upload it with Apple's Transporter, since Xcode's own upload
-# fails for this account) and the sideloaders' IPA (utm/sideload-ipa.sh). "publish" then makes the GitHub release
+# fails for this account) and the sideloaders' IPA (app/sideload-ipa.sh). "publish" then makes the GitHub release
 # vVERSION-BUILD of emkey1/aok-vm, with the sideloaders' IPA (also as AOK-VM.ipa, for the permanent link
 # .../releases/latest/download/AOK-VM.ipa), at the commit both were built from.
 #
 # The version and build are Build.xcconfig's MARKETING_VERSION and CURRENT_PROJECT_VERSION. App Store Connect takes
 # a build number once, so raise CURRENT_PROJECT_VERSION, commit and push before a new one. Run it once without
 # "publish", try the build (TestFlight's internal testing), then again with "publish": an archive of the same
-# commit is used again, not rebuilt. Needs what utm/build-utm.sh needs (the sysroot with the engines in it,
+# commit is used again, not rebuilt. Needs what app/build-app.sh needs (the sysroot with the engines in it,
 # CodeSigning.xcconfig), the two machines in images/bundled (images/README.md), and gh signed in for "publish".
-# Out: $OUT (~/aok-utm/archives): AOKVM-VERSION-BUILD.xcarchive, appstore-BUILD/, AOK-VM-VERSION-BUILD.ipa.
+# Out: $OUT (~/aok-vm-work/archives): AOKVM-VERSION-BUILD.xcarchive, appstore-BUILD/, AOK-VM-VERSION-BUILD.ipa.
 set -e
 R=$(cd "$(dirname "$0")/.." && pwd)
-OUT=${OUT:-$HOME/aok-utm/archives}
-DD=${DD:-$HOME/aok-utm/dd-repo}
+OUT=${OUT:-$HOME/aok-vm-work/archives}
+DD=${DD:-$HOME/aok-vm-work/dd-repo}
 REPO=emkey1/aok-vm
 TESTFLIGHT=https://testflight.apple.com/join/wzDUq3rP
 cd "$R"
@@ -48,7 +48,7 @@ if [ "$(cat "$ARCHIVE/aok-commit" 2> /dev/null)" != "$HEAD" ] || ! git diff --qu
         { grep "error:" "$OUT/archive-$B.log" | sort -u | head -20; exit 1; }
     git diff --quiet HEAD && echo "$HEAD" > "$ARCHIVE/aok-commit"
 fi
-built=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$ARCHIVE/Products/Applications/UTM SE.app/Info.plist")
+built=$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$ARCHIVE/Products/Applications/AOK VM.app/Info.plist")
 [ "$built" = "$B" ] || { echo "the archive is build $built, Build.xcconfig says $B" >&2; exit 1; }
 
 # The App Store IPA.
@@ -77,7 +77,7 @@ ASIPA=$(ls "$OUT/appstore-$B"/*.ipa | head -1)
 echo "App Store (Transporter): $ASIPA"
 
 # The sideloaders' IPA.
-bash "$R/aok/utm/sideload-ipa.sh" "$ARCHIVE" "$IPA"
+bash "$R/aok/app/sideload-ipa.sh" "$ARCHIVE" "$IPA"
 
 [ "$1" = publish ] || exit 0
 NOTES=$(mktemp)

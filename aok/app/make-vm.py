@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""make-vm.py OUTDIR KERNEL INITRAMFS EFI_VARS [DEVUAN_DIR] -- ready-made RISC-V virtual machines for UTM.
+"""make-vm.py OUTDIR KERNEL INITRAMFS EFI_VARS [DEVUAN_DIR] -- ready-made virtual machines for AOK VM.
 
 A .utm bundle is a directory: config.plist (UTM's configuration format, version 4) and Data/ with the files it
-names. Copied into the app's Documents, UTM lists it like one made in its own wizard.
+names. Copied into the app's Documents, AOK VM lists it like one made in its own wizard.
 
   "AOK RISC-V Console.utm"  The race's guest: the Alpine kernel and the benchmark userland, booted directly
                             (OpenSBI, then the kernel), one CPU, no display, the console on UTM's built-in

@@ -597,7 +597,7 @@ around this QEMU, installed on the M4 and the A10X iPad Pro as its own app
 ### Limits
 
 - **GL: OpenGL only so far.** See "The accelerated display" below.
-- Not measured against UTM SE as shipped on a device. `install-qemu-utm.sh
+- Not measured against UTM SE as shipped on a device. `install-engines.sh
   stock` puts UTM's own RISC-V QEMU back for that.
 - UTM for iOS has no way to start a VM from outside, so every device check
   needs a tap.
@@ -641,7 +641,7 @@ that), whatever QEMU does.
 ### Devuan
 
 So the machine to judge by is Devuan 6 "Excalibur", whose RISC-V port is
-official and whose Mesa (25.0.7) has virgl. `utm/build-devuan-disk.sh` makes
+official and whose Mesa (25.0.7) has virgl. `app/build-devuan-disk.sh` makes
 it: a 6 GB disk with Devuan's own kernel (6.12), sysvinit, network by DHCP
 and Mesa, built by running debootstrap natively inside the Alpine RISC-V
 guest on the build Mac's stock QEMU, with the packages fetched on the host
@@ -1118,8 +1118,8 @@ there, in the guest's own milliseconds, QEMU's engine against the gadgets:
 | sha256sum | 1,174 | 529 | 2.2 |
 | awk | 3,031 | 1,101 | 2.8 |
 
-UTM SE (section 9) is now built with both engines: `build-qemu-utm.sh` and
-`install-qemu-utm.sh` build and install the riscv64 and the aarch64
+UTM SE (section 9) is now built with both engines: `build-engines.sh` and
+`install-engines.sh` build and install the riscv64 and the aarch64
 library, and the rest of the pipeline takes `ARCH=aarch64`:
 `update-roots.sh` makes the arm64 guest with its kernel's modules,
 `build-devuan-disk.sh` builds Devuan arm64 in it (on the Mac's own CPU, so
@@ -1369,7 +1369,7 @@ and `build/tools/fakefsify`, plus Homebrew's `glib`, `pixman`, `meson` and
 | `prof-aok.sh` | where the plug-in build's time goes, by category |
 | `build-qemu-ios.sh` | cross-builds the plug-in QEMU and its libraries for iOS (tctiSH's recipe; `ios-app/build_dependencies.patch` is what it changes) |
 | `ios-app/` | the device benchmark app: `assemble.sh` stages QEMU and the guest and generates the project (XcodeGen), `build.sh` builds and signs, `run-device.sh` launches one run and fetches its results |
-| `utm/` | UTM SE with the plug-in (section 9): `build-qemu-utm.sh` and `install-qemu-utm.sh` build this QEMU against UTM's sysroot and put it there (`AOK_GL=1` for the build with the accelerated display), `build-utm.sh` builds and signs UTM, `make-vm.py` writes ready-made virtual machines, `install-utm.sh` puts both on a device |
+| `utm/` | UTM SE with the plug-in (section 9): `build-engines.sh` and `install-engines.sh` build this QEMU against UTM's sysroot and put it there (`AOK_GL=1` for the build with the accelerated display), `build-app.sh` builds and signs UTM, `make-vm.py` writes ready-made virtual machines, `install-app.sh` puts both on a device |
 | `bench/init`, `bench/udhcpc.sh` | the guest's init; in the VM image (the race's plus the kernel's modules) it also loads drivers and takes an address |
 | `bench/gltest.sh` | in a guest: installs Mesa and runs kmscube, which names the renderer it was given |
-| `utm/build-devuan-disk.sh`, `utm/devuan-provision.sh`, `utm/fetch-debs.py` | the Devuan RISC-V disk: built natively in the Alpine guest (its `/init` runs a job from a tar disk with `script=vdb`), packages fetched in parallel on the host |
+| `app/build-devuan-disk.sh`, `app/devuan-provision.sh`, `app/fetch-debs.py` | the Devuan RISC-V disk: built natively in the Alpine guest (its `/init` runs a job from a tar disk with `script=vdb`), packages fetched in parallel on the host |

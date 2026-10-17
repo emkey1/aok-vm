@@ -15,7 +15,7 @@ xcodebuild test -project "$D/AOKDriver.xcodeproj" -scheme AOKDriver -destination
 rc=$?
 # A running machine holds the screen itself (AOK VM's "Disable screen dimming when idle" is on); otherwise the
 # bench app takes it back.
-if xcrun devicectl device info processes --device $U 2>/dev/null | grep -q 'UTM SE.app/AOK VM'; then
+if xcrun devicectl device info processes --device $U 2>/dev/null | grep -q 'AOK VM.app/AOK VM'; then
     echo "AOK VM running: no hold"
 else
     "$HOME/git/aok-vm/aok/ios-app/keep-awake.sh" $U 3600 > /dev/null 2>&1 || echo "HOLD FAILED (locked?)"

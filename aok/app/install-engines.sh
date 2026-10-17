@@ -1,9 +1,9 @@
 #!/bin/bash
-# install-qemu-utm.sh [ios-tci|ios_simulator-tci] [stock] -- put the AOK-gadgets QEMU into UTM's sysroot as
+# install-engines.sh [ios-tci|ios_simulator-tci] [stock] -- put the AOK-gadgets QEMU into UTM's sysroot as
 # its RISC-V, ARM64, x86, PowerPC and 68k engines, or put UTM's own back.
 #
-# The first run keeps UTM's frameworks and RISC-V firmware under utm/stock-PLATFORM. Then each library that
-# build-qemu-utm.sh installed is wrapped as qemu-ARCH-softmmu.framework by UTM's own scripts/fixup.sh
+# The first run keeps UTM's frameworks and RISC-V firmware under engines/stock-PLATFORM. Then each library that
+# build-engines.sh installed is wrapped as qemu-ARCH-softmmu.framework by UTM's own scripts/fixup.sh
 # (which rewrites its imports to the sysroot's frameworks), and the RISC-V firmware of the same QEMU
 # (OpenSBI, EDK2) replaces the sysroot's; ARM64's and the PC's firmware stay UTM's. Every other
 # architecture's QEMU is left as UTM built it.
@@ -19,12 +19,12 @@
 # finds a CPU that could do more than it asks for, as on any PC made since 2004.
 set -e
 W=${W:-$HOME/aok-vm-bench}
-U=$W/utm
+E=$W/engines
 PLAT=ios-tci
 case $1 in ios-tci|ios_simulator-tci) PLAT=$1; shift ;; esac
-PREFIX=$U/UTM/sysroot-$PLAT-arm64
-STOCK=$U/stock-$PLAT
-OUT=$U/qemu-out-$PLAT${AOK_GL:+-gl}     # AOK_GL=1: the build with OpenGL and virglrenderer
+PREFIX=$E/UTM/sysroot-$PLAT-arm64
+STOCK=$E/stock-$PLAT
+OUT=$E/qemu-out-$PLAT${AOK_GL:+-gl}     # AOK_GL=1: the build with OpenGL and virglrenderer
 ARCHS="riscv64 aarch64 x86_64 ppc ppc64 m68k"
 FILES="opensbi-riscv64-generic-fw_dynamic.bin edk2-riscv-code.fd edk2-riscv-vars.fd"
 
@@ -42,7 +42,7 @@ if [ "$1" = stock ]; then
     exit 0
 fi
 for a in $ARCHS; do
-    "$U/UTM/scripts/fixup.sh" -p "$PLAT" -s "$PREFIX" -m 15.0 "$OUT/lib/libqemu-$a-softmmu.dylib"
+    "$E/UTM/scripts/fixup.sh" -p "$PLAT" -s "$PREFIX" -m 15.0 "$OUT/lib/libqemu-$a-softmmu.dylib"
 done
 for f in $FILES; do cp -p "$OUT/share/qemu/$f" "$PREFIX/share/qemu/"; done
 for a in $ARCHS; do
