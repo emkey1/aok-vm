@@ -1,4 +1,4 @@
 The QEMU this app is built around: the AOK gadgets fork.
 repository https://github.com/emkey1/qemu
 branch     aok-vm
-commit     e0a4152e4e707de64e0b8da8189994e02332f109
+commit     8d8b2b621cea6eadae9fdacf8284ffaae4fa8b78

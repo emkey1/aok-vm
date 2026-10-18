@@ -12,8 +12,10 @@
 # with gcc and its 32-bit libraries, SSE2 on as in the Alpine x86 root iSH-AOK builds them in; CAMD names
 # it), then added to MBP5's gate image (MBP5 names it) as an overlay with this tree's bench/run1.sh, whose
 # `vec` workload runs them all and `vec-NAME` one:
-#     X64_GUEST=x86_64-vec x64run.sh TAG vec SECONDS X64_CPU=max
-#     X64_GUEST=x86-vec x64run.sh TAG vec SECONDS X64_CPU=max         (vec-image.sh 32)
+#     X64_CPU=max X64_GUEST=x86_64-vec x64run.sh TAG vec SECONDS
+#     X64_CPU=max X64_GUEST=x86-vec x64run.sh TAG vec SECONDS         (vec-image.sh 32)
+# (X64_CPU before the command: x64run.sh reads it itself. After SECONDS it only reaches QEMU's environment,
+# and the guest runs on qemu64, with no AVX-512 or SSE4.2.)
 # writes ~/aok-vm-bench/initramfs-x86_64-vec.cpio (initramfs-x86-vec.cpio) and the kernel's name for it.
 set -e
 here=$(cd "$(dirname "$0")" && pwd)
