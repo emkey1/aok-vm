@@ -33,6 +33,20 @@ for w in "$@"; do
         for t in /bench/vec/*; do printf 'VEC %s: ' "${t##*/}"; "$t" 2>&1 | tail -1; done; ./timeit vec true ;;
     vec-*)    t=/bench/vec/${w#vec-}; printf 'VEC %s: ' "${t##*/}"; "$t" 2>&1 | tail -1; ./timeit "$w" true ;;
     vecv-*)   t=/bench/vec/${w#vecv-}; "$t" 2>&1 | head -120; ./timeit "$w" true ;;   # its first failures, in full
+    cpu|cpu-*) # iSH-AOK's processor tests (cputest/tests.list; cputest/cpu-image.sh puts them in /bench/cpu):
+              # each one's output between a CPUTEST line and a CPUTEST-END with its status; cpu-ARCH or cpu-NAME
+              # runs some
+        sel=${w#cpu}; sel=${sel#-}
+        echo "CPUINFO $(uname -m) $(grep -m1 -i '^isa\|^flags\|^Features' /proc/cpuinfo | cut -c1-600)"
+        grep -v '^#' cpu/list | while read -r a n s c f; do
+            [ -x "cpu/$a/$n" ] || continue
+            [ -z "$sel" ] || [ "$sel" = "$n" ] || [ "$sel" = "$a" ] || continue
+            echo "CPUTEST $a/$n $c"
+            (cd "cpu/$a" && busybox timeout -s KILL 300 "./$n" < /dev/null 2>&1)
+            echo "CPUTEST-END $a/$n rc=$?"
+        done
+        ./timeit "$w" true ;;
+    dmesg)    dmesg | tail -60 ;;                       # the kernel's last words: a signal's faulting instruction
     x87kat)   ./x87_kat; ./x87_kat_unmasked; ./x87_trans; ./timeit x87kat true ;;   # the x87 against hardware's answers
     x87kat3)  for i in 1 2 3; do ./x87_kat | grep -v fldcw; ./x87_kat_unmasked | grep -v fldcw; done; ./timeit x87kat3 true ;;   # is a failure the same one each time?
     poke)     # a kernel patching its own code under the other CPUs' feet: Linux flips a static key by

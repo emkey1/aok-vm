@@ -1,0 +1,251 @@
+# tests.list -- iSH-AOK's processor tests, as AOK VM's guests run them (cpu-image.sh builds them, run1.sh's
+# cpu workload runs them, cpu-cmp.sh reads the transcripts). A line a test:
+#   ARCH NAME SOURCE CHECK [FLAGS]
+# ARCH: x86_64, i386 (a 32-bit program, on the x86_64 guest: their answers are a 64-bit kernel's), aarch64,
+# riscv64. CHECK: S, a "NAME: PASS" line and status 0 (test_common.h's); Xn, exit status n (the assembly
+# tests); D, no verdict of its own: its output against the oracle's. FLAGS: the compiler's, where not
+# "-O2 -static -pthread ... -lm -ldl"; asm: an assembly test with its own _start (and its flags after).
+x86_64   rep_interruptible        x86/rep_interruptible.c            S
+x86_64   atomic_xadd32            x86/atomic_xadd32.c                S
+x86_64   atomic_cmpxchg32         x86/atomic_cmpxchg32.c             S
+x86_64   atomic_cmpxchg8b         x86/atomic_cmpxchg8b.c             S
+x86_64   atomic_logic32           x86/atomic_logic32.c               S
+x86_64   atomic_lock_contended    x86/atomic_lock_contended.c        S
+x86_64   atomic_neg_not           x86/atomic_neg_not.c               S
+x86_64   cow_atomic_fault         x86/cow_atomic_fault.c             S
+x86_64   x87_fpu                  x86/x87_fpu.c                      S
+x86_64   x87_fsqrt                x86/x87_fsqrt.c                    S
+x86_64   x87_kat                  x86/x87_kat.c                      S
+x86_64   x87_kat_unmasked         x86/x87_kat_unmasked.c             S
+x86_64   x87_env                  x86/x87_env.c                      S
+x86_64   x87_mf                   x86/x87_mf.c                       S
+x86_64   x87_trans                x86/x87_trans.c                    S
+x86_64   alu_flags                x86/alu_flags.c                    S
+x86_64   lock_misaligned          x86/lock_misaligned.c              S
+x86_64   priv_gp                  x86/priv_gp.c                      S
+x86_64   movnt_stores             x86/movnt_stores.c                 S
+x86_64   sse_align_gp             x86/sse_align_gp.c                 S
+x86_64   pf_error_code            x86/pf_error_code.c                S
+x86_64   mmap2_high_offset        x86/mmap2_high_offset.c            S
+x86_64   sse_scalar               x86/sse_scalar.c                   S
+x86_64   x86_loop                 x86/x86_loop.c                     S
+x86_64   port_io_gpf              x86/port_io_gpf.c                  S
+x86_64   gpf_siginfo              x86/gpf_siginfo.c                  S
+x86_64   cpuid_xsave              x86/cpuid_xsave.c                  S
+x86_64   cpuid_signature          x86/cpuid_signature.c              S
+x86_64   fpu_state_span           x86/fpu_state_span.c               S
+x86_64   x86_smc                  x86/x86_smc.c                      S
+x86_64   popf_ac_id               x86/popf_ac_id.c                   S
+x86_64   null_deref_siginfo       x86/null_deref_siginfo.c           S
+x86_64   smc_patch_race           x86/smc_patch_race.c               S
+x86_64   x86_smc_alias            x86/x86_smc_alias.c                S
+x86_64   x86_movbe                x86/x86_movbe.c                    S
+x86_64   x86_rdtscp               x86/x86_rdtscp.c                   S
+x86_64   x86_lock_ops             x86/x86_lock_ops.c                 S
+x86_64   x86_bt_mem_index         x86/x86_bt_mem_index.c             S
+x86_64   x86_sys_desc             x86/x86_sys_desc.c                 S
+x86_64   x86_mmx_x87_alias        x86/x86_mmx_x87_alias.c            S
+x86_64   x86_ud_siginfo           x86/x86_ud_siginfo.c               S
+x86_64   x86_prefetch             x86/x86_prefetch.c                 S
+x86_64   x86_signal_entry_flags   x86/x86_signal_entry_flags.c       S
+x86_64   atomics32                x86/atomics32.c                    S
+x86_64   fp_env                   fp_env.c                           S
+x86_64   nx_enforce               nx_enforce.c                       S
+x86_64   tlb_collide              tlb_collide.c                      S
+x86_64   unaligned_page_edge      unaligned_page_edge.c              S
+x86_64   signal_forced_trap       signal_forced_trap.c               S
+x86_64   null_page_fault          null_page_fault.c                  S
+x86_64   counter_ns               counter_ns.c                       S
+x86_64   jit_fork_inherit         jit_fork_inherit.c                 S
+x86_64   concurrent_exec_tlb      concurrent_exec_tlb.c              S
+x86_64   jit_writer_starvation    jit_writer_starvation.c            S
+x86_64   vfork_exec_stale_jit     vfork_exec_stale_jit.c             S
+x86_64   ptrace_trap_siginfo      ptrace_trap_siginfo.c              S
+x86_64   x86_unaligned_lock       x86_unaligned_lock.c               S
+i386     rep_interruptible        x86/rep_interruptible.c            S
+i386     atomic_xadd32            x86/atomic_xadd32.c                S
+i386     atomic_cmpxchg32         x86/atomic_cmpxchg32.c             S
+i386     atomic_cmpxchg8b         x86/atomic_cmpxchg8b.c             S
+i386     atomic_logic32           x86/atomic_logic32.c               S
+i386     atomic_lock_contended    x86/atomic_lock_contended.c        S
+i386     atomic_neg_not           x86/atomic_neg_not.c               S
+i386     cow_atomic_fault         x86/cow_atomic_fault.c             S
+i386     x87_fpu                  x86/x87_fpu.c                      S
+i386     x87_fsqrt                x86/x87_fsqrt.c                    S
+i386     x87_kat                  x86/x87_kat.c                      S
+i386     x87_kat_unmasked         x86/x87_kat_unmasked.c             S
+i386     x87_env                  x86/x87_env.c                      S
+i386     x87_mf                   x86/x87_mf.c                       S
+i386     x87_trans                x86/x87_trans.c                    S
+i386     alu_flags                x86/alu_flags.c                    S
+i386     lock_misaligned          x86/lock_misaligned.c              S
+i386     priv_gp                  x86/priv_gp.c                      S
+i386     movnt_stores             x86/movnt_stores.c                 S
+i386     sse_align_gp             x86/sse_align_gp.c                 S
+i386     pf_error_code            x86/pf_error_code.c                S
+i386     mmap2_high_offset        x86/mmap2_high_offset.c            S
+i386     sse_scalar               x86/sse_scalar.c                   S
+i386     x86_loop                 x86/x86_loop.c                     S
+i386     port_io_gpf              x86/port_io_gpf.c                  S
+i386     gpf_siginfo              x86/gpf_siginfo.c                  S
+i386     cpuid_xsave              x86/cpuid_xsave.c                  S
+i386     cpuid_signature          x86/cpuid_signature.c              S
+i386     fpu_state_span           x86/fpu_state_span.c               S
+i386     x86_smc                  x86/x86_smc.c                      S
+i386     popf_ac_id               x86/popf_ac_id.c                   S
+i386     null_deref_siginfo       x86/null_deref_siginfo.c           S
+i386     smc_patch_race           x86/smc_patch_race.c               S
+i386     x86_smc_alias            x86/x86_smc_alias.c                S
+i386     x86_movbe                x86/x86_movbe.c                    S
+i386     x86_rdtscp               x86/x86_rdtscp.c                   S
+i386     x86_lock_ops             x86/x86_lock_ops.c                 S
+i386     x86_bt_mem_index         x86/x86_bt_mem_index.c             S
+i386     x86_sys_desc             x86/x86_sys_desc.c                 S
+i386     x86_mmx_x87_alias        x86/x86_mmx_x87_alias.c            S
+i386     x86_ud_siginfo           x86/x86_ud_siginfo.c               S
+i386     x86_prefetch             x86/x86_prefetch.c                 S
+i386     x86_signal_entry_flags   x86/x86_signal_entry_flags.c       S
+i386     atomics32                x86/atomics32.c                    S
+i386     fp_env                   fp_env.c                           S
+i386     nx_enforce               nx_enforce.c                       S
+i386     tlb_collide              tlb_collide.c                      S
+i386     unaligned_page_edge      unaligned_page_edge.c              S
+i386     signal_forced_trap       signal_forced_trap.c               S
+i386     null_page_fault          null_page_fault.c                  S
+i386     counter_ns               counter_ns.c                       S
+i386     jit_fork_inherit         jit_fork_inherit.c                 S
+i386     concurrent_exec_tlb      concurrent_exec_tlb.c              S
+i386     jit_writer_starvation    jit_writer_starvation.c            S
+i386     vfork_exec_stale_jit     vfork_exec_stale_jit.c             S
+i386     ptrace_trap_siginfo      ptrace_trap_siginfo.c              S
+i386     x86_unaligned_lock       x86_unaligned_lock.c               S
+x86_64   amd64_regress            x86/amd64_regress.c                S
+x86_64   amd64_popcnt             x86/amd64_popcnt.c                 S
+x86_64   amd64_cmpxchg            x86/amd64_cmpxchg.c                S
+x86_64   amd64_xadd               x86/amd64_xadd.c                   S
+x86_64   amd64_muldiv             x86/amd64_muldiv.c                 S
+x86_64   amd64_push_rm            x86/amd64_push_rm.c                S
+x86_64   amd64_alu_mem            x86/amd64_alu_mem.c                S
+x86_64   amd64_xchg_mem           x86/amd64_xchg_mem.c               S
+x86_64   amd64_shift              x86/amd64_shift.c                  S
+x86_64   amd64_0f_rm              x86/amd64_0f_rm.c                  S
+x86_64   amd64_misc_rm            x86/amd64_misc_rm.c                S
+x86_64   amd64_pushf_popf         x86/amd64_pushf_popf.c             S
+x86_64   amd64_ret_pop            x86/amd64_ret_pop.c                S
+x86_64   amd64_moffs_stack16      x86/amd64_moffs_stack16.c          S
+x86_64   amd64_loop_addr32        x86/amd64_loop_addr32.c            S
+x86_64   amd64_string_ops         x86/amd64_string_ops.c             S
+x86_64   avx_regress              x86/avx_regress.c                  S
+x86_64   amd64_incdec             x86/amd64_incdec.c                 S
+x86_64   amd64_ff_indirect        x86/amd64_ff_indirect.c            S
+x86_64   amd64_odd_shapes         x86/amd64_odd_shapes.c             S
+x86_64   amd64_addr32             x86/amd64_addr32.c                 S
+x86_64   amd64_cmpxchg16b         x86/amd64_cmpxchg16b.c             S
+x86_64   amd64_0fae               x86/amd64_0fae.c                   S
+x86_64   amd64_iret               x86/amd64_iret.c                   S
+x86_64   amd64_x87_cache          x86/amd64_x87_cache.c              S
+x86_64   amd64_singlestep         x86/amd64_singlestep.c             S
+x86_64   amd64_segment_regs       x86/amd64_segment_regs.c           S
+x86_64   amd64_gs_base            x86/amd64_gs_base.c                S
+x86_64   amd64_fault_regs         x86/amd64_fault_regs.c             S
+x86_64   exec_i386_fault_addr     exec_i386_fault_addr.c             S
+x86_64   amd64_flag_liveness      x86/amd64_flag_liveness.c          D
+x86_64   amd64_sqrt_scalar        x86/amd64_sqrt_scalar.c            D     -O1
+i386     bcd_adjust               x86/bcd_adjust.c                   S
+i386     i386_segment_regs        x86/i386_segment_regs.c            S
+i386     i386_push16              x86/i386_push16.c                  S
+i386     i386_enter_branch16      x86/i386_enter_branch16.c          S
+i386     i386_flags_pushf_lahf    x86/i386_flags_pushf_lahf.c        S
+i386     i386_bcd                 x86/i386_bcd.c                     S
+i386     i386_string_ops          x86/i386_string_ops.c              S
+i386     x86_fp_env               x86/x86_fp_env.c                   S
+i386     avx32_smoke              x86/avx32_smoke.c                  S     -O1 -mavx2 -nostdlib
+i386     fused_alu_regs           x86/fused_alu_regs.c               D     -O1
+aarch64  atomics64                arm64/atomics64.c                  S
+aarch64  arm64_lse_gadgets        arm64/arm64_lse_gadgets.c          S
+aarch64  arm64_vldst_gadgets      arm64/arm64_vldst_gadgets.c        S
+aarch64  arm64_sha512_crc32       arm64/arm64_sha512_crc32.c         S
+aarch64  arm64_regress            arm64/arm64_regress.c              S
+aarch64  vector_smoke             arm64/vector_smoke.c               S
+aarch64  simd_elem_moves          arm64/simd_elem_moves.c            S
+aarch64  simd_three_same          arm64/simd_three_same.c            S
+aarch64  alu_ospec                arm64/alu_ospec.c                  S
+aarch64  ldst_lspec               arm64/ldst_lspec.c                 S
+aarch64  vldst_lspec              arm64/vldst_lspec.c                S
+aarch64  smc_stale_block          arm64/smc_stale_block.c            S
+aarch64  ret_retcache             arm64/ret_retcache.c               S
+aarch64  stlr_ldar_publish        arm64/stlr_ldar_publish.c          S
+aarch64  ptrace_singlestep        arm64/ptrace_singlestep.c          S
+aarch64  ands_bcond_fusion        arm64/ands_bcond_fusion.c          S
+aarch64  cbz_tbz                  arm64/cbz_tbz.c                    S
+aarch64  pair_fusion              arm64/pair_fusion.c                S
+aarch64  adc_mul_ospec            arm64/adc_mul_ospec.c              S
+aarch64  alu_shift_ospec          arm64/alu_shift_ospec.c            S
+aarch64  hle_loop                 arm64/hle_loop.c                   S
+aarch64  dc_zva                   arm64/dc_zva.c                     S
+aarch64  fcvt_half                arm64/fcvt_half.c                  S
+aarch64  arm64_fp_env             arm64/arm64_fp_env.c               S
+aarch64  fp_env                   fp_env.c                           S
+aarch64  nx_enforce               nx_enforce.c                       S
+aarch64  tlb_collide              tlb_collide.c                      S
+aarch64  unaligned_page_edge      unaligned_page_edge.c              S
+aarch64  signal_forced_trap       signal_forced_trap.c               S
+aarch64  null_page_fault          null_page_fault.c                  S
+aarch64  counter_ns               counter_ns.c                       S
+aarch64  jit_fork_inherit         jit_fork_inherit.c                 S
+aarch64  concurrent_exec_tlb      concurrent_exec_tlb.c              S
+aarch64  jit_writer_starvation    jit_writer_starvation.c            S
+aarch64  vfork_exec_stale_jit     vfork_exec_stale_jit.c             S
+aarch64  ptrace_trap_siginfo      ptrace_trap_siginfo.c              S
+aarch64  singlestep_fused         singlestep_fused.c                 S
+aarch64  arm64_mops               arm64_mops.c                       S
+riscv64  ptrace_regset            riscv64/ptrace_regset.c            S
+riscv64  jalr_retcache            riscv64/jalr_retcache.c            S
+riscv64  alu_pair                 riscv64/alu_pair.c                 S
+riscv64  branch_pair              riscv64/branch_pair.c              S
+riscv64  riscv64_pair_fusion      riscv64/riscv64_pair_fusion.c      S
+riscv64  rcache_run               riscv64/rcache_run.c               S
+riscv64  riscv64_fp_env           riscv64/riscv64_fp_env.c           S
+riscv64  riscv64_rva23_scalar     riscv64/riscv64_rva23_scalar.c     S
+riscv64  riscv64_rva23_fp         riscv64/riscv64_rva23_fp.c         S
+riscv64  riscv64_rvv              riscv64/riscv64_rvv.c              S
+riscv64  riscv64_rvv_signal       riscv64/riscv64_rvv_signal.c       S
+riscv64  riscv64_rvv_ptrace       riscv64/riscv64_rvv_ptrace.c       S
+riscv64  riscv64_rvv_gadgets      riscv64/riscv64_rvv_gadgets.c      S
+riscv64  riscv64_rvv_ctrl         riscv64/riscv64_rvv_ctrl.c         S
+riscv64  riscv64_fp_rules         riscv64/riscv64_fp_rules.c         S
+riscv64  riscv64_amo_align        riscv64/riscv64_amo_align.c        S
+riscv64  fp_env                   fp_env.c                           S
+riscv64  nx_enforce               nx_enforce.c                       S
+riscv64  tlb_collide              tlb_collide.c                      S
+riscv64  unaligned_page_edge      unaligned_page_edge.c              S
+riscv64  signal_forced_trap       signal_forced_trap.c               S
+riscv64  null_page_fault          null_page_fault.c                  S
+riscv64  counter_ns               counter_ns.c                       S
+riscv64  jit_fork_inherit         jit_fork_inherit.c                 S
+riscv64  concurrent_exec_tlb      concurrent_exec_tlb.c              S
+riscv64  jit_writer_starvation    jit_writer_starvation.c            S
+riscv64  vfork_exec_stale_jit     vfork_exec_stale_jit.c             S
+riscv64  riscv64_ldst_pair        riscv64_ldst_pair.c                S
+aarch64  arm64_atomics            asm-arm64/arm64_atomics.s          X0    asm -march=armv8.1-a
+aarch64  arm64_branch_only        asm-arm64/arm64_branch_only.s      X5    asm
+aarch64  arm64_branch_only2       asm-arm64/arm64_branch_only2.s     X0    asm
+aarch64  arm64_crypto             asm-arm64/arm64_crypto.s           X0    asm
+aarch64  arm64_dpextra            asm-arm64/arm64_dpextra.s          X0    asm
+aarch64  arm64_dpreg              asm-arm64/arm64_dpreg.s            X0    asm
+aarch64  arm64_fp                 asm-arm64/arm64_fp.s               X0    asm
+aarch64  arm64_hello              asm-arm64/arm64_hello.s            X42   asm
+aarch64  arm64_ld1                asm-arm64/arm64_ld1.s              X0    asm
+aarch64  arm64_ldpsw              asm-arm64/arm64_ldpsw.s            X0    asm
+aarch64  arm64_logical            asm-arm64/arm64_logical.s          X0    asm
+aarch64  arm64_prologue           asm-arm64/arm64_prologue.s         X0    asm
+aarch64  arm64_signal             asm-arm64/arm64_signal.s           X0    asm
+aarch64  arm64_ucvtf_fix          asm-arm64/arm64_ucvtf_fix.s        X0    asm
+aarch64  arm64_vshift             asm-arm64/arm64_vshift.s           X0    asm
+riscv64  riscv64_exit42           asm-riscv64/riscv64_exit42.s       X42   asm
+riscv64  riscv64_fib              asm-riscv64/riscv64_fib.s          X3    asm
+riscv64  riscv64_fma              asm-riscv64/riscv64_fma.s          X0    asm
+riscv64  riscv64_fp               asm-riscv64/riscv64_fp.s           X7    asm
+riscv64  riscv64_hello            asm-riscv64/riscv64_hello.s        X0    asm
+riscv64  riscv64_mem              asm-riscv64/riscv64_mem.s          X0    asm
+riscv64  riscv64_signal           asm-riscv64/riscv64_signal.s       X0    asm
