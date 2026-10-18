@@ -1,4 +1,6 @@
 # AOK VM 1.0 (release candidate 4)
+## New in build 10
+* **32-bit x86 Linux starts again**: build 9's default CPU offers AVX-512, and a 32-bit Linux kernel that uses it (TinyCore 17's, in its checksum code) stopped early in its boot with "invalid opcode": the gadget engine ran AVX-512 only in 64-bit code. It now runs AVX-512 and the rest of AVX in 32-bit code too, and an AVX-512 instruction that straddles two pages of code no longer stops a 32-bit program. (TinyCore's CD starts with UEFI off: it has no UEFI loader.)
 ## New in build 9
 * **x86-64 machines boot faster**: a machine whose CPU is left at "Default" now gets the gadget engine's own CPU (QEMU's max, without LA57, as AOK VM's ready-made machines have), not Skylake-Client, which made Linux switch on its Meltdown and MDS defences: a page-table switch and a buffer clear on every system call. The Arch Linux ISO boots 20% faster. A Windows machine may notice the new processor once.
 * **x86 machines use several cores at once**: an x86-64 or 32-bit x86 machine left at the default number of cores now gets as many as the device has performance cores, and they run in parallel, where it had one; a machine with a number of cores set now runs them in parallel instead of taking turns on one. Four programs at once ran 2.5 to 3.7 times faster on four cores than on one.
