@@ -61,6 +61,11 @@ class Main {
         registerDefaultsFromSettingsBundle()
         // register tips
         if #available(iOS 17, macOS 14, *) {
+            // AOK VM: a device test (AOKVM_START, aok/app/start-vm.sh) has nobody to dismiss a tip, and the
+            // toolbar's tip covers the top of a terminal machine's transcript, which the test reads.
+            if ProcessInfo.processInfo.environment["AOKVM_START"] != nil {
+                Tips.hideAllTipsForTesting()
+            }
             try? Tips.configure()
         }
         #endif
