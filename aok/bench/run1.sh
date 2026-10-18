@@ -37,6 +37,7 @@ for w in "$@"; do
               # each one's output between a CPUTEST line and a CPUTEST-END with its status; cpu-ARCH or cpu-NAME
               # runs some
         sel=${w#cpu}; sel=${sel#-}
+        echo 0 > /proc/sys/kernel/randomize_va_space   # (the D tests print addresses; cpu-camd.sh: setarch -R)
         echo "CPUINFO $(uname -m) $(grep -m1 -i '^isa\|^flags\|^Features' /proc/cpuinfo | cut -c1-600)"
         grep -v '^#' cpu/list | while read -r a n s c f; do
             [ -x "cpu/$a/$n" ] || continue

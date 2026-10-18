@@ -149,6 +149,7 @@ x86_64   amd64_segment_regs       x86/amd64_segment_regs.c           S
 x86_64   amd64_gs_base            x86/amd64_gs_base.c                S
 x86_64   amd64_fault_regs         x86/amd64_fault_regs.c             S
 x86_64   exec_i386_fault_addr     exec_i386_fault_addr.c             S
+x86_64   aokvm_addr32_vec         x86/aokvm_addr32_vec.c             S     -O2 -no-pie
 x86_64   amd64_flag_liveness      x86/amd64_flag_liveness.c          D
 x86_64   amd64_sqrt_scalar        x86/amd64_sqrt_scalar.c            D     -O1
 i386     bcd_adjust               x86/bcd_adjust.c                   S

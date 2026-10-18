@@ -15,7 +15,8 @@ $SSH $CAMD "cd ~/aokvm-cpu/out && echo \"CPUINFO \$(uname -m) \$(grep -m1 '^flag
         [ -x \"\$a/\$n\" ] || continue
         [ -z '$sel' ] || [ '$sel' = \"\$n\" ] || [ '$sel' = \"\$a\" ] || continue
         echo \"CPUTEST \$a/\$n \$c\"
-        (cd \"\$a\" && timeout -s KILL 300 \"./\$n\" < /dev/null 2>&1)
+        r=; [ \"\$c\" = D ] && r=\"setarch \$(uname -m) -R\"    # (as the guest, which turns ASLR off)
+        (cd \"\$a\" && timeout -s KILL 300 \$r \"./\$n\" < /dev/null 2>&1)
         echo \"CPUTEST-END \$a/\$n rc=\$?\"
     done" | $SSH $MBP5 "mkdir -p ~/aok-vm-bench/logs/cpu && cat > ~/aok-vm-bench/logs/cpu/$tag.log"
 echo "$tag: $($SSH $MBP5 "grep -c '^CPUTEST-END' ~/aok-vm-bench/logs/cpu/$tag.log") tests ran"
