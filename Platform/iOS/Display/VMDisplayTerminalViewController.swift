@@ -68,10 +68,16 @@ import SwiftUI
     
     override func enterLive() {
         super.enterLive()
-        DispatchQueue.main.async {
-            let dimensions = self.terminalView.terminalDimensions
+        // AOK VM: by the time this runs the display may be gone (its window closed, or taken down in the
+        // background), and the coordinator `delegate` points to weakly gone with it: an iPhone 11 on build 10
+        // crashed unwrapping that nil. Then there is nothing to size.
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let terminalView = self.terminalView, let delegate = self.delegate else {
+                return
+            }
+            let dimensions = terminalView.terminalDimensions
             let terminalSize = CGSize(width: dimensions.cols, height: dimensions.rows)
-            self.delegate.displayViewSize = terminalSize
+            delegate.displayViewSize = terminalSize
         }
     }
     
