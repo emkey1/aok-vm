@@ -50,7 +50,13 @@ elif grep -q "(AOK gadgets)" /proc/cpuinfo; then
 fi
 E=${E:-QEMU, without the AOK gadgets}
 echo "BENCH-START $(uname -m) $(uname -r) $B [engine: $E]"
-/bench/run1.sh $(echo "$B" | tr , ' ')
+# The workloads get the environment a run with bench= alone gives them, whatever else the command line says.
+# The kernel hands init HOME, TERM and each name=value it does not know (bench=, then=, ...), in order, and a
+# program's first memory is laid out after them. busybox awk on musl is sensitive to that: with one more short
+# variable, then=shell (every app machine has it), riscv64's took 15,700 page faults against 500 (musl's
+# allocator mapping and unmapping 15,000 times against 3,000) and seconds in the kernel for them, and another
+# size does the same to arm64's. A device's numbers are only comparable with the Mac's in the same environment.
+env -i HOME=/ TERM=linux bench="$B" /bench/run1.sh $(echo "$B" | tr , ' ')
 echo BENCH-END
 [ -n "$GLTEST" ] && /bench/gltest.sh "$GLTEST"
 # script=vdb: a job for this machine, as a tar on that disk with run.sh in it (how the Devuan disk is built).

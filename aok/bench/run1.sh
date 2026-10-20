@@ -48,6 +48,39 @@ for w in "$@"; do
         done
         ./timeit "$w" true ;;
     dmesg)    dmesg | tail -60 ;;                       # the kernel's last words: a signal's faulting instruction
+    diag)     # where a workload's system time goes: the guest's counters around sha256 and around awk, those that
+              # moved by more than 200 (interrupts, softirqs, /proc/stat, vmstat), and the cpu line before and after
+        snap() { { cat /proc/interrupts /proc/softirqs; grep -E '^(ctxt|intr|softirq|processes) ' /proc/stat
+                   cat /proc/vmstat; } > /tmp/diag.$1; grep '^cpu ' /proc/stat; }
+        for x in sha256 awk; do
+            snap a; sh /bench/run1.sh $x | grep -a '^RESULT'; snap b
+            awk 'NR == FNR { for (i = 2; i <= NF; i++) if ($i ~ /^[0-9]+$/) { a[$1] = $i; break }; next }
+                 { for (i = 2; i <= NF; i++) if ($i ~ /^[0-9]+$/) { d = $i - a[$1]; if (d > 200 || d < -200)
+                   printf "  %s %d\n", $1, d; break } }' /tmp/diag.a /tmp/diag.b
+        done ;;
+    dump)     # diag in full, with the kernel's log and the CPU it was given, to the virtio console when there is one
+              # (-device virtconsole: QEMU writes it to a file, which a device's machine can be pulled off as)
+        o=/dev/hvc0; [ -c $o ] || o=/dev/stdout
+        { echo "== dmesg"; dmesg; echo "== cpuinfo"; cat /proc/cpuinfo; echo "== meminfo"; cat /proc/meminfo
+          echo "== vmstat before"; cat /proc/vmstat; echo "== interrupts before"; cat /proc/interrupts
+          sh /bench/run1.sh awk; echo "== vmstat after"; cat /proc/vmstat; echo "== interrupts after"
+          cat /proc/interrupts; echo "== softirqs"; cat /proc/softirqs; echo "== stat"; cat /proc/stat
+          echo "== end"; } > $o 2>&1
+        echo "dump: to $o" ;;
+    faults)   # who takes a workload's page faults: awk's and sha256's own (their shell's cminflt, field 11 of
+              # /proc/PID/stat) and every process's minflt before and after, to the virtio console as dump does
+        o=/dev/hvc0; [ -c $o ] || o=/dev/stdout
+        procs() { for s in /proc/[0-9]*/stat; do read -r l < $s 2>/dev/null && echo "$l"; done |
+                  awk '{ p = $1; sub(/^[0-9]+ \(/, ""); split($0, a, ") "); split(a[2], f, " ")
+                         print p ":" a[1], f[8] }' | sort; }
+        { for x in sha256 awk; do
+              procs > /tmp/f.a
+              sh -c "sh /bench/run1.sh $x | grep -a '^RESULT'; read -r l < /proc/\$\$/stat; echo \"\$l\"" |
+                  awk '/^RESULT/ { print; next } { sub(/^.*\) /, ""); print "  own minflt (cminflt) " $9 }'
+              procs > /tmp/f.b
+              awk 'NR == FNR { a[$1] = $2; next } $2 - a[$1] > 100 { print "  proc", $1, $2 - a[$1] }' /tmp/f.a /tmp/f.b
+          done; echo "== end"; } > $o 2>&1
+        echo "faults: to $o" ;;
     x87kat)   ./x87_kat; ./x87_kat_unmasked; ./x87_trans; ./timeit x87kat true ;;   # the x87 against hardware's answers
     x87kat3)  for i in 1 2 3; do ./x87_kat | grep -v fldcw; ./x87_kat_unmasked | grep -v fldcw; done; ./timeit x87kat3 true ;;   # is a failure the same one each time?
     poke)     # a kernel patching its own code under the other CPUs' feet: Linux flips a static key by
