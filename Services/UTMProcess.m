@@ -192,6 +192,38 @@ static int defaultEntry(UTMProcess *self, int argc, const char *argv[], const ch
     return YES;
 }
 
+/* The engines a machine is running on in this process. Each engine is one
+ * library, loaded once, and QEMU keeps its state in that library's globals:
+ * a second machine on the same engine would run qemu_init over the first's,
+ * and it aborts at once (its option tables are full). So one machine per
+ * engine at a time, and the second is refused with a message instead. */
+static NSMutableSet<NSString *> *runningEngines(void) {
+    static NSMutableSet<NSString *> *engines;
+    static dispatch_once_t once;
+    dispatch_once(&once, ^{
+        engines = [NSMutableSet set];
+    });
+    return engines;
+}
+
+static BOOL claimEngine(NSString *dylib) {
+    NSMutableSet<NSString *> *engines = runningEngines();
+    @synchronized (engines) {
+        if ([engines containsObject:dylib]) {
+            return NO;
+        }
+        [engines addObject:dylib];
+        return YES;
+    }
+}
+
+static void releaseEngine(NSString *dylib) {
+    NSMutableSet<NSString *> *engines = runningEngines();
+    @synchronized (engines) {
+        [engines removeObject:dylib];
+    }
+}
+
 - (void)startDylibThread:(nonnull NSString *)dylib completion:(nonnull void (^)(NSError * _Nullable))completion {
     void *dlctx;
     __block pthread_t qemu_thread;
@@ -200,16 +232,27 @@ static int defaultEntry(UTMProcess *self, int argc, const char *argv[], const ch
     
     NSAssert(self.entry != NULL, @"entry is NULL!");
     self.status = self.fatal = 0;
+    if (!claimEngine(dylib)) {
+        NSString *engine = self.processName ?: dylib;
+        if ([engine hasPrefix:@"qemu-"] && [engine hasSuffix:@"-softmmu"]) {
+            engine = [engine substringWithRange:NSMakeRange(5, engine.length - 5 - 8)];
+        }
+        NSString *format = NSLocalizedString(@"Another %@ machine is already running. AOK VM runs one machine of each processor type at a time, so stop that one before starting this one.", @"UTMProcess");
+        completion([self errorWithMessage:[NSString stringWithFormat:format, engine]]);
+        return;
+    }
     UTMLog(@"Loading %@", dylib);
     dlctx = dlopen([dylib UTF8String], RTLD_LOCAL);
     if (dlctx == NULL) {
         NSString *err = [NSString stringWithUTF8String:dlerror()];
+        releaseEngine(dylib);
         completion([self errorWithMessage:err]);
         return;
     }
     if (![self didLoadDylib:dlctx]) {
         NSString *err = [NSString stringWithUTF8String:dlerror()];
         dlclose(dlctx);
+        releaseEngine(dylib);
         completion([self errorWithMessage:err]);
         return;
     }
@@ -223,6 +266,8 @@ static int defaultEntry(UTMProcess *self, int argc, const char *argv[], const ch
             pthread_exit(NULL);
         }
     }) != 0) {
+        dlclose(dlctx);
+        releaseEngine(dylib);
         completion([self errorWithMessage:NSLocalizedString(@"Internal error has occurred.", @"UTMProcess")]);
         return;
     }
@@ -232,9 +277,12 @@ static int defaultEntry(UTMProcess *self, int argc, const char *argv[], const ch
     dispatch_async(self.completionQueue, ^{
         if (dispatch_semaphore_wait(self.done, DISPATCH_TIME_FOREVER)) {
             dlclose(dlctx);
+            releaseEngine(dylib);
             [self processHasExited:-1 message:NSLocalizedString(@"Internal error has occurred.", @"UTMProcess")];
         } else {
-            if (dlclose(dlctx) < 0) {
+            int closed = dlclose(dlctx);
+            releaseEngine(dylib);
+            if (closed < 0) {
                 NSString *err = [NSString stringWithUTF8String:dlerror()];
                 [self processHasExited:-1 message:err];
             } else if (self.fatal || self.status) {

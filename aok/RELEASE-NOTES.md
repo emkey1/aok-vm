@@ -1,6 +1,7 @@
 # AOK VM 1.0 (release candidate 4)
 ## New in build 11
 * **A crash with a terminal machine**: the app could crash when a machine shown in a terminal started running just as its window was being closed or the app was going to the background (seen on an iPhone 11 with build 10).
+* **A crash starting a second machine of the same type**: a machine started while another for the same processor (ARM64 here) was still running in the app crashed the app at once (seen on an iPad Pro with build 10). The second machine is now refused with a message, and the first keeps running.
 ## New in build 10
 * **32-bit x86 Linux starts again**: build 9's default CPU offers AVX-512, and a 32-bit Linux kernel that uses it (TinyCore 17's, in its checksum code) stopped early in its boot with "invalid opcode": the gadget engine ran AVX-512 only in 64-bit code. It now runs AVX-512 and the rest of AVX in 32-bit code too, and an AVX-512 instruction that straddles two pages of code no longer stops a 32-bit program. (TinyCore's CD starts with UEFI off: it has no UEFI loader.)
 * **Processor corrections from iSH-AOK's processor tests**, now run against each machine type and checked against real hardware:
