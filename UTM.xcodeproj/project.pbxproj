@@ -704,7 +704,6 @@
 		CE68E5492E3C3E0A006B3645 /* VMWizardOSClassicMacView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE68E5472E3C3E0A006B3645 /* VMWizardOSClassicMacView.swift */; };
 		CE68E54A2E3C3E0A006B3645 /* VMWizardOSClassicMacView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE68E5472E3C3E0A006B3645 /* VMWizardOSClassicMacView.swift */; };
 		CE68E54B2E3C3E0A006B3645 /* VMWizardOSClassicMacView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE68E5472E3C3E0A006B3645 /* VMWizardOSClassicMacView.swift */; };
-		CE68E54F2E404C4F006B3645 /* qemu-m68k-softmmu.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = CE2D63EB22653C7400FC7E63 /* qemu-m68k-softmmu.framework */; };
 		CE68E5502E404C4F006B3645 /* qemu-m68k-softmmu.framework in Embed Libraries */ = {isa = PBXBuildFile; fileRef = CE2D63EB22653C7400FC7E63 /* qemu-m68k-softmmu.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		CE6C13CA2B63610C003B7032 /* UTMRemoteMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6C13C92B63610C003B7032 /* UTMRemoteMessage.swift */; };
 		CE6C13CB2B63610C003B7032 /* UTMRemoteMessage.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE6C13C92B63610C003B7032 /* UTMRemoteMessage.swift */; };
@@ -2537,7 +2536,6 @@
 				CEA45F29263519B5002FA97D /* IQKeyboardManagerSwift in Frameworks */,
 				CEA45F2A263519B5002FA97D /* MetalKit.framework in Frameworks */,
 				84CF5DF3288E433F00D01721 /* SwiftUIVisualEffects in Frameworks */,
-				CE68E54F2E404C4F006B3645 /* qemu-m68k-softmmu.framework in Frameworks */,
 				84818C0D2898A07F009EDB67 /* AVFAudio.framework in Frameworks */,
 				CED2971B2CE4263600F1E3EB /* soup-3.0.0.framework in Frameworks */,
 				CEA45F2B263519B5002FA97D /* libgstvolume.a in Frameworks */,
