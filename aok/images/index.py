@@ -17,6 +17,9 @@ MACHINES = [
     ("devuan-aarch64", "devuan-6-aarch64.zip", "Devuan 6 (aarch64)", DEVUAN),
     ("reactos", "reactos-0.4.16.zip", "ReactOS",
      "ReactOS 0.4.16, installed: a free system that runs Windows programs, on the x86 engine."),
+    ("kolibrios", "kolibrios-0.7.7.0-8930.zip", "KolibriOS",
+     "KolibriOS 0.7.7, a tiny and fast system written in assembly: a desktop, a web browser, an editor and "
+     "games, from one floppy. Made by Mighty-Moth-Boy."),
     ("alpine-x86_64", "alpine-3.24.2-x86_64.zip", "Alpine 3.24.2 (x86_64)", ALPINE),
     ("alpine-x86", "alpine-3.24.2-x86.zip", "Alpine 3.24.2 (x86)", ALPINE),
     ("alpine-riscv64", "alpine-3.24.2-riscv64.zip", "Alpine 3.24.2 (riscv64)", ALPINE),
@@ -24,7 +27,8 @@ MACHINES = [
     ("devuan-x86", "devuan-6-x86.zip", "Devuan 6 (x86)", DEVUAN),
     ("devuan-riscv64", "devuan-6-riscv64.zip", "Devuan 6 (riscv64)", DEVUAN),
 ]
-ARCH = {"aarch64": "aarch64", "x86_64": "x86_64", "x86": "i386", "riscv64": "riscv64", "reactos": "i386"}
+ARCH = {"aarch64": "aarch64", "x86_64": "x86_64", "x86": "i386", "riscv64": "riscv64", "reactos": "i386",
+        "kolibrios": "x86_64"}
 # The app carries these (the Xcode project's "Copy AOK VM machines" names them too).
 BUNDLED = {"alpine-aarch64", "devuan-aarch64", "reactos"}
 VERSION = 1

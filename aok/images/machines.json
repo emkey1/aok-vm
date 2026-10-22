@@ -31,6 +31,15 @@
    "sha256": "7108f748c37bf47043b4fe93badc4d59742ab4c81276aa87c289056534a08cad"
   },
   {
+   "id": "kolibrios",
+   "name": "KolibriOS",
+   "architecture": "x86_64",
+   "summary": "KolibriOS 0.7.7, a tiny and fast system written in assembly: a desktop, a web browser, an editor and games, from one floppy. Made by Mighty-Moth-Boy.",
+   "file": "kolibrios-0.7.7.0-8930.zip",
+   "size": 1337493,
+   "sha256": "d17e64eb49d06d3c9d5ec6067d84e30759ccfece1e103d397e788e7a76724c38"
+  },
+  {
    "id": "alpine-x86_64",
    "name": "Alpine 3.24.2 (x86_64)",
    "architecture": "x86_64",
