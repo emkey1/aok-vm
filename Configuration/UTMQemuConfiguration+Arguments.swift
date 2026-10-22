@@ -929,7 +929,12 @@ import Virtualization // for getting network interfaces
             }
             f()
         } else if drive.interface == .floppy {
-            if isPcCompatible {
+            if system.target.rawValue == "isapc" {
+                // AOK VM: the ISA PC has its floppy controller built in, -nodefaults or not. A second
+                // isa-fdc at the same address is one the BIOS is not told about (QEMU warns of two at
+                // 0x3f0), so nothing booted from its drive. The drive goes on the built-in controller.
+                realInterface = .floppy
+            } else if isPcCompatible {
                 f("-device")
                 "isa-fdc"
                 "id=fdc\(busindex)"
