@@ -1,0 +1,60 @@
+Per workload (whole run, boot included): instructions, class shares, top integer families
+  awk_words          7.34 G  integer 100% vector 0% x87 0%      mov, jcc, cmp, movzx, test, push
+  blender_render    42.09 G  integer 66% vector 34% x87 0%      mov, jcc, cmp, lea, test, add
+  code_reuse        19.76 G  integer 93% vector 6% x87 0%       mov, jcc, cmp, test, push, movzx
+  configure         24.00 G  integer 97% vector 3% x87 0%       mov, jcc, cmp, test, add, movzx
+  coremark          12.72 G  integer 100% vector 0% x87 0%      mov, jcc, cmp, add, test, movzx
+  lean_plausible    29.28 G  integer 100% vector 0% x87 0%      mov, jcc, test, cmp, push, pop
+  lua_build         43.95 G  integer 98% vector 2% x87 0%       mov, jcc, cmp, test, add, push
+  nbody             14.71 G  integer 30% vector 70% x87 0%      jcc, mov, add, cmp, movzx, test
+  node_compute       9.76 G  integer 93% vector 7% x87 0%       mov, jcc, cmp, test, movzx, add
+  node_prettier      8.89 G  integer 99% vector 1% x87 0%       mov, jcc, cmp, test, movzx, push
+  node_startup       3.81 G  integer 100% vector 0% x87 0%      mov, jcc, cmp, movzx, test, add
+  pybench            8.10 G  integer 99% vector 1% x87 0%       mov, jcc, cmp, test, movzx, add
+  sha256sum         20.22 G  integer 100% vector 0% x87 0%      mov, xor, add, ror, jcc, and
+  sympy             14.85 G  integer 100% vector 0% x87 0%      mov, jcc, cmp, test, add, movzx
+  xonsh_keys         7.29 G  integer 100% vector 0% x87 0%      mov, jcc, cmp, test, movzx, add
+  xonsh_startup      8.16 G  integer 100% vector 0% x87 0%      mov, jcc, cmp, test, add, movzx
+  xz                 6.29 G  integer 100% vector 0% x87 0%      mov, jcc, cmp, movzx, lea, sub
+
+All workloads: 281.2 G instructions; integer 89.8%, vector 10.2%, x87 0.0%, mmx 0.0%
+
+Integer families, most executed (share of all instructions, cumulative):
+  mov               25.24%   25.24%
+  jcc               14.26%   39.51%
+  cmp                7.81%   47.31%
+  test               5.43%   52.74%
+  add                4.76%   57.50%
+  movzx              3.34%   60.84%
+  lea                3.14%   63.99%
+  push               2.73%   66.72%
+  pop                2.52%   69.24%
+  xor                2.50%   71.74%
+  and                2.48%   74.22%
+  sub                2.01%   76.24%
+  jmp                1.78%   78.02%
+  call               1.33%   79.35%
+  ret                1.33%   80.68%
+  shr                1.23%   81.91%
+  shl                0.93%   82.84%
+  inc                0.92%   83.76%
+  or                 0.70%   84.46%
+  movsxd             0.65%   85.11%
+  nop                0.60%   85.71%
+
+Vector families, most executed:
+  movapd             0.90%
+  vmovaps            0.82%
+  vmovss             0.71%
+  mulsd              0.62%
+  movsd              0.42%
+  mulpd              0.33%
+  movups             0.29%
+  vmulps             0.28%
+  movupd             0.25%
+  vxorps             0.24%
+  addsd              0.24%
+  vmulss             0.21%
+  vbroadcastss       0.19%
+  vsubps             0.19%
+  unpcklpd           0.17%

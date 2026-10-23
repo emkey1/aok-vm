@@ -1,0 +1,23 @@
+                                             m0-tcti                    m0-aok                 m0-aokint
+awk_words count (s)                        11.89 ±1%           5.41 ±0%  0.46x          5.39 ±10%  0.45x
+blender_render total (s)                     104 ±1%          48.72 ±0%  0.47x          92.90 ±0%  0.89x
+blender_render render (s)                  85.66 ±1%          39.95 ±0%  0.47x          83.90 ±0%  0.98x
+code_reuse rerun (s)                      17.05 ±22%           6.92 ±3%  0.41x           8.21 ±1%  0.48x
+configure run (s)                         86.17 ±25%          37.28 ±1%  0.43x          37.91 ±1%  0.44x
+coremark run (s)                          16.02 ±16%           8.36 ±1%  0.52x           8.46 ±7%  0.53x
+lean_plausible build (s)                   96.53 ±9%          47.57 ±4%  0.49x         46.62 ±10%  0.48x
+lua_build build (s)                       78.97 ±10%         32.57 ±35%  0.41x          32.06 ±0%  0.41x
+nbody run (s)                              20.15 ±8%         12.47 ±10%  0.62x          12.00 ±0%  0.60x
+node_compute run (s)                      15.40 ±11%           6.82 ±2%  0.44x           8.19 ±1%  0.53x
+node_prettier format (s)                   19.87 ±6%          8.69 ±18%  0.44x           8.72 ±1%  0.44x
+node_startup start (s)                     0.46 ±10%          0.21 ±17%  0.46x           0.20 ±0%  0.43x
+pybench run (s)                           23.88 ±11%           7.37 ±9%  0.31x           7.32 ±2%  0.31x
+sha256sum hash (s)                        13.10 ±19%           8.87 ±9%  0.68x          8.89 ±14%  0.68x
+sympy run (s)                             86.69 ±20%          34.25 ±8%  0.40x          34.87 ±6%  0.40x
+xonsh_keys prompt (s)                      9.00 ±11%           3.97 ±2%  0.44x           3.96 ±3%  0.44x
+xonsh_keys key_median (ms)                   143 ±1%          83.00 ±5%  0.58x          82.00 ±1%  0.57x
+xonsh_keys key_p90 (ms)                      153 ±7%          88.00 ±8%  0.58x          87.00 ±1%  0.57x
+xonsh_startup start (s)                     6.47 ±6%           2.88 ±1%  0.45x           2.88 ±0%  0.45x
+xz compress (s)                            15.83 ±5%          11.14 ±3%  0.70x          9.33 ±27%  0.59x
+
+checks: 15 compared, 0 mismatched; 0 workload run(s) failed and are left out

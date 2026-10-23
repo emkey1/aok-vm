@@ -1,0 +1,48 @@
+#!/bin/bash
+# M0 counts: each workload once on tctiSH f3ebb682b6 (JIT, plugins on), the mnemcount plugin writing
+# ~/m0-counts/WORKLOAD.txt. Counts are guest instructions, so the backend does not change them.
+cd ~/tctish-bench
+for w in $(python3 utils/bench/bench.py list 2>/dev/null | awk "{print \$1}"); do
+  MNEM_OUT=$HOME/m0-counts/$w.txt python3 utils/bench/bench.py run --backend jit --workloads $w --rounds 1 \
+    --label m0-count-$w --qemu $HOME/m0-q/count/qemu-system-x86_64 --replace > $HOME/m0-counts/$w.log 2>&1
+  echo "$w: $(head -1 $HOME/m0-counts/$w.txt 2>/dev/null) ($(tail -1 $HOME/m0-counts/$w.log | cut -c1-80))"
+done
+echo COUNT-DONE
+#!/bin/bash
+# M0 timing: TCTI (tctiSH f3ebb682b6), the gadgets (aok-vm with it merged), and the near-integer-only
+# setting, by wall clock, ROUNDS rounds, alternating round by round, each run waiting for a quiet Mac.
+R=${1:-3}; cd ~/tctish-bench
+for r in $(seq $R); do
+  for c in tcti aok aokint; do
+    echo "$(date +%H:%M) round $r $c"
+    python3 utils/bench/bench.py run --backend tcti --rounds 1 --label m0-$c --qemu $HOME/m0-q/$c/qemu-system-x86_64 \
+      --wait-quiet 1.5 > $HOME/m0-counts/time-$c-$r.log 2>&1 || echo "  failed: $(tail -2 $HOME/m0-counts/time-$c-$r.log)"
+  done
+done
+python3 utils/bench/bench.py compare m0-tcti m0-aok m0-aokint
+echo TIME-DONE
+#!/bin/bash
+# M0 (tctiSH/qemu#6) builds: tctiSH f3ebb682b6 as TCTI (the reference), our aok-vm merge with the gadgets
+# (same flags), and tctiSH f3ebb682b6 on the JIT with plugins (instruction counts).
+export PATH=/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench
+B="--target-list=x86_64-softmmu --enable-fdt --enable-tcg --disable-werror --disable-docs --enable-slirp --disable-dbus-display"
+mk() { dir=$1 src=$2; shift 2
+  if [ ! -f $dir/build.ninja ]; then rm -rf $dir; mkdir $dir; (cd $dir && ../$src/configure $B "$@" > configure.log 2>&1) || { echo "configure $dir FAILED"; tail -15 $dir/configure.log; return 1; }; fi
+  ninja -C $dir > $dir/ninja.log 2>&1 && echo "$dir ok ($(grep -c warning: $dir/ninja.log) warnings)" || { echo "$dir FAILED"; grep -m8 error $dir/ninja.log; return 1; }; }
+mk build-m0-tcti src-m0-tcti --enable-tcg-threaded-interpreter
+mk build-m0-aok src-aok --enable-tcg-threaded-interpreter --enable-aok-gadgets
+mk build-m0-plugin src-m0-tcti --enable-plugins --enable-capstone
+echo M0-BUILT
+== m0-q/tcti
+#!/bin/sh
+exec env QEMU_M0=tcti /Users/mke/aok-vm-bench/build-m0-tcti/qemu-system-x86_64-unsigned "$@"
+== m0-q/aok
+#!/bin/sh
+exec env QEMU_AOK=1 /Users/mke/aok-vm-bench/build-m0-aok/qemu-system-x86_64-unsigned "$@"
+== m0-q/aokint
+#!/bin/sh
+exec env QEMU_AOK=1 QEMU_AOK_X86_NOX87=1 QEMU_AOK_X86_NOVEC=1 QEMU_AOK_X86_SSEHELPERS=1 /Users/mke/aok-vm-bench/build-m0-aok/qemu-system-x86_64-unsigned "$@"
+== m0-q/count
+#!/bin/sh
+exec env QEMU_M0=count /Users/mke/aok-vm-bench/build-m0-plugin/qemu-system-x86_64-unsigned "$@" -plugin /Users/mke/aok-vm-bench/m0-libmnemcount.dylib,out=${MNEM_OUT:-/tmp/mnem.txt}
