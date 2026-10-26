@@ -40,6 +40,15 @@
    "sha256": "d17e64eb49d06d3c9d5ec6067d84e30759ccfece1e103d397e788e7a76724c38"
   },
   {
+   "id": "freedos",
+   "name": "FreeDOS 1.4",
+   "architecture": "x86_64",
+   "summary": "FreeDOS 1.4, installed in full from its LiveCD: DOS with its programs, compilers and games, Freedoom among them. Made by Mighty-Moth-Boy.",
+   "file": "freedos-1.4.zip",
+   "size": 141688789,
+   "sha256": "8e2fa96a8dd560d30d9890864967db94f5f6a83905b8fe0e2fcb9e90e2942c46"
+  },
+  {
    "id": "alpine-x86_64",
    "name": "Alpine 3.24.2 (x86_64)",
    "architecture": "x86_64",
