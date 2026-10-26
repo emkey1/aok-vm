@@ -1,0 +1,53 @@
+#!/bin/bash
+# M3 (tctiSH/qemu#6): emkey1/qemu rcg-m3 with M0's TCTI flags. rcg=off on it is TCTI at 0c7e606fbb.
+export PATH=/opt/homebrew/bin:$PATH GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=url.https://github.com/qemu/.insteadOf GIT_CONFIG_VALUE_0=https://gitlab.com/qemu-project/
+cd ~/aok-vm-bench
+B="--target-list=x86_64-softmmu --enable-fdt --enable-tcg --disable-werror --disable-docs --enable-slirp --disable-dbus-display --enable-tcg-threaded-interpreter"
+if [ ! -f build-m3/build.ninja ]; then rm -rf build-m3; mkdir build-m3; (cd build-m3 && ../src-m3/configure $B > configure.log 2>&1) || { echo "configure FAILED"; tail -15 build-m3/configure.log; exit 1; }; fi
+ninja -C build-m3 > build-m3/ninja.log 2>&1 && echo "build-m3 ok ($(grep -c warning: build-m3/ninja.log) warnings)" || { echo "build-m3 FAILED"; grep -m8 error build-m3/ninja.log; exit 1; }
+mkdir -p ~/m0-q/rcg ~/m0-q/rcgoff
+cat > ~/m0-q/rcg/qemu-system-x86_64 <<'W'
+#!/bin/bash
+# rcg=on appended to the -accel bench.py gives.
+a=(); while [ $# -gt 0 ]; do if [ "$1" = -accel ]; then a+=("$1" "$2,rcg=on"); shift 2; else a+=("$1"); shift; fi; done
+exec /Users/mke/aok-vm-bench/build-m3/qemu-system-x86_64-unsigned "${a[@]}"
+W
+cat > ~/m0-q/rcgoff/qemu-system-x86_64 <<'W'
+#!/bin/sh
+exec /Users/mke/aok-vm-bench/build-m3/qemu-system-x86_64-unsigned "$@"
+W
+chmod +x ~/m0-q/rcg/qemu-system-x86_64 ~/m0-q/rcgoff/qemu-system-x86_64
+echo M3-BUILT
+
+#!/bin/bash
+# M3 timing: TCTI (rcg-m3 with rcg=off: tctish-edition 0c7e606fbb), RCG streams (rcg=on), and the AOK
+# branch (aok-vm eeb0f03dcd, as in M0), by wall clock, ROUNDS rounds alternating, each after a quiet wait.
+R=${1:-3}; cd ~/tctish-bench; mkdir -p ~/m3-runs
+for r in $(seq $R); do
+  for c in rcgoff rcg aok; do
+    echo "$(date +%H:%M) round $r $c"
+    python3 utils/bench/bench.py run --backend tcti --rounds 1 --label m3-$c --qemu $HOME/m0-q/$c/qemu-system-x86_64 \
+      --wait-quiet 1.5 > $HOME/m3-runs/time-$c-$r.log 2>&1 || echo "  failed: $(tail -2 $HOME/m3-runs/time-$c-$r.log)"
+  done
+done
+python3 utils/bench/bench.py compare m3-rcgoff m3-rcg m3-aok
+echo TIME-DONE
+
+#!/bin/bash
+# M3 hand-off profile: rcg-m3 with rcg-dbg.py applied (accel/tcg/cpu-exec.c only), built with the
+# flags above into build-m3dbg, rcg=on, RCG_DEBUG_PROF naming the output. One run per workload.
+cd ~/aok-vm-bench && git -C src-aok worktree add ../src-m3dbg dfd7dbdcde && python3 rcg-dbg.py src-m3dbg
+mkdir build-m3dbg && (cd build-m3dbg && ../src-m3dbg/configure $B) && ninja -C build-m3dbg
+mkdir -p ~/m0-q/rcgdbg && ln -sfn ~/aok-vm-bench/build-m3dbg/pc-bios ~/m0-q/rcgdbg/pc-bios
+cat > ~/m0-q/rcgdbg/qemu-system-x86_64 <<'W'
+#!/bin/bash
+a=(); while [ $# -gt 0 ]; do if [ "$1" = -accel ]; then a+=("$1" "$2,rcg=on"); shift 2; else a+=("$1"); shift; fi; done
+RCG_DEBUG_PROF=${RCG_DEBUG_PROF:-/tmp/rcg-prof.txt} exec /Users/mke/aok-vm-bench/build-m3dbg/qemu-system-x86_64-unsigned "${a[@]}"
+W
+chmod +x ~/m0-q/rcgdbg/qemu-system-x86_64
+cd ~/tctish-bench
+for w in coremark sha256sum awk_words nbody; do
+  RCG_DEBUG_PROF=/tmp/rcg-prof-$w.txt python3 utils/bench/bench.py run --backend tcti --rounds 1 \
+    --label m3-dbg-$w --workloads $w --qemu $HOME/m0-q/rcgdbg/qemu-system-x86_64
+done
+# Then, here: python3 handoffs.py handoffs/WORKLOAD.txt 20 (needs llvm-mc, or LLVM_MC=path).

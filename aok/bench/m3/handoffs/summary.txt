@@ -1,0 +1,160 @@
+== coremark
+stream entries 380010501, TCG TB entries 382324837, streams back with no TB 2089418, by a slot 378403830
+C lookups from streams: stream 1995498, TCG TB 2070186, none 36093
+   87479780 00005612afd1a7b4 imul	edx, edi
+   87479733 00005612afd1a854 imul	eax, edx
+   25920006 00005612afd1aeb0 jbe	62
+   24652349 ffffffff81385485 inc	rbp
+   20146113 ffffffff813853fe inc	rbp
+   10932849 ffffffff81385572 inc	rbp
+    9719987 00005612afd1a712 imul	edx, r8d
+    9719977 00005612afd1a94a imul	edx, edi
+    6304312 ffffffff81385457 inc	rbp
+    6163893 ffffffff812d9a16 pause
+    5785164 0000000003080930 dec	r14
+    5400338 0000000003080693 inc	r10
+    4658413 ffffffff813362a8 inc	rcx
+    4020004 00005612afd1b7e9 rol	ax, 8
+    3944630 0000000003080617 shl	rdx, cl
+    3689757 ffffffff81bf72a8 rdtsc
+    3656444 0000000003080648 shr	r15, cl
+    3327890 ffffffff817d487b inc	r14
+    2819956 00005612afd1b4c9 rol	ax, 8
+    2511605 0000000003080a78 dec	r8d
+by mnemonic:
+  195032924  51.2% imul
+   89824051  23.6% inc
+   25920006   6.8% jbe
+   14620920   3.8% dec
+   13734985   3.6% shl
+   10413806   2.7% pause
+   10106188   2.7% shr
+    9361904   2.5% rol
+    4852896   1.3% rdtsc
+    1356193   0.4% lock
+    1336232   0.4% je
+     859854   0.2% mov
+     492130   0.1% and
+     458377   0.1% setae
+     319262   0.1% div
+
+== sha256sum
+stream entries 465742893, TCG TB entries 466395357, streams back with no TB 1270447, by a slot 464204131
+C lookups from streams: stream 2012875, TCG TB 1232332, none 37284
+   24652366 ffffffff81385485 inc	rbp
+   20146161 ffffffff813853fe inc	rbp
+   10932873 ffffffff81385572 inc	rbp
+    8257612 000055c31e5072f3 inc	r10
+    8257610 000055a5eb03a2f3 inc	r10
+    8257607 00005643200cf2f3 inc	r10
+    8257607 00005641a9bfb2f3 inc	r10
+    8257606 000055946f03e2f3 inc	r10
+    8257606 000055672d5932f3 inc	r10
+    8257605 0000558dbbac42f3 inc	r10
+    8257605 0000557cf6a282f3 inc	r10
+    8257604 00005605f25862f3 inc	r10
+    8257604 00005654f154f2f3 inc	r10
+    8257604 0000564e23ae22f3 inc	r10
+    8257604 0000562b9f9792f3 inc	r10
+    8257603 00005615a6c402f3 inc	r10
+    8257603 0000555e8bf952f3 inc	r10
+    8257603 00005574011312f3 inc	r10
+    8257602 000055b36013a2f3 inc	r10
+    8257602 000055c9022352f3 inc	r10
+by mnemonic:
+  320397792  73.4% inc
+   58720376  13.5% bswap
+   14492612   3.3% dec
+   13480494   3.1% shl
+    9978807   2.3% shr
+    7605916   1.7% xchg
+    2418326   0.6% pause
+    2204453   0.5% rdtsc
+    1317304   0.3% je
+    1138346   0.3% lock
+     601412   0.1% rol
+     576991   0.1% imul
+     477333   0.1% and
+     458432   0.1% setae
+     319896   0.1% div
+
+== awk_words
+stream entries 419385720, TCG TB entries 421441136, streams back with no TB 5143342, by a slot 414301374
+C lookups from streams: stream 6240246, TCG TB 5107808, none 37185
+   24652365 ffffffff81385485 inc	rbp
+   22498344 0000565116297053 dec	ebp
+   20199691 0000565116296999 or	ah, 64
+   20199672 000056511629697d bt	dword ptr [rdi], 12
+   20146121 ffffffff813853fe inc	rbp
+   14998871 000056511629708a bt	dword ptr [rbx], 11
+   10932851 ffffffff81385572 inc	rbp
+   10040695 0000565116297e0c movzx	eax, ah
+   10040680 0000565116297d9f bt	dword ptr [rsp + 64], 17
+   10040654 0000565116297d24 bt	dword ptr [rsp + 64], 16
+    7737334 00007f7ca069b9dc bt	ecx, r8d
+    7737333 00007f7ca069ba27 imul	r8d, edx
+    7737331 00007f7ca069b9b9 cdqe
+    7737302 00007f7ca069ba43 imul	edx, ecx
+    7737300 00007f7ca069b9e6 bt	ecx, r8d
+    7687439 00007f7ca0690210 imul	r15, rdx
+    7684331 00007f7ca069bb34 shl	r8d, cl
+    7684326 00007f7ca069bae2 cdqe
+    7658481 0000565116295ab9 imul	eax, eax, 63
+    7605136 00005651162964ca inc	rbx
+by mnemonic:
+  108867842  26.7% inc
+   83514897  20.5% bt
+   39400919   9.7% imul
+   38764485   9.5% dec
+   23494781   5.8% shl
+   20199691   4.9% or
+   16820286   4.1% xchg
+   15511500   3.8% cdqe
+   10071269   2.5% shr
+   10040695   2.5% movzx
+    8328673   2.0% movsd
+    6607836   1.6% pause
+    5810015   1.4% movq
+    4560168   1.1% rdtsc
+    2532303   0.6% xor
+
+== nbody
+stream entries 247514444, TCG TB entries 248881187, streams back with no TB 1527222, by a slot 245744781
+C lookups from streams: stream 1793558, TCG TB 1489521, none 37016
+   79998541 000055dee5fce13a movsd	xmm2, qword ptr [rdx - 8]
+   24652358 ffffffff81385485 inc	rbp
+   20146131 ffffffff813853fe inc	rbp
+   20000024 000055dee5fce24f movapd	xmm3, xmmword ptr [rax + 32]
+   10932854 ffffffff81385572 inc	rbp
+    6304304 ffffffff81385457 inc	rbp
+    5785164 0000000003080930 dec	r14
+    5400338 0000000003080693 inc	r10
+    4658433 ffffffff813362a8 inc	rcx
+    3944630 0000000003080617 shl	rdx, cl
+    3656445 0000000003080648 shr	r15, cl
+    3392861 ffffffff81bf72a8 rdtsc
+    3327886 ffffffff817d487b inc	r14
+    2511605 0000000003080a78 dec	r8d
+    2496220 00000000030807e5 shl	r12d, cl
+    2460996 ffffffff817d4ac7 dec	r10
+    2352059 ffffffff817d47f4 shl	rdx, cl
+    2270144 ffffffff81beafd3 inc	rax
+    1863042 0000000003080737 shr	r15, cl
+    1693548 ffffffff817d4822 shr	r12, cl
+by mnemonic:
+   89897312  36.8% inc
+   79998541  32.7% movsd
+   20000024   8.2% movapd
+   14653203   6.0% dec
+   13813696   5.7% shl
+   10123291   4.1% shr
+    4459601   1.8% rdtsc
+    3475212   1.4% pause
+    1387161   0.6% lock
+    1337327   0.5% je
+     637167   0.3% imul
+     601092   0.2% rol
+     497999   0.2% and
+     458394   0.2% setae
+     319961   0.1% div
+
