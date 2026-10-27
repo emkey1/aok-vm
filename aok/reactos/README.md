@@ -47,3 +47,15 @@ ARCH=i386 REACTOS_DISK=~/aok-vm-bench/reactos-build/reactos.qcow2 python3 aok/ap
   tablet's scaling); keys do.
 - **The time zone is GMT and the clock is local time**, as Windows keeps it:
   the desktop shows the host's local time.
+
+## Timing and profiling it
+
+`ros-stats.sh TAG` boots the finished disk (an overlay: the disk itself is
+left as it was) on MBP5 to its desktop with `QEMU_AOK_STATS=2`, and gives the
+time to explorer's desktop from the guest's debug output, QEMU's CPU time,
+and the engine's statistics: what went back to TCG, by opcode
+(`../x64/classify.py OUT 40 32`), and the writes to pages with code.
+`ros-prof.sh TAG [SECONDS]` samples the host over the boot (or, with
+`PHASE=kernel`, from the kernel's first line); `../vcpu-profile.py` splits
+the vCPU thread's samples by what they were doing. Both take `QEMU=` for another build, and extra arguments as
+QEMU's environment (`QEMU_AOK=0` for TCTI alone).

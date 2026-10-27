@@ -6,7 +6,7 @@
 #   tcg     the same binary with QEMU_AOK=0: QEMU's own translator, TCTI alone
 #   hvf     aarch64 only: Homebrew's QEMU with Hypervisor.framework, the tests on this Mac's own cores
 # CPU sets -cpu (default: x86_64 max,-la57 and aarch64 max, what the engine offers; riscv64 rv64, the app's
-# default; hvf host). SMP sets -smp.
+# default; hvf host). SMP sets -smp. QBIN replaces GUEST's QEMU (a change's build).
 W=$HOME/aok-vm-bench; guest=$1 mode=$2 tag=$3 wl=${4:-cpu} secs=${5:-3600}
 mkdir -p "$W/logs/cpu"
 env=() acc=()
@@ -22,6 +22,7 @@ riscv64) q=$W/build-aok/qemu-system-riscv64-unsigned; cpu=${CPU:-rv64}
          m=(-M virt -L "$W/src-aok/pc-bios"); k=$W/kernel/Image-lts-riscv64; con=ttyS0; extra= ;;
 *)       echo "usage: $0 x86_64|aarch64|riscv64 engine|tcg|hvf TAG [WORKLOAD] [SECONDS]" >&2; exit 1 ;;
 esac
+[ -n "$QBIN" ] && [ "$mode" != hvf ] && q=$QBIN
 ( env "${env[@]}" "$q" "${m[@]}" "${acc[@]}" -cpu "$cpu" -smp "${SMP:-1}" -m 2048 -display none -monitor none \
     -serial stdio -no-reboot -initrd "$W/initramfs-$guest-cpu.cpio" -kernel "$k" \
     -append "console=$con rdinit=/init quiet $extra bench=$wl" < /dev/null > "$W/logs/cpu/$tag.log" 2>&1 ) &
