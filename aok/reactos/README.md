@@ -58,7 +58,11 @@ and the engine's statistics: what went back to TCG, by opcode
 `ros-prof.sh TAG [SECONDS]` samples the host over the boot (or, with
 `PHASE=kernel`, from the kernel's first line); `../vcpu-profile.py` splits
 the vCPU thread's samples by what they were doing. Both take `QEMU=` for another build, and extra arguments as
-QEMU's environment (`QEMU_AOK=0` for TCTI alone).
+QEMU's environment (`QEMU_AOK=0` for TCTI alone). `ros-halt.sh TAG` asks the
+monitor every 20 ms whether the vCPU is halted and where it is, on the same
+timeline as the guest's debug output; `ros-dis.sh TAG ADDR...` disassembles
+guest addresses (such EIPs) once the desktop is up. `ROS_NOUSB=1` before any
+of them leaves out the USB controller and tablet (an experiment only).
 
 On a device, `ros-device.sh DEVICE NAME TAG` times a machine whose serial
 port is a TCP server on port 4555 (COM1, which build.sh's install already
@@ -100,3 +104,47 @@ gadgets, ReactOS reaches its desktop but writes no debug output at all; with
 its 25 KB. So that build's gadget engine ran some of ReactOS's kernel
 debugger set-up differently from TCG. Which commit since 8d8b2b621c changed
 it is not known (aok/TODO.md).
+
+### Where the boot's time goes now (MBP5, 11adf734f6, 2026-10-28)
+
+The desktop at 9.81 to 9.89 s (5 runs), the kernel's first line at 1.37 s.
+
+**A quarter of it is ReactOS waiting.** The vCPU is halted in 22 to 24% of
+`ros-halt.sh`'s polls, about 2.2 s, with every QEMU thread idle: the guest's
+own timers. Most of it is one stretch, 2.5 to 3.7 s (94 to 100% halted), between
+the USB root hub's pipes opening and the tablet's: ReactOS's USB hub driver
+sleeps a second before its first enumeration (`drivers/usb/usbhub/pnp.c`,
+USBH_FdoQueryBusRelations, "FIXME: this delay makes devices discovery during
+early boot more reliable"), then 100 ms, then resets the port. The M4's runs
+have the same 1.22 s between those two lines on every engine (gadgets, TCTI,
+build 11). Without the controller and tablet (`ROS_NOUSB=1`) the desktop
+comes at 8.29 to 8.61 s (4 runs, interleaved with the 9.81 to 9.89) with the
+same CPU time (7.6 to 7.9 s): the tablet costs about 1.4 s, all of it
+waiting, about a ninth of the M4's 12.9 s. It cannot just go: the tablet is
+the absolute pointer that touch needs.
+
+**Some of the busy time is waiting too.** Of 205 busy polls in the kernel
+phase, the HAL's calibrated stall loop (`sub eax, 1; jne`,
+KeStallExecutionProcessor: fixed microseconds, so more turns on a faster
+engine) has 13, reads of the PIT's counter (`out 43h`, `in 40h` twice) 9,
+the idle loop's spin (`sti; pause; pause; cli`) 6, and `rep movs` (a
+memory copy) 5.
+
+**The engine's own costs**, as shares of the kernel phase's busy samples
+(`ros-prof.sh`, `PHASE=kernel`, 8 s, 34% of them halted):
+
+| | |
+|---|---|
+| gadgets | 67% |
+| `rep` and other string insns in C (`aok_x86_helper_string`, element by element through the soft TLB for lods, cmps, scas and the unrepeated forms) | 4.7% |
+| the jump-cache probe (`aok_x86_lookup_pc`, a gadget) | 4% |
+| jump-cache misses (`tb_lookup_slow`, `qht`) and the cache's flush on every CR3 write | 4.3% |
+| stores to pages with code (7.0 M, 6.99 M of them beside it) | 3% |
+| TLB fills | 2.8% |
+| the main loop | 1.8% |
+| translation | 1.7% |
+| device I/O | 1.4% |
+
+Over the whole boot, device I/O is 10%: the firmware's and boot loader's
+disk reads by PIO (`in` through TCG's helper) and, on these timing machines
+only, COM1's debug output (a host write per byte).

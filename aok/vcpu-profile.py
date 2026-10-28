@@ -11,6 +11,8 @@ CATS = [  # first match from the leaf upward wins
     ("interrupt/exception", re.compile(r"^(x86_cpu_exec_interrupt|do_interrupt|raise_interrupt|cpu_handle_interrupt|cpu_handle_exception|helper_raise)")),
     ("TCG helpers", re.compile(r"^helper_")),
     ("AOK gadgets", re.compile(r"^aok_gadget_")),
+    # an assembly label, the jump-cache probe of ret, indirect call and jmp, and lookup: not C
+    ("AOK jump-cache probe", re.compile(r"^aok_x86_lookup_pc$")),
     ("AOK C", re.compile(r"^aok_")),
     ("TCTI (TCG code)", re.compile(r"^gadget_")),
     ("main loop", re.compile(r"^(cpu_exec|cpu_tb_exec|tb_lookup|tb_htable_lookup|tb_find|cpu_exec_loop|cpu_loop_exit|tcg_cpu_exec)")),
