@@ -37,3 +37,17 @@ rounds, A and A + inc/dec alternating (the second table in `timing.txt`).
   numbers cost about what the gadget does.
 - A leaves coremark (0.98x), nbody (1.00x) and sha256sum (1.03x) where TCTI
   has them, with or without inc/dec.
+
+## On `tctish-edition` (#8)
+
+tctiSH replaced `structure-a` with `tctish-edition` 5835f7c1cd, which closed
+#7; #8 is its port (a5a2255f3b). Timed on an M4 Pro Mac mini on 2026-10-28,
+as above but behind `--wait-quiet 2.5` and on that machine's disk
+(1f6adbcc2cfc), so the times are not comparable with `timing.txt`'s:
+TCTI (rcg off), RCG, and RCG + inc/dec (`timing-te.txt`). All 15 checks
+matched.
+
+- RCG against TCTI: **0.651, 1.54x faster**, as on `structure-a`.
+- **#8 against RCG: 0.996, level.** Every workload is between xz 0.968 and
+  sympy 1.034: coremark 0.999, sha256sum 0.993, pybench 0.988, nbody 0.986.
+  So #8 is coverage only, as on `structure-a`.
