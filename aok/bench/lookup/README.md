@@ -9,8 +9,10 @@ A gadget does the helper's common case instead. Built, tested and timed on
 
 ## The change
 
-emkey1/qemu `tcti-lookup` e8de46aece, on tctiSH `tctish-edition` 5835f7c1cd
-(`lookup.patch`; 8 files, 231 lines). Not offered to tctiSH yet.
+emkey1/qemu `tcti-lookup-pr` 5aa3a6fcc0, on tctiSH `tctish-edition`
+5835f7c1cd (`lookup.patch`; 8 files, 237 lines), offered to tctiSH at the
+user's word on 2026-10-28. It is the prototype (`tcti-lookup` e8de46aece,
+which was timed) with the key set only under TARGET_X86_64.
 
 - `include/tcg/lookup-key.h`: where the TB state comes from, as data. The
   target says how its `get_tb_cpu_state()` makes flags and pc in its common
@@ -87,12 +89,13 @@ step, and would change accel/tcg, not just TCTI.
 ## What it is for
 
 For tctiSH, an option at their word: 2% by geomean under RCG, more on
-branchy workloads (pybench, node), nothing on loop code. If offered, the
-commit's two long lines wrap, and its "15% to 17%" (MBP5) becomes the M4's
-12% to 14% or both are given.
+branchy workloads (pybench, node), nothing on loop code.
 
-One cost to fix first: qemu-system-i386 sets the key too, but never runs
-64-bit code, so there (and in 32-bit code under x86-64) every lookup pays
-the gadget's checks before the helper call. Setting the key only for
-TARGET_X86_64 removes it from qemu-system-i386; 32-bit code under x86-64
-would want its own mode in the key.
+The prototype set the key in qemu-system-i386 too, which never runs 64-bit
+code, so every lookup there paid the gadget's checks before the helper
+call. `tcti-lookup-pr` sets it only under TARGET_X86_64: qemu-system-i386
+keeps the plain call, builds without warnings, and runs i386's hello and
+memory system tests; the x86-64 build's RCG tests pass as before (rcg-insns
+matches with rcg on, off and plain; rcg-faults 0 of 27684 failed). 32-bit
+code under qemu-system-x86_64 still pays the checks; it would want its own
+mode in the key (pc = cs_base + eip, cs_base checked).

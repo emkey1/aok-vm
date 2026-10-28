@@ -1,31 +1,36 @@
-From e8de46aecedecd9a761ad009475e8f9ec20c2408 Mon Sep 17 00:00:00 2001
+From 5aa3a6fcc0c81768794ea8e86febf992083ab1b1 Mon Sep 17 00:00:00 2001
 From: Mike Miller <emkey1@oneopa.com>
 Date: Wed, 28 Oct 2026 13:13:21 +0100
-Subject: [PATCH] tcg/aarch64-tcti: look up the next TB in a gadget, not
- helper_lookup_tb_ptr()
+Subject: [PATCH] tcg/aarch64-tcti: look up the next TB in a gadget
 
-After an indirect jump, a call through memory or a return, a TB ends with
-a call of helper_lookup_tb_ptr() and goto_ptr. Under RCG that call and the
-helper are 15% to 17% of pybench's host time, and 10% of coremark's, the
-helper itself most of it.
+After an indirect jump, a call through memory or a return, a TB ends
+with a call of helper_lookup_tb_ptr() and goto_ptr. On an M5 Max under
+RCG, that call and the helper are 16.6% of pybench's host time, the
+helper 12.5% of it.
 
-A new gadget, lookup_tb, does the helper's common case itself. Where the
-target's TB state comes from is data: include/tcg/lookup-key.h describes
-it, x86 fills in its part in tcg_x86_init() (64-bit code: hflags with
-eflags' IOPL, TF, RF, VM and AC, and eip), and accel/tcg the CPUState
-fields beside helper_lookup_tb_ptr(), with build checks on the jump
-cache's shape. The gadget probes both ways of the jump cache, as
-tb_lookup() does, sets can_do_io and returns the TB's code as the helper
-would. Single-stepping, a breakpoint, one_insn_per_tb, a log bit that
-wants each TB, a mode the key does not describe, and a miss call the
-helper as before. tcg_out_call() emits it for helper_lookup_tb_ptr()
-under 4 KiB guest pages, folding away the R0 = env it no longer needs.
+A new gadget, lookup_tb, does the helper's common case itself. Where
+the target's TB state comes from is data: include/tcg/lookup-key.h
+describes it, x86-64 fills in its part in tcg_x86_init() (64-bit code:
+hflags with eflags' IOPL, TF, RF, VM and AC, and eip), and accel/tcg
+the CPUState fields beside helper_lookup_tb_ptr(), with build checks on
+the jump cache's shape. The gadget probes both ways of the jump cache,
+as tb_lookup() does, sets can_do_io and returns the TB's code as the
+helper would. Single-stepping, a breakpoint, one_insn_per_tb, a log bit
+that wants each TB, a mode the key does not describe (32-bit code) and
+a miss call the helper as before. tcg_out_call() emits the gadget for
+helper_lookup_tb_ptr() under 4 KiB guest pages, folding away the
+R0 = env it no longer needs. A target that leaves the key unset keeps
+the call, as qemu-system-i386 does: it has no 64-bit code to look up.
 
 Tested on tctish-edition (5835f7c1cd) on an M5 Max: rcg-insns matches
 TCG's reference with RCG on, off and with tcti-ordered=off; rcg-faults
-reports 0 of 27684 checks failed with RCG on and off. Profiled on
-pybench under RCG, helper_lookup_tb_ptr() and call_env0 (12.5% and 4.1%)
-are gone and lookup_tb is 11.7%.
+reports 0 of 27684 checks failed with RCG on and off; qemu-system-i386
+runs the hello and memory system tests. Profiled on pybench, lookup_tb
+takes the place of the helper and the call under RCG (11.7% for 16.6%)
+and under TCTI alone (3.9% for 5.9%). Timed with bench.py, three rounds
+alternating, by geometric mean over its 17 workloads: 0.979 under RCG
+(pybench 0.963, node_compute 0.965, coremark 0.994, sha256sum 1.010),
+and 0.997 under TCTI alone, within its noise.
 
 Assisted-by: Claude:claude-opus-5-5
 Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
@@ -34,12 +39,12 @@ Signed-off-by: Mike Miller <emkey1@oneopa.com>
  accel/tcg/cpu-exec.c                | 28 +++++++++
  include/tcg/lookup-key.h            | 50 +++++++++++++++
  target/i386/tcg/tb-cpu-state.h      |  3 +-
- target/i386/tcg/translate.c         |  9 +++
+ target/i386/tcg/translate.c         | 15 +++++
  tcg/aarch64-tcti/gadget-order.txt   |  1 +
  tcg/aarch64-tcti/tcg-target.c.inc   | 21 +++++++
  tcg/aarch64-tcti/tcti-gadget-defs.h | 22 +++++++
  tcg/aarch64-tcti/tcti-gadget-gen.py | 98 +++++++++++++++++++++++++++++
- 8 files changed, 231 insertions(+), 1 deletion(-)
+ 8 files changed, 237 insertions(+), 1 deletion(-)
  create mode 100644 include/tcg/lookup-key.h
 
 diff --git a/accel/tcg/cpu-exec.c b/accel/tcg/cpu-exec.c
@@ -159,7 +164,7 @@ index 09580c96df..0ba479e19d 100644
  static inline TCGTBCPUState x86_tb_cpu_state(CPUState *cs)
  {
 diff --git a/target/i386/tcg/translate.c b/target/i386/tcg/translate.c
-index 9fc3a6f7b4..a8c27ab6d0 100644
+index 9fc3a6f7b4..3df14b6d4d 100644
 --- a/target/i386/tcg/translate.c
 +++ b/target/i386/tcg/translate.c
 @@ -35,6 +35,7 @@
@@ -170,18 +175,24 @@ index 9fc3a6f7b4..a8c27ab6d0 100644
  
  #define HELPER_H "helper.h"
  #include "exec/helper-info.c.inc"
-@@ -3518,6 +3519,14 @@ void tcg_x86_init(void)
+@@ -3518,6 +3519,20 @@ void tcg_x86_init(void)
      }
  
      x86_register_inline_fp();
 +
-+    /* x86_tb_cpu_state() in 64-bit code, for a back end's lookup. */
++#ifdef TARGET_X86_64
++    /*
++     * x86_tb_cpu_state() in 64-bit code, for a back end's lookup. Without
++     * TARGET_X86_64 there is no 64-bit code, and a lookup would only ever
++     * find the mode wrong, so leave the key unset and the helper called.
++     */
 +    tcg_lookup_key.flags_ofs = offsetof(CPUX86State, hflags);
 +    tcg_lookup_key.extra_ofs = offsetof(CPUX86State, eflags);
 +    tcg_lookup_key.extra_mask = IOPL_MASK | TF_MASK | RF_MASK | VM_MASK |
 +                                AC_MASK;
 +    tcg_lookup_key.mode = HF_CS64_MASK;
 +    tcg_lookup_key.pc_ofs = offsetof(CPUX86State, eip);
++#endif
  }
  
  static void i386_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cpu)

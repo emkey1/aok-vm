@@ -55,3 +55,33 @@ grep -o '"metrics": {[^}]*}' ~/tctish-bench/build-bench/results/prof-$c-$w.jsonl
 ==> profile runs
 export WQ=2.5; for c in te lk; do bash profile.sh $c pybench 12 8; done
 export WQ=2; for c in teoff lkoff; do bash profile.sh $c pybench 13.4 10; done
+
+==> lk32-build.sh
+#!/bin/bash
+# Apply the i386 fix to src-lk, rebuild x86_64 (build-lk) and build i386 (build-lk32).
+export PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench/src-lk || exit 1
+git apply --check ../i386-fix.diff 2>/dev/null && git apply ../i386-fix.diff
+git diff --stat | tail -1
+cd ~/aok-vm-bench/build-lk && ninja qemu-system-x86_64 > ninja-fix.out 2>&1; echo "x86_64 rc=$?"
+grep -E "warning:|error:" ninja-fix.out | head
+mkdir -p ../build-lk32 && cd ../build-lk32
+[ -f build.ninja ] || { ../src-lk/configure --target-list=i386-softmmu --enable-fdt --enable-tcg --disable-werror \
+  --disable-docs --enable-slirp --disable-dbus-display --enable-tcg-threaded-interpreter > configure.out 2>&1
+  echo "configure rc=$?"; tail -2 configure.out; }
+ninja qemu-system-i386 > ninja.out 2>&1; echo "i386 rc=$?"
+echo "warnings: $(grep -c 'warning:' ninja.out)"; grep -E "warning:|error:" ninja.out | head
+
+==> lk32-test.sh (i386 kernels: tests/tcg/i386/system boot.S + kernel.ld, multiarch hello.c and memory.c (-DCHECK_UNALIGNED=1), minilib printf.c; camd gcc -m32 -nostdlib -O0 -fno-pie -no-pie -ffreestanding, -Wl,-Tkernel.ld -Wl,-melf_i386 -static -lgcc)
+#!/bin/bash
+# After the i386 fix: the RCG kernels on the rebuilt x86_64 (lk-test.sh), and i386's hello and memory system
+# tests on qemu-system-i386 under TCTI.
+bash ~/rcgk-te/lk-test.sh
+cd ~/rcgk-te/i386 || exit 1
+for t in hello memory; do
+  s=$(date +%s)
+  ~/aok-vm-bench/build-lk32/qemu-system-i386-unsigned -monitor none -display none \
+    -chardev file,path=$t.out,id=output -device isa-debugcon,chardev=output \
+    -device isa-debug-exit,iobase=0xf4,iosize=0x4 -kernel $t
+  echo "i386 $t exit $? in $(( $(date +%s) - s ))s: $(tail -1 $t.out)"
+done
