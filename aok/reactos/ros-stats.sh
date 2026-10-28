@@ -29,7 +29,7 @@ TL=$!
 UP=no
 while kill -0 $PID 2> /dev/null && [ $(( $(date +%s) - T0 )) -lt 900 ]; do
     if grep -qF 'AllFolders\\Desktop' "$W/serial.log" 2> /dev/null; then UP=yes; break; fi
-    sleep 1
+    sleep 0.1  # QEMU's CPU time is read when this sees the desktop: a coarser poll counts explorer's start in it
 done
 T=$(( $(date +%s) - T0 )); CPU=$(ps -o time= -p $PID)
 sleep "$IDLE"

@@ -1,0 +1,23 @@
+--- a/drivers/usb/usbhub/pnp.c
++++ b/drivers/usb/usbhub/pnp.c
+@@ -1063,12 +1063,18 @@
+ 
+     if (!(HubExtension->HubFlags & USBHUB_FDO_FLAG_DO_ENUMERATION))
+     {
+-        // FIXME: this delay makes devices discovery during early boot more reliable
++        // Wait until the root hub is ready (USBHUB_RootHubCallBack sets the event), but at most
++        // one second: the delay made devices discovery during early boot more reliable, and a
++        // fixed second of it kept every boot waiting long after the root hub was ready
+         LARGE_INTEGER Interval;
+         Status = STATUS_SUCCESS;
+         IoInvalidateDeviceRelations(HubExtension->LowerPDO, BusRelations);
+         Interval.QuadPart = -10000LL * 1000; // 1 sec.
+-        KeDelayExecutionThread(KernelMode, FALSE, &Interval);
++        KeWaitForSingleObject(&HubExtension->RootHubNotificationEvent,
++                              Executive,
++                              KernelMode,
++                              FALSE,
++                              &Interval);
+ 
+         DPRINT_ENUM("USBH_FdoQueryBusRelations: Skip enumeration\n");
+         goto RelationsWorker;

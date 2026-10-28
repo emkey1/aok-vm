@@ -122,6 +122,11 @@ comes at 8.29 to 8.61 s (4 runs, interleaved with the 9.81 to 9.89) with the
 same CPU time (7.6 to 7.9 s): the tablet costs about 1.4 s, all of it
 waiting, about a ninth of the M4's 12.9 s. It cannot just go: the tablet is
 the absolute pointer that touch needs.
+Waiting for the root hub's ready event instead of a fixed second (the
+second is paid only at boot: later plug-ins skip it) takes half a second
+off, 9.27 to 9.44 s against 9.72 to 9.98, same CPU time, tablet found every
+time: `usbhub-wait/` (a ReactOS source patch, and the same change in the
+released binary for trying it). Not in the shipped disk yet.
 
 **Some of the busy time is waiting too.** Of 205 busy polls in the kernel
 phase, the HAL's calibrated stall loop (`sub eax, 1; jne`,
