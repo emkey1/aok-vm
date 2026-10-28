@@ -11,7 +11,7 @@ A gadget does the helper's common case instead. Built, tested and timed on
 
 emkey1/qemu `tcti-lookup-pr` 5aa3a6fcc0, on tctiSH `tctish-edition`
 5835f7c1cd (`lookup.patch`; 8 files, 237 lines), offered to tctiSH at the
-user's word on 2026-10-28. It is the prototype (`tcti-lookup` e8de46aece,
+user's word on 2026-10-28 as tctiSH/qemu#9. It is the prototype (`tcti-lookup` e8de46aece,
 which was timed) with the key set only under TARGET_X86_64.
 
 - `include/tcg/lookup-key.h`: where the TB state comes from, as data. The
