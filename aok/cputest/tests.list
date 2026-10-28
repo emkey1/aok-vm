@@ -18,6 +18,7 @@ x86_64   x87_fsqrt                x86/x87_fsqrt.c                    S
 x86_64   x87_kat                  x86/x87_kat.c                      S
 x86_64   x87_kat_unmasked         x86/x87_kat_unmasked.c             S
 x86_64   x87_env                  x86/x87_env.c                      S
+x86_64   x87_ptrs                 x86/x87_ptrs.c                     S
 x86_64   x87_mf                   x86/x87_mf.c                       S
 x86_64   x87_trans                x86/x87_trans.c                    S
 x86_64   alu_flags                x86/alu_flags.c                    S
@@ -75,6 +76,7 @@ i386     x87_fsqrt                x86/x87_fsqrt.c                    S
 i386     x87_kat                  x86/x87_kat.c                      S
 i386     x87_kat_unmasked         x86/x87_kat_unmasked.c             S
 i386     x87_env                  x86/x87_env.c                      S
+i386     x87_ptrs                 x86/x87_ptrs.c                     S
 i386     x87_mf                   x86/x87_mf.c                       S
 i386     x87_trans                x86/x87_trans.c                    S
 i386     alu_flags                x86/alu_flags.c                    S
