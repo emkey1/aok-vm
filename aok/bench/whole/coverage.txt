@@ -1,0 +1,18 @@
+Per workload: covered by A's families, inc/dec (#7), vector/x87, and the largest uncovered integer families
+  awk_words       covered  93.2%  inc/dec  2.7%  vector/x87  0.5%   inc 1.8%, bt 1.2%, dec 0.8%, imul 0.7%
+  blender_render  covered  62.0%  inc/dec  0.4%  vector/x87 34.4%   imul 0.6%, shlx 0.6%, lzcnt 0.6%, nop 0.4%
+  code_reuse      covered  91.3%  inc/dec  0.9%  vector/x87  6.5%   inc 0.7%, nop 0.6%, leave 0.1%, dec 0.1%
+  configure       covered  93.5%  inc/dec  0.9%  vector/x87  2.9%   nop 1.1%, inc 0.7%, imul 0.6%, bt 0.2%
+  coremark        covered  95.9%  inc/dec  1.0%  vector/x87  0.0%   imul 2.2%, inc 0.8%, nop 0.7%, dec 0.2%
+  lean_plausible  covered  95.5%  inc/dec  2.7%  vector/x87  0.4%   inc 1.7%, dec 1.0%, nop 0.6%, imul 0.3%
+  lua_build       covered  95.7%  inc/dec  0.4%  vector/x87  2.1%   nop 0.8%, imul 0.4%, inc 0.3%, bt 0.2%
+  nbody           covered  28.3%  inc/dec  0.8%  vector/x87 70.4%   inc 0.7%, nop 0.2%, dec 0.2%, rdtsc 0.1%
+  node_compute    covered  90.3%  inc/dec  1.5%  vector/x87  6.8%   inc 1.3%, nop 0.7%, dec 0.3%, leave 0.1%
+  node_prettier   covered  96.0%  inc/dec  1.5%  vector/x87  0.6%   inc 1.2%, nop 0.8%, dec 0.3%, imul 0.2%
+  node_startup    covered  94.3%  inc/dec  3.4%  vector/x87  0.1%   inc 2.7%, nop 1.1%, dec 0.7%, rdtsc 0.2%
+  pybench         covered  96.3%  inc/dec  1.5%  vector/x87  0.8%   inc 1.2%, nop 0.5%, dec 0.3%, imul 0.2%
+  sha256sum       covered  97.4%  inc/dec  1.9%  vector/x87  0.0%   inc 1.7%, bswap 0.3%, nop 0.2%, dec 0.1%
+  sympy           covered  97.7%  inc/dec  0.9%  vector/x87  0.5%   inc 0.7%, nop 0.3%, cbw/cwd family 0.2%, dec 0.2%
+  xonsh_keys      covered  96.5%  inc/dec  1.8%  vector/x87  0.3%   inc 1.4%, nop 0.7%, dec 0.4%, imul 0.1%
+  xonsh_startup   covered  96.7%  inc/dec  1.6%  vector/x87  0.3%   inc 1.3%, nop 0.7%, dec 0.3%, rdtsc 0.1%
+  xz              covered  96.3%  inc/dec  2.0%  vector/x87  0.3%   inc 1.6%, nop 0.6%, dec 0.4%, imul 0.2%

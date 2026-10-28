@@ -1,0 +1,147 @@
+#!/bin/bash
+# The M4 mini (m4): the inc/dec and TCG_RICH_WHOLE timing builds, and tctiSH's bench disk.
+# ninja from a private venv (Homebrew untouched); slirp and dtc from QEMU's own meson wraps.
+set -e
+export PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+mkdir -p ~/aok-vm-bench; cd ~/aok-vm-bench
+[ -x venv/bin/ninja ] || { /usr/local/bin/python3 -m venv venv; venv/bin/pip install -q ninja; }
+[ -d src-aok ] || git clone -q --filter=blob:none -n https://github.com/emkey1/qemu.git src-aok
+git -C src-aok fetch -q origin rcg-incdec rcg-whole rcg-whole-a
+B="--target-list=x86_64-softmmu --enable-fdt --enable-tcg --disable-werror --disable-docs --enable-slirp --disable-dbus-display"
+# sa: tctiSH structure-a; incdec: the PR (#7); whole: the PR + TCG_RICH_WHOLE; wsa: structure-a + it;
+# jit: structure-a on the JIT, for bench.py prepare.
+for v in sa:fed47ac5dd incdec:3cc89a22c1 whole:2ea183a7ea wsa:237ad4afa9 jit:fed47ac5dd; do
+  n=${v%%:*} c=${v#*:} src=src-${v%%:*} f="$B --enable-tcg-threaded-interpreter"
+  [ $n = jit ] && src=src-sa f="$B"
+  [ -d $src ] || git -C src-aok worktree add -q --detach ../$src $c
+  [ "$(git -C $src rev-parse --short=10 HEAD)" = $c ] || { echo "$src is not $c"; exit 1; }
+  if [ ! -f build-$n/build.ninja ]; then
+    rm -rf build-$n; mkdir build-$n
+    (cd build-$n && ../$src/configure $f > configure.log 2>&1) || { echo "$n: configure FAILED"; tail -15 build-$n/configure.log; exit 1; }
+  fi
+  ninja -C build-$n > build-$n/ninja.log 2>&1 && echo "$(date +%H:%M) build-$n ok ($(grep -c warning: build-$n/ninja.log) warnings)" \
+    || { echo "build-$n FAILED"; grep -m8 error build-$n/ninja.log; exit 1; }
+done
+# Wrappers: rcg=on appended to the -accel bench.py gives; saoff is TCTI alone. bench.py wants pc-bios beside.
+for n in sa incdec whole wsa saoff jit; do
+  b=$n; [ $n = saoff ] && b=sa
+  mkdir -p ~/m0-q/$n
+  if [ $n = saoff ] || [ $n = jit ]; then
+    printf '#!/bin/sh\nexec %s "$@"\n' $HOME/aok-vm-bench/build-$b/qemu-system-x86_64-unsigned > ~/m0-q/$n/qemu-system-x86_64
+  else
+    cat > ~/m0-q/$n/qemu-system-x86_64 <<W
+#!/bin/bash
+a=(); while [ \$# -gt 0 ]; do if [ "\$1" = -accel ]; then a+=("\$1" "\$2,rcg=on"); shift 2; else a+=("\$1"); shift; fi; done
+exec $HOME/aok-vm-bench/build-$b/qemu-system-x86_64-unsigned "\${a[@]}"
+W
+  fi
+  chmod +x ~/m0-q/$n/qemu-system-x86_64
+  ln -sfn ~/aok-vm-bench/build-$b/pc-bios ~/m0-q/$n/pc-bios
+done
+[ -d ~/tctish-bench ] || git clone -q --depth 1 https://github.com/tctiSH/tctiSH.git ~/tctish-bench
+cd ~/tctish-bench
+if [ ! -f build-bench/bench.qcow ]; then
+  echo "$(date +%H:%M) prepare"
+  python3 utils/bench/bench.py prepare --qemu $HOME/m0-q/jit/qemu-system-x86_64 > ~/aok-vm-bench/prepare.log 2>&1 \
+    || { echo "prepare FAILED"; tail -20 ~/aok-vm-bench/prepare.log; exit 1; }
+fi
+echo "$(date +%H:%M) disk $(shasum -a 256 build-bench/bench.qcow | cut -c1-12)"
+echo SETUP-DONE
+
+#!/bin/bash
+# The RCG_EXP experiment build (rcg-whole-a + rcg-exp.diff), the profile, then a one-round check of the
+# experiment's modes on four workloads, all behind --wait-quiet $WQ.
+export WQ=${WQ:-2.5} PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench
+B="--target-list=x86_64-softmmu --enable-fdt --enable-tcg --disable-werror --disable-docs --enable-slirp --disable-dbus-display --enable-tcg-threaded-interpreter"
+if [ ! -d src-exp ]; then
+  git -C src-aok worktree add -q --detach ../src-exp 237ad4afa9 && git -C src-exp apply ~/aok-vm-bench/rcg-exp.diff || { echo "exp: apply FAILED"; exit 1; }
+fi
+if [ ! -f build-exp/build.ninja ]; then
+  rm -rf build-exp; mkdir build-exp
+  (cd build-exp && ../src-exp/configure $B > configure.log 2>&1) || { echo "exp: configure FAILED"; exit 1; }
+fi
+ninja -C build-exp > build-exp/ninja.log 2>&1 && echo "$(date +%H:%M) build-exp ok ($(grep -c warning: build-exp/ninja.log) warnings)" \
+  || { echo "build-exp FAILED"; grep -m8 error build-exp/ninja.log; exit 1; }
+for m in mem nocond; do
+  mkdir -p ~/m0-q/$m
+  cat > ~/m0-q/$m/qemu-system-x86_64 <<W
+#!/bin/bash
+a=(); while [ \$# -gt 0 ]; do if [ "\$1" = -accel ]; then a+=("\$1" "\$2,rcg=on"); shift 2; else a+=("\$1"); shift; fi; done
+RCG_EXP=$m exec $HOME/aok-vm-bench/build-exp/qemu-system-x86_64-unsigned "\${a[@]}"
+W
+  chmod +x ~/m0-q/$m/qemu-system-x86_64; ln -sfn ~/aok-vm-bench/build-exp/pc-bios ~/m0-q/$m/pc-bios
+done
+for cw in sa:coremark whole:coremark sa:sha256sum whole:sha256sum sa:pybench; do
+  c=${cw%%:*} w=${cw#*:}
+  echo "$(date +%H:%M) prof $c $w $(bash profile.sh $c $w 13 6)"
+done
+echo PROF-DONE
+cd ~/tctish-bench
+for c in wsa mem nocond; do
+  echo "$(date +%H:%M) exp $c"
+  python3 utils/bench/bench.py run --backend tcti --rounds 1 --workloads coremark,sha256sum,pybench,awk_words --label x-$c \
+    --qemu $HOME/m0-q/$c/qemu-system-x86_64 --wait-quiet $WQ > ~/incdec-runs/x-$c.log 2>&1 || echo "  failed: $(tail -2 ~/incdec-runs/x-$c.log)"
+done
+python3 utils/bench/bench.py compare x-wsa x-mem x-nocond
+echo EXP-DONE
+
+#!/bin/bash
+# profile.sh COLUMN WORKLOAD DELAY SECS: run WORKLOAD once under ~/m0-q/COLUMN, and sample its QEMU for SECS
+# seconds, DELAY seconds after its QEMU starts. bench.py's "boot" (QEMU's start to the guest agent's answer,
+# when the workload starts) was 20.6 s under TCTI and 10.8 s under A here, so DELAY is that plus 2.
+c=$1 w=$2 d=$3 n=$4 WQ=${WQ:-1.5}
+cd ~/tctish-bench; mkdir -p ~/incdec-runs
+python3 utils/bench/bench.py run --backend tcti --rounds 1 --workloads $w --label prof-$c-$w --replace \
+  --qemu $HOME/m0-q/$c/qemu-system-x86_64 --wait-quiet $WQ > ~/incdec-runs/prof-$c-$w.log 2>&1 &
+bp=$!
+# The guest's QEMU, by its machine option: bench.py starts the binary briefly first, to ask about a device.
+b=$c; [ $c = saoff ] && b=sa
+until p=$(pgrep -f "aok-vm-bench/build-$b/qemu-system-x86_64-unsigned .*-M pc-"); do sleep 0.2; done
+sleep $d
+sample $p $n -mayDie -file ~/incdec-runs/prof-$c-$w.sample > ~/incdec-runs/prof-$c-$w.sample-log 2>&1
+wait $bp
+grep -o '"metrics": {[^}]*}' ~/tctish-bench/build-bench/results/prof-$c-$w.jsonl | tail -1
+
+#!/bin/bash
+# The timing for the whole-output change: TCTI (saoff, rcg=off), structure A (sa), A + inc/dec (incdec), A + the change (wsa) and
+# A + both (whole), rcg=on but saoff, by wall clock, ROUNDS rounds alternating, each after a quiet wait.
+# The wrappers in ~/m0-q are m4-setup.sh's. WQ: the load average to wait for (bench.py --wait-quiet).
+R=${1:-3} WQ=${WQ:-1.5}; cd ~/tctish-bench; mkdir -p ~/incdec-runs
+for r in $(seq $R); do
+  for c in saoff sa incdec wsa whole; do
+    echo "$(date +%H:%M) round $r $c"
+    python3 utils/bench/bench.py run --backend tcti --rounds 1 --label w-$c --qemu $HOME/m0-q/$c/qemu-system-x86_64 \
+      --wait-quiet $WQ > $HOME/incdec-runs/w-$c-$r.log 2>&1 || echo "  failed: $(tail -2 $HOME/incdec-runs/w-$c-$r.log)"
+  done
+done
+python3 utils/bench/bench.py compare w-saoff w-sa w-incdec w-wsa w-whole
+echo TIME-DONE
+
+#!/bin/bash
+# The profiles (TCTI, A, A + both; 2 s after the guest's boot, for 8 s), then the timing, on the M4:
+# both behind --wait-quiet $WQ.
+export WQ=${WQ:-2.5} PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench
+for w in coremark sha256sum pybench; do for c in saoff sa whole; do
+  d=13; [ $c = saoff ] && d=23
+  echo "$(date +%H:%M) prof $c $w $(bash profile.sh $c $w $d 8)"
+done; done
+echo PROF-DONE
+bash whole-time.sh 3
+
+# tctiSH utils/bench/guest/prepare.sh, changed locally on the M4 (empty.qcow pins ncurses-terminfo-base to its
+# own build, which Alpine edge has outgrown (libpanelw 6.6_p20261017 wants a newer one), so apk could not resolve):
+diff --git a/utils/bench/guest/prepare.sh b/utils/bench/guest/prepare.sh
+index 800cdcf..847cb2d 100644
+--- a/utils/bench/guest/prepare.sh
++++ b/utils/bench/guest/prepare.sh
+@@ -73,6 +73,8 @@ done
+ tail -1 /tmp/apk-update.out
+ 
+ step "installing packages"
++# (Local, 2026-10-28) empty.qcow pins ncurses-terminfo-base to its own build, which edge has outgrown.
++sed -i "s/><Q[^ ]*//g" /etc/apk/world
+ # shellcheck disable=SC2086
+ quietly apk add --no-progress $PACKAGES
+ # shellcheck disable=SC2086

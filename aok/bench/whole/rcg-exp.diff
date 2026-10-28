@@ -1,0 +1,46 @@
+diff --git a/target/i386/tcg/rcg.c.inc b/target/i386/tcg/rcg.c.inc
+index def94dcf58..8d7764b33e 100644
+--- a/target/i386/tcg/rcg.c.inc
++++ b/target/i386/tcg/rcg.c.inc
+@@ -129,13 +129,30 @@ static int rcg_cc_index(CCOp cc_op)
+  * Jcc, SETcc and CMOVcc, when an earlier instruction in this TB left a
+  * lazy-flags state the gadgets read.
+  */
++/*
++ * EXPERIMENT (not for upstream): RCG_EXP=mem gives gadgets only to
++ * instructions that access guest memory; RCG_EXP=nocond gives none to Jcc,
++ * SETcc and CMOVcc. Anything else, or unset, is structure A as it is.
++ */
++static int rcg_exp(void)
++{
++    static int mode = -1;
++
++    if (mode < 0) {
++        const char *e = getenv("RCG_EXP");
++
++        mode = !e ? 0 : !strcmp(e, "mem") ? 1 : !strcmp(e, "nocond") ? 2 : 0;
++    }
++    return mode;
++}
++
+ static bool rcg_translate_cond(DisasContext *s, X86DecodedInsn *decode)
+ {
+     X86GenFunc gen = decode->e.gen;
+     int cc = rcg_cc_index(s->cc_op), cond = decode->b & 0xf;
+     TCGv flags_in[2] = { cpu_cc_dst, cpu_cc_src };
+ 
+-    if (cc < 0) {
++    if (cc < 0 || rcg_exp()) {
+         return false;
+     }
+     if (gen == gen_Jcc) {
+@@ -466,6 +483,9 @@ static bool rcg_translate(DisasContext *s, X86DecodedInsn *decode)
+     memory = (slot->nb_shapes > 1 && op != RCG_OP_LEA) ||
+              op == RCG_OP_PUSH || op == RCG_OP_POP || op == RCG_OP_CALL ||
+              op == RCG_OP_RET;
++    if (rcg_exp() == 1 && !memory && op != RCG_OP_JMP) {
++        return false;
++    }
+     g = &slot->gadgets[((ot * slot->nb_shapes + shape) * 2 + (seg >= 0)) * 2];
+     /*
+      * Check before emitting a barrier, so an instruction left to TCG gets

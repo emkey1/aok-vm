@@ -1,0 +1,75 @@
+== prof-saoff-coremark.sample: 5804 busy samples
+   39.9%  tcti: env load/store (globals, spills)
+   26.9%  tcti: arithmetic, moves
+   19.3%  tcti: branch/compare/call, TB exits
+    7.3%  tcti: guest memory (qemu_ld/st)
+    6.7%  C: helpers, translator, main loop
+  top: _gadget_st 15.2%, _gadget_ld 11.3%, _gadget_brcondi 11.1%, _gadget_ext32u 6.4%, helper_lookup_tb_ptr 6.0%, _gadget_addi_env_goto_tb 4.9%, _gadget_sti32_env 4.2%, _gadget_ld_addi_env 3.4%, _gadget_shli 2.5%, _gadget_addi 2.4%, _gadget_andi 2.4%, _gadget_qemu_ld_leq_unaligned_ord_idx2 2.4%
+  rcg: 
+== prof-sa-coremark.sample: 5869 busy samples
+   65.3%  rcg gadget (whole instruction)
+   12.1%  tcti: branch/compare/call, TB exits
+   10.4%  C: helpers, translator, main loop
+    7.2%  tcti: env load/store (globals, spills)
+    4.9%  tcti: arithmetic, moves
+  top: _rcg_* 65.3%, helper_lookup_tb_ptr 9.6%, _gadget_addi_env_goto_tb 6.6%, _gadget_ld 3.7%, _gadget_call_env0 2.2%, _gadget_ext32s 1.7%, _gadget_addi_env 1.4%, _gadget_goto_ptr 1.2%, _gadget_brcondi 1.1%, _gadget_st 0.9%, _gadget_goto_tb 0.8%, _gadget_ext32u 0.7%
+  rcg: mov_rm_64 8.0%, movsxw_rm_32 4.2%, mov_rr_32 3.7%, jcc_sub8_e 2.9%, jcc_logic64_ne 2.7%, jcc_sub32_ne 2.7%, mov_mr_64 2.2%, add_rr_32 2.2%, cmp_ri_8 1.9%, test_rr_64 1.8%
+== prof-whole-coremark.sample: 5763 busy samples
+   64.7%  rcg gadget (whole instruction)
+   12.6%  tcti: branch/compare/call, TB exits
+   11.7%  C: helpers, translator, main loop
+    7.3%  tcti: env load/store (globals, spills)
+    3.7%  tcti: arithmetic, moves
+  top: _rcg_* 64.7%, helper_lookup_tb_ptr 10.7%, _gadget_addi_env_goto_tb 7.3%, _gadget_ld 3.6%, _gadget_call_env0 2.9%, _gadget_addi_env 2.1%, _gadget_ext32s 1.1%, _gadget_brcondi 0.9%, _gadget_goto_ptr 0.7%, _gadget_st 0.7%, _gadget_goto_tb 0.6%, _gadget_tb_exit_check 0.6%
+  rcg: mov_rm_64 5.7%, mov_rr_32 4.0%, jcc_sub8_e 4.0%, movsxw_rm_32 4.0%, mov_mr_64 2.5%, cmp_ri_8 2.3%, and_ri_32 2.2%, add_rr_32 2.2%, jcc_sub32_ne 1.7%, jcc_logic64_ne 1.6%
+== prof-saoff-sha256sum.sample: 5712 busy samples
+   54.0%  tcti: arithmetic, moves
+   33.9%  tcti: env load/store (globals, spills)
+    6.1%  tcti: guest memory (qemu_ld/st)
+    4.6%  tcti: branch/compare/call, TB exits
+    1.4%  C: helpers, translator, main loop
+  top: _gadget_ext32u 20.6%, _gadget_st 17.6%, _gadget_ld 11.8%, _gadget_add 5.8%, _gadget_movi 5.3%, _gadget_addi 5.1%, _gadget_xor 4.8%, _gadget_qemu_ld_leul_unaligned_ord_idx2 4.3%, _gadget_rotr 2.7%, _gadget_mov 2.5%, _gadget_and 2.4%, _gadget_brcondi 2.2%
+  rcg: 
+== prof-sa-sha256sum.sample: 5747 busy samples
+   83.1%  rcg gadget (whole instruction)
+    5.3%  tcti: arithmetic, moves
+    4.8%  tcti: branch/compare/call, TB exits
+    3.9%  tcti: env load/store (globals, spills)
+    2.8%  C: helpers, translator, main loop
+    0.0%  tcti: guest memory (qemu_ld/st)
+  top: _rcg_* 83.1%, _gadget_addi_env_goto_tb 3.5%, helper_cc_compute_all 1.7%, _gadget_addi_env 1.4%, _gadget_movi 1.1%, _gadget_st 1.0%, _gadget_andi 1.0%, _gadget_ext32u 0.8%, _gadget_ld 0.8%, _gadget_call 0.7%, _gadget_shli 0.7%, _gadget_or 0.7%
+  rcg: mov_rr_32 18.0%, xor_rr_32 11.4%, mov_rm_32 9.7%, add_rm_32 9.1%, ror_ri_32 6.6%, add_rr_32 5.7%, and_rr_32 5.2%, jcc_sub64_ne 2.3%, mov_mr_32 2.2%, add_ri_64 2.0%
+== prof-whole-sha256sum.sample: 5977 busy samples
+   93.4%  rcg gadget (whole instruction)
+    4.1%  tcti: branch/compare/call, TB exits
+    1.5%  C: helpers, translator, main loop
+    0.6%  tcti: env load/store (globals, spills)
+    0.4%  tcti: arithmetic, moves
+  top: _rcg_* 93.4%, _gadget_addi_env_goto_tb 3.4%, _gadget_goto_tb 0.5%, _gadget_bswap32 0.3%, _gadget_ld 0.3%, helper_lookup_tb_ptr 0.3%, probe_access_internal 0.3%, _gadget_st 0.2%, helper_rep_movs 0.2%, _gadget_call_env0 0.1%, _platform_memmove 0.1%, qht_lookup_custom 0.1%
+  rcg: mov_rr_32 19.6%, xor_rr_32 14.0%, add_rm_32 10.0%, mov_rm_32 8.7%, add_rr_32 7.5%, ror_ri_32 7.3%, and_rr_32 4.9%, mov_mr_32 3.6%, shr_ri_32 2.4%, lea_rm_64 2.1%
+== prof-saoff-pybench.sample: 5766 busy samples
+   50.9%  tcti: env load/store (globals, spills)
+   20.0%  tcti: arithmetic, moves
+   13.0%  tcti: guest memory (qemu_ld/st)
+   12.0%  tcti: branch/compare/call, TB exits
+    4.2%  C: helpers, translator, main loop
+  top: _gadget_st 21.1%, _gadget_ld 11.4%, _gadget_ld_addi_env 8.6%, _gadget_addi 7.3%, _gadget_qemu_ld_leq_unaligned_ord_idx2 6.7%, _gadget_brcondi 6.2%, helper_lookup_tb_ptr 3.3%, _gadget_sti32_env 3.2%, _gadget_qemu_st_leq_unaligned_ord_idx2 3.0%, _gadget_sti64_env 2.5%, _gadget_mov 2.2%, _gadget_addi_env_goto_tb 1.9%
+  rcg: 
+== prof-sa-pybench.sample: 5711 busy samples
+   69.0%  rcg gadget (whole instruction)
+   13.6%  C: helpers, translator, main loop
+    8.7%  tcti: branch/compare/call, TB exits
+    6.6%  tcti: env load/store (globals, spills)
+    1.8%  tcti: arithmetic, moves
+    0.3%  tcti: guest memory (qemu_ld/st)
+  top: _rcg_* 69.0%, helper_lookup_tb_ptr 11.1%, _gadget_addi_env_goto_tb 5.3%, _gadget_ld 3.6%, _gadget_call_env0 2.5%, _gadget_sti32_env 1.1%, _gadget_st 0.8%, _gadget_tb_exit_check 0.7%, _gadget_goto_ptr 0.7%, _gadget_addi_env 0.5%, cpu_tb_exec 0.5%, cpu_exec_loop 0.3%
+  rcg: mov_rm_64 13.0%, mov_mr_64 6.0%, call_m_64 3.0%, ret_i_64 2.9%, call_i_64 2.9%, pop_r_64 2.9%, mov_rr_64 2.5%, test_rr_64 2.1%, push_r_64 2.1%, lea_rm_64 1.8%
+== prof-whole-pybench.sample: 5709 busy samples
+   60.1%  rcg gadget (whole instruction)
+   24.0%  C: helpers, translator, main loop
+    7.8%  tcti: branch/compare/call, TB exits
+    6.3%  tcti: env load/store (globals, spills)
+    1.4%  tcti: arithmetic, moves
+    0.4%  tcti: guest memory (qemu_ld/st)
+  top: _rcg_* 60.1%, helper_lookup_tb_ptr 9.3%, mmu_lookup1 6.6%, _gadget_addi_env_goto_tb 4.6%, _gadget_ld 3.7%, _gadget_call_env0 2.5%, do_ld8_mmu 2.4%, mmu_lookup 2.1%, do_ld_8 1.3%, _gadget_sti32_env 0.8%, _gadget_addi_env 0.6%, _gadget_goto_ptr 0.6%
+  rcg: mov_rm_64 10.8%, mov_mr_64 5.0%, call_i_64 2.5%, pop_r_64 2.5%, ret_i_64 2.4%, mov_rr_64 2.0%, call_m_64 2.0%, push_r_64 1.9%, lea_rm_64 1.6%, test_rr_64 1.6%

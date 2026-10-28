@@ -1,0 +1,11 @@
+x-wsa: /Users/mke/m0-q/wsa/qemu-system-x86_64 on tcti, 1 round(s), disk 1f6adbcc2cfc
+x-mem: /Users/mke/m0-q/mem/qemu-system-x86_64 on tcti, 1 round(s), disk 1f6adbcc2cfc
+x-nocond: /Users/mke/m0-q/nocond/qemu-system-x86_64 on tcti, 1 round(s), disk 1f6adbcc2cfc
+
+                                        x-wsa                     x-mem                  x-nocond
+coremark run (s)                        15.00              15.10  1.01x              14.92  0.99x
+sha256sum hash (s)                      12.73              13.26  1.04x              12.07  0.95x
+pybench run (s)                         14.18              18.51  1.31x              17.82  1.26x
+awk_words count (s)                     11.11              13.16  1.18x              11.41  1.03x
+
+checks: 4 compared, 0 mismatched; 0 workload run(s) failed and are left out
