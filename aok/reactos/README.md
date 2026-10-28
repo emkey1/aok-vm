@@ -59,3 +59,44 @@ and the engine's statistics: what went back to TCG, by opcode
 `PHASE=kernel`, from the kernel's first line); `../vcpu-profile.py` splits
 the vCPU thread's samples by what they were doing. Both take `QEMU=` for another build, and extra arguments as
 QEMU's environment (`QEMU_AOK=0` for TCTI alone).
+
+On a device, `ros-device.sh DEVICE NAME TAG` times a machine whose serial
+port is a TCP server on port 4555 (COM1, which build.sh's install already
+knew, so no new hardware): it starts the machine with `../app/start-vm.sh`,
+reads the guest's debug output over the cable with `nc -d` (without `-d`, nc
+closes its side at the end of its input and QEMU stops sending), and stops
+at the same line as `ros-stats.sh`. Its times run from the app's launch, so
+they include the app's start (about 1.5 s to the port). Python cannot be
+the network side: macOS's local network privacy keeps it off the link.
+
+Where the guest prints nothing, `ros-shots.sh` takes screenshots in two
+staggered loops (each takes 2.3 to 3.2 s) and `ros-desk.py REF DIR` gives
+each one's difference from a picture of the desktop. The first within 2.0
+came 0.10 and 0.25 s before the debug output's desktop line in two runs
+that had both.
+
+### The M4 iPad Pro, 2026-10-28
+
+Seconds from the launch to explorer's desktop, `ReactOS Timing` machines
+(build.sh's disk, a serial port added), one CPU; the engine at aok/ENGINE
+11adf734f6 (the code bitmap 1af7747dfa and the compressed-cluster cache
+bdcb2b3f6b) against build 11's (8d8b2b621c):
+
+| | gadgets | TCTI alone |
+|---|---|---|
+| build 11 | 15.2, 16.4 (screenshots) | 26.29, 25.68 |
+| 11adf734f6 | 12.72 to 13.24 (7 runs) | 20.35, 20.90 |
+
+A fresh disk and one booted before take the same time (12.97 and 12.72,
+13.24). The kernel's first line comes at 3.2 to 3.7 s now and at 5.8 to 6.2
+s on build 11: SeaBIOS's and the boot loader's writes beside their code, as
+on the Mac. So the iPad gains as MBP5 did: about a fifth (TCTI 21%, the
+gadgets about 19%), and the gadgets are 1.6 times TCTI. From the kernel's
+first line the M4 takes about 9.6 s, MBP5 8.4 s.
+
+**Build 11's gadgets print nothing on COM1.** Under build 11 with the
+gadgets, ReactOS reaches its desktop but writes no debug output at all; with
+`QEMU_AOK=0`, and with the new engine either way, the same machine writes
+its 25 KB. So that build's gadget engine ran some of ReactOS's kernel
+debugger set-up differently from TCG. Which commit since 8d8b2b621c changed
+it is not known (aok/TODO.md).
