@@ -182,7 +182,8 @@ def reactos(outdir, disk):
     """
     vm = base("ReactOS",
               "ReactOS 0.4.16 (a free system that runs Windows programs and drivers), installed and ready, "
-              "on the AOK gadget engine.",
+              "on the AOK gadget engine. Applications Manager, on its desktop, installs more programs (free "
+              "ones, from their makers' own sites) when the machine has the network.",
               vm_uuid(9), cpus=1, memory=1024)
     vm["System"]["Target"] = "pc"
     vm["System"]["CPUFlagsAdd"] = []

@@ -1,8 +1,13 @@
 # More software in the ReactOS machine
 
 What it would take to give ReactOS.utm more programs than ReactOS ships with,
-using only software whose licence allows it. Explored on 2026-10-28; nothing
-is decided yet.
+using only software whose licence allows it. Explored on 2026-10-28.
+
+**Decided (the user, 2026-10-28): on demand.** Users install programs with
+the Applications Manager; no "ReactOS Plus" image. The machine's notes and
+its line in the list say so (make-vm.py, ../images/index.py: in the next
+images). Left: RAPPS tried on the AOK engine on an iPad (the Mac's AOK build
+has no user-mode network), and the sources below.
 
 ## What is there to choose from
 
@@ -88,9 +93,3 @@ Both, in this order:
    where its source is) and the sources published with the image.
 
 Separately, publish ReactOS's own source with the existing image.
-
-## Decisions for the user
-
-- On-demand only, a Plus image, or both?
-- If Plus: a size budget, and which categories (games, programming, office)?
-- Firefox (trademark check), or Mypal or K-Meleon?

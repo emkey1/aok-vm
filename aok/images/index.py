@@ -16,7 +16,8 @@ MACHINES = [
     ("alpine-aarch64", "alpine-3.24.2-aarch64.zip", "Alpine 3.24.2 (aarch64)", ALPINE),
     ("devuan-aarch64", "devuan-6-aarch64.zip", "Devuan 6 (aarch64)", DEVUAN),
     ("reactos", "reactos-0.4.16.zip", "ReactOS",
-     "ReactOS 0.4.16, installed: a free system that runs Windows programs, on the x86 engine."),
+     "ReactOS 0.4.16, installed: a free system that runs Windows programs, on the x86 engine. Its "
+     "Applications Manager installs more."),
     ("kolibrios", "kolibrios-0.7.7.0-8930.zip", "KolibriOS",
      "KolibriOS 0.7.7, a tiny and fast system written in assembly: a desktop, a web browser, an editor and "
      "games, from one floppy. Made by Mighty-Moth-Boy."),
