@@ -1,0 +1,34 @@
+== prof-teoff-pybench.sample: 7522 busy samples
+   48.1%  tcti: env load/store (globals, spills)
+   19.3%  tcti: arithmetic, moves
+   13.3%  tcti: guest memory (qemu_ld/st)
+   12.2%  tcti: branch/compare/call, TB exits
+    7.1%  C: helpers, translator, main loop
+  top: _gadget_st 20.1%, _gadget_ld 10.8%, _gadget_ld_addi_env 7.6%, _gadget_addi 7.0%, _gadget_qemu_ld_leq_unaligned_ord_idx2 6.6%, _gadget_brcondi 6.3%, helper_lookup_tb_ptr 4.0%, _gadget_sti32_env 3.3%, _gadget_qemu_st_leq_unaligned_ord_idx2 3.1%, _gadget_sti64_env 2.1%, _gadget_addi_env_goto_tb 2.0%, _gadget_call_env0 1.9%
+  rcg: 
+== prof-lkoff-pybench.sample: 7399 busy samples
+   49.3%  tcti: env load/store (globals, spills)
+   20.1%  tcti: arithmetic, moves
+   14.3%  tcti: guest memory (qemu_ld/st)
+   14.1%  tcti: branch/compare/call, TB exits
+    2.2%  C: helpers, translator, main loop
+  top: _gadget_st 21.8%, _gadget_ld 10.7%, _gadget_ld_addi_env 7.7%, _gadget_addi 7.6%, _gadget_qemu_ld_leq_unaligned_ord_idx2 7.5%, _gadget_brcondi 6.1%, _gadget_lookup_tb 3.9%, _gadget_qemu_st_leq_unaligned_ord_idx2 3.3%, _gadget_sti32_env 3.1%, _gadget_mov 2.2%, _gadget_sti64_env 2.1%, _gadget_addi_env_goto_tb 1.9%
+  rcg: 
+== prof-te-pybench.sample: 4019 busy samples
+   62.5%  rcg gadget (whole instruction)
+   17.4%  C: helpers, translator, main loop
+   10.4%  tcti: branch/compare/call, TB exits
+    6.5%  tcti: env load/store (globals, spills)
+    2.8%  tcti: arithmetic, moves
+    0.4%  tcti: guest memory (qemu_ld/st)
+  top: _rcg_* 62.5%, helper_lookup_tb_ptr 12.5%, _gadget_addi_env_goto_tb 5.0%, _gadget_call_env0 4.1%, _gadget_ld 2.8%, _gadget_tb_exit_check 1.2%, _gadget_sti32_env 1.2%, cpu_tb_exec 1.1%, _gadget_goto_ptr 1.0%, _gadget_addi_env 1.0%, _gadget_st 0.5%, mmu_lookup1 0.5%
+  rcg: mov_rm_64 12.0%, mov_mr_64 4.7%, pop_r_64 2.6%, mov_rr_64 2.5%, push_r_64 2.2%, call_m_64 2.1%, movzxw_rm_32 2.0%, test_rr_64 1.8%, ret_i_64 1.6%, call_i_64 1.5%
+== prof-lk-pybench.sample: 3763 busy samples
+   68.2%  rcg gadget (whole instruction)
+   18.5%  tcti: branch/compare/call, TB exits
+    6.1%  tcti: env load/store (globals, spills)
+    5.0%  C: helpers, translator, main loop
+    1.9%  tcti: arithmetic, moves
+    0.3%  tcti: guest memory (qemu_ld/st)
+  top: _rcg_* 68.2%, _gadget_lookup_tb 11.7%, _gadget_addi_env_goto_tb 5.6%, _gadget_ld 3.6%, cpu_tb_exec 1.0%, _gadget_goto_ptr 0.9%, _gadget_tb_exit_check 0.9%, _gadget_sti32_env 0.8%, mmu_lookup1 0.7%, _gadget_addi_env 0.6%, cpu_exec_loop 0.6%, _gadget_st 0.6%
+  rcg: mov_rm_64 13.3%, mov_mr_64 5.2%, push_r_64 3.0%, mov_rr_64 2.9%, call_m_64 2.4%, pop_r_64 2.2%, test_rr_64 2.2%, call_i_64 2.0%, ret_i_64 1.8%, lea_rm_64 1.8%

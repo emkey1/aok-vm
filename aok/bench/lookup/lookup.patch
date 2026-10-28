@@ -1,0 +1,388 @@
+From e8de46aecedecd9a761ad009475e8f9ec20c2408 Mon Sep 17 00:00:00 2001
+From: Mike Miller <emkey1@oneopa.com>
+Date: Wed, 28 Oct 2026 13:13:21 +0100
+Subject: [PATCH] tcg/aarch64-tcti: look up the next TB in a gadget, not
+ helper_lookup_tb_ptr()
+
+After an indirect jump, a call through memory or a return, a TB ends with
+a call of helper_lookup_tb_ptr() and goto_ptr. Under RCG that call and the
+helper are 15% to 17% of pybench's host time, and 10% of coremark's, the
+helper itself most of it.
+
+A new gadget, lookup_tb, does the helper's common case itself. Where the
+target's TB state comes from is data: include/tcg/lookup-key.h describes
+it, x86 fills in its part in tcg_x86_init() (64-bit code: hflags with
+eflags' IOPL, TF, RF, VM and AC, and eip), and accel/tcg the CPUState
+fields beside helper_lookup_tb_ptr(), with build checks on the jump
+cache's shape. The gadget probes both ways of the jump cache, as
+tb_lookup() does, sets can_do_io and returns the TB's code as the helper
+would. Single-stepping, a breakpoint, one_insn_per_tb, a log bit that
+wants each TB, a mode the key does not describe, and a miss call the
+helper as before. tcg_out_call() emits it for helper_lookup_tb_ptr()
+under 4 KiB guest pages, folding away the R0 = env it no longer needs.
+
+Tested on tctish-edition (5835f7c1cd) on an M5 Max: rcg-insns matches
+TCG's reference with RCG on, off and with tcti-ordered=off; rcg-faults
+reports 0 of 27684 checks failed with RCG on and off. Profiled on
+pybench under RCG, helper_lookup_tb_ptr() and call_env0 (12.5% and 4.1%)
+are gone and lookup_tb is 11.7%.
+
+Assisted-by: Claude:claude-opus-5-5
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+Signed-off-by: Mike Miller <emkey1@oneopa.com>
+---
+ accel/tcg/cpu-exec.c                | 28 +++++++++
+ include/tcg/lookup-key.h            | 50 +++++++++++++++
+ target/i386/tcg/tb-cpu-state.h      |  3 +-
+ target/i386/tcg/translate.c         |  9 +++
+ tcg/aarch64-tcti/gadget-order.txt   |  1 +
+ tcg/aarch64-tcti/tcg-target.c.inc   | 21 +++++++
+ tcg/aarch64-tcti/tcti-gadget-defs.h | 22 +++++++
+ tcg/aarch64-tcti/tcti-gadget-gen.py | 98 +++++++++++++++++++++++++++++
+ 8 files changed, 231 insertions(+), 1 deletion(-)
+ create mode 100644 include/tcg/lookup-key.h
+
+diff --git a/accel/tcg/cpu-exec.c b/accel/tcg/cpu-exec.c
+index e58d1b0980..3a119059bb 100644
+--- a/accel/tcg/cpu-exec.c
++++ b/accel/tcg/cpu-exec.c
+@@ -72,6 +72,7 @@ static inline TCGTBCPUState tb_cpu_state(CPUState *cpu)
+ #include "tb-context.h"
+ #include "tb-internal.h"
+ #include "internal-common.h"
++#include "tcg/lookup-key.h"
+ #if !defined(CONFIG_USER_ONLY)
+ #include "accel/tcg/iommu.h"
+ #endif
+@@ -408,6 +409,33 @@ static inline bool check_for_breakpoints(CPUState *cpu, vaddr pc,
+         check_for_breakpoints_slow(cpu, pc, cflags);
+ }
+ 
++/*
++ * What helper_lookup_tb_ptr() does in its common case, as data, for a back
++ * end that does it itself (include/tcg/lookup-key.h). The target sets its
++ * part; the rest is here, beside what it describes.
++ */
++TCGLookupKey tcg_lookup_key = {
++    .cflags_ofs = offsetof(CPUState, tcg_cflags) - sizeof(CPUState),
++    .jc_ofs = offsetof(CPUState, tb_jmp_cache) - sizeof(CPUState),
++    .sstep_ofs = offsetof(CPUState, singlestep_flags) - sizeof(CPUState),
++    .bp_ofs = offsetof(CPUState, breakpoints.tqh_first) - sizeof(CPUState),
++    .io_ofs = offsetof(CPUState, neg.can_do_io) - sizeof(CPUState),
++    .one_insn_per_tb = &one_insn_per_tb,
++    .loglevel = &qemu_loglevel,
++    .log_mask = CPU_LOG_TB_NOCHAIN | CPU_LOG_TB_CPU | CPU_LOG_EXEC,
++};
++
++/* The shape of the jump cache, and the hash, that the key's users assume. */
++QEMU_BUILD_BUG_ON(TB_JMP_CACHE_BITS != TCG_LOOKUP_JC_BITS);
++QEMU_BUILD_BUG_ON(offsetof(CPUJumpCache, array) != TCG_LOOKUP_JC_ARRAY_OFS);
++QEMU_BUILD_BUG_ON(sizeof(((CPUJumpCache *)0)->array[0]) != 16);
++QEMU_BUILD_BUG_ON(offsetof(CPUJumpCache, array[0].pc) !=
++                  TCG_LOOKUP_JC_ARRAY_OFS + 8);
++QEMU_BUILD_BUG_ON(sizeof_field(CPUState, tcg_cflags) != 4);
++QEMU_BUILD_BUG_ON(sizeof_field(CPUState, singlestep_flags) != 4);
++QEMU_BUILD_BUG_ON(SSTEP_ENABLE != 1);
++QEMU_BUILD_BUG_ON(sizeof_field(CPUState, neg.can_do_io) != 1);
++
+ /**
+  * helper_lookup_tb_ptr: quick check for next tb
+  * @env: current cpu state
+diff --git a/include/tcg/lookup-key.h b/include/tcg/lookup-key.h
+new file mode 100644
+index 0000000000..987ea2a44c
+--- /dev/null
++++ b/include/tcg/lookup-key.h
+@@ -0,0 +1,50 @@
++/*
++ * SPDX-License-Identifier: GPL-2.0-or-later
++ *
++ * helper_lookup_tb_ptr()'s common case, as data, for a back end that looks
++ * up the next TB itself: TCTI's lookup_tb gadget.
++ */
++
++#ifndef TCG_LOOKUP_KEY_H
++#define TCG_LOOKUP_KEY_H
++
++/*
++ * Where a lookup reads env. The target's fields say how its
++ * get_tb_cpu_state() makes the state in its common case: flags is the
++ * 32-bit word at flags_ofs ORed with the 32-bit word at extra_ofs ANDed
++ * with extra_mask, pc the 64-bit word at pc_ofs and cs_base 0, while flags
++ * has a bit of mode set. pc_ofs is 0 until a target sets them.
++ *
++ * accel/tcg's fields are CPUState's, relative to env, and what makes
++ * curr_cflags() more than tcg_cflags or makes check_for_breakpoints() look:
++ * a back end that finds single-stepping, a breakpoint, one_insn_per_tb or
++ * a log bit of log_mask calls the helper.
++ *
++ * Each field is 64 bits, so that a gadget loads them in pairs.
++ */
++typedef struct TCGLookupKey {
++    int64_t flags_ofs, extra_ofs;
++    uint64_t extra_mask, mode;
++    int64_t pc_ofs;
++
++    int64_t cflags_ofs, jc_ofs;
++    int64_t sstep_ofs, bp_ofs;
++    int64_t io_ofs;
++    const bool *one_insn_per_tb;
++    const unsigned *loglevel;
++    uint64_t log_mask;
++} TCGLookupKey;
++
++extern TCGLookupKey tcg_lookup_key;
++
++/*
++ * The jump cache's shape, which accel/tcg checks against its own: 2 to the
++ * TCG_LOOKUP_JC_BITS entries of a TB and a pc, 16 bytes each, after an
++ * rcu_head; and the guest page size the softmmu hash assumes, which a back
++ * end must check.
++ */
++#define TCG_LOOKUP_JC_BITS      14
++#define TCG_LOOKUP_JC_ARRAY_OFS 16
++#define TCG_LOOKUP_PAGE_BITS    12
++
++#endif /* TCG_LOOKUP_KEY_H */
+diff --git a/target/i386/tcg/tb-cpu-state.h b/target/i386/tcg/tb-cpu-state.h
+index 09580c96df..0ba479e19d 100644
+--- a/target/i386/tcg/tb-cpu-state.h
++++ b/target/i386/tcg/tb-cpu-state.h
+@@ -13,7 +13,8 @@
+ /*
+  * What x86_get_tb_cpu_state() returns, for callers that can see CPUX86State:
+  * accel/tcg/cpu-exec.c when it is compiled for this target, where it runs on
+- * every TB lookup. See the comment there.
++ * every TB lookup. See the comment there. tcg_x86_init() describes its
++ * 64-bit case in tcg_lookup_key, for TCTI's lookup gadget: change both.
+  */
+ static inline TCGTBCPUState x86_tb_cpu_state(CPUState *cs)
+ {
+diff --git a/target/i386/tcg/translate.c b/target/i386/tcg/translate.c
+index 9fc3a6f7b4..a8c27ab6d0 100644
+--- a/target/i386/tcg/translate.c
++++ b/target/i386/tcg/translate.c
+@@ -35,6 +35,7 @@
+ #include "decode-new.h"
+ 
+ #include "exec/log.h"
++#include "tcg/lookup-key.h"
+ 
+ #define HELPER_H "helper.h"
+ #include "exec/helper-info.c.inc"
+@@ -3518,6 +3519,14 @@ void tcg_x86_init(void)
+     }
+ 
+     x86_register_inline_fp();
++
++    /* x86_tb_cpu_state() in 64-bit code, for a back end's lookup. */
++    tcg_lookup_key.flags_ofs = offsetof(CPUX86State, hflags);
++    tcg_lookup_key.extra_ofs = offsetof(CPUX86State, eflags);
++    tcg_lookup_key.extra_mask = IOPL_MASK | TF_MASK | RF_MASK | VM_MASK |
++                                AC_MASK;
++    tcg_lookup_key.mode = HF_CS64_MASK;
++    tcg_lookup_key.pc_ofs = offsetof(CPUX86State, eip);
+ }
+ 
+ static void i386_tr_init_disas_context(DisasContextBase *dcbase, CPUState *cpu)
+diff --git a/tcg/aarch64-tcti/gadget-order.txt b/tcg/aarch64-tcti/gadget-order.txt
+index 1564412f53..4f5a1abc03 100644
+--- a/tcg/aarch64-tcti/gadget-order.txt
++++ b/tcg/aarch64-tcti/gadget-order.txt
+@@ -15,6 +15,7 @@ _gadget_st_i64_imm_arg8_arg14_arg32
+ _gadget_ext32u_i64_arg8_arg8
+ _gadget_st_i64_imm_arg8_arg14_arg0
+ _gadget_call_env0
++_gadget_lookup_tb
+ _gadget_ld_addi_env_arg9_arg8
+ _gadget_addi_i64_arg9_arg9
+ _gadget_mov_i64_arg9_arg8
+diff --git a/tcg/aarch64-tcti/tcg-target.c.inc b/tcg/aarch64-tcti/tcg-target.c.inc
+index 87e2a743dc..ccba6c954a 100644
+--- a/tcg/aarch64-tcti/tcg-target.c.inc
++++ b/tcg/aarch64-tcti/tcg-target.c.inc
+@@ -42,6 +42,9 @@
+ #include "tcg/tcg-inline-fp.h"
+ #include "tcti-gadget-defs.h"
+ 
++/* The helper the lookup_tb gadget stands in for (accel/tcg/tcg-runtime.h). */
++const void *helper_lookup_tb_ptr(CPUArchState *env);
++
+ /* Grab our gadget headers. */
+ #include "tcti_gadgets.h"
+ 
+@@ -831,6 +834,24 @@ static void tcg_out_call(TCGContext *s, const tcg_insn_unit *func,
+         first = -1;
+     }
+ 
++    /*
++     * helper_lookup_tb_ptr(env): the lookup_tb gadget does its common case
++     * itself (include/tcg/lookup-key.h), and calls it for the rest. It takes
++     * env from x14, so the gadget that set R0 to env goes. The key's hash is
++     * for 4 KiB guest pages; a target that does not describe its state
++     * leaves pc_ofs 0.
++     */
++    if (func == (const void *)helper_lookup_tb_ptr &&
++        tcg_lookup_key.pc_ofs && TARGET_PAGE_BITS == TCG_LOOKUP_PAGE_BITS) {
++        if (first >= 0 && top == 0 && offset[0] == 0) {
++            tcti_rewind(s, tcti_env_args.e[first].start);
++        }
++        tcg_out_gadget(s, gadget_lookup_tb);
++        tcg_out64(s, (uintptr_t)func);
++        tcg_out64(s, (uintptr_t)&tcg_lookup_key);
++        return;
++    }
++
+     /*
+      * A registered float helper: its gadget does the operation itself when
+      * it can. With all four arguments env plus constants, it computes them
+diff --git a/tcg/aarch64-tcti/tcti-gadget-defs.h b/tcg/aarch64-tcti/tcti-gadget-defs.h
+index 0d1de0dee0..f9e7db5063 100644
+--- a/tcg/aarch64-tcti/tcti-gadget-defs.h
++++ b/tcg/aarch64-tcti/tcti-gadget-defs.h
+@@ -11,6 +11,8 @@
+ 
+ #include "qemu/osdep.h"
+ #include "hw/core/cpu.h"
++#include "exec/translation-block.h"
++#include "tcg/lookup-key.h"
+ 
+ /*
+  * The offset from env of the CPUTLBDescFast for mmu_idx: what
+@@ -60,4 +62,24 @@ QEMU_BUILD_BUG_ON(sizeof_field(CPUTLBEntry, addr_read) != 8);
+ QEMU_BUILD_BUG_ON(sizeof_field(CPUTLBEntry, addr_write) != 8);
+ QEMU_BUILD_BUG_ON(sizeof_field(CPUTLBEntry, addend) != 8);
+ 
++/*
++ * The lookup_tb gadget's constants: a TCGLookupKey field's offset, which it
++ * loads in pairs; tb_jmp_cache_hash_func() for 4 KiB pages; and the
++ * TranslationBlock fields it compares, flags and cflags in one LDP.
++ */
++#define TCTI_LK(field) ((int)offsetof(TCGLookupKey, field))
++#define TCTI_LK_HASH_SHIFT (TCG_LOOKUP_PAGE_BITS - TCG_LOOKUP_JC_BITS / 2)
++#define TCTI_LK_PAGE_MASK                                               \
++    ((1 << TCG_LOOKUP_JC_BITS) - (1 << (TCG_LOOKUP_JC_BITS / 2)))
++#define TCTI_LK_ADDR_MASK ((1 << (TCG_LOOKUP_JC_BITS / 2)) - 1)
++
++QEMU_BUILD_BUG_ON(TCTI_LK(extra_ofs) != TCTI_LK(flags_ofs) + 8);
++QEMU_BUILD_BUG_ON(TCTI_LK(mode) != TCTI_LK(extra_mask) + 8);
++QEMU_BUILD_BUG_ON(TCTI_LK(cflags_ofs) != TCTI_LK(pc_ofs) + 8);
++QEMU_BUILD_BUG_ON(TCTI_LK(bp_ofs) != TCTI_LK(sstep_ofs) + 8);
++QEMU_BUILD_BUG_ON(TCTI_LK(loglevel) != TCTI_LK(one_insn_per_tb) + 8);
++QEMU_BUILD_BUG_ON(offsetof(TranslationBlock, cflags) !=
++                  offsetof(TranslationBlock, flags) + 4);
++QEMU_BUILD_BUG_ON(sizeof_field(TranslationBlock, cs_base) != 8);
++
+ #endif /* TCTI_GADGET_DEFS_H */
+diff --git a/tcg/aarch64-tcti/tcti-gadget-gen.py b/tcg/aarch64-tcti/tcti-gadget-gen.py
+index b1f447b0b9..f238456333 100755
+--- a/tcg/aarch64-tcti/tcti-gadget-gen.py
++++ b/tcg/aarch64-tcti/tcti-gadget-gen.py
+@@ -676,6 +676,104 @@ def vector_math_dn_immediate(name, operation, immediate_range, filter=lambda x:
+         "mov x0, x27"
+     )
+ 
++# helper_lookup_tb_ptr(env)'s common case, done here (include/tcg/lookup-key.h):
++# the target's state from env, the two ways of the jump cache, and on a hit
++# can_do_io set and the TB's code in x0, as the helper returns it. Anything
++# the helper would treat otherwise -- one_insn_per_tb, a log bit,
++# single-stepping, a breakpoint, a mode the key does not describe -- and a
++# miss call it. The stream holds the helper, then the key's address.
++def lookup_way(fail):
++    """ The lines that check the jump cache entry at x3 against the state
++    (flags w1, pc x4, cflags w5), leaving its TB in x2. """
++    return [
++        "ldp x2, x0, [x3]",
++        f"cbz x2, {fail}",
++        "cmp x0, x4",
++        f"b.ne {fail}",
++        "ldr x0, [x2, %[tb_cs_base]]",
++        f"cbnz x0, {fail}",
++        "ldp w0, w3, [x2, %[tb_flags]]",
++        "cmp w0, w1",
++        "ccmp w3, w5, #0, eq",
++        f"b.ne {fail}",
++    ]
++
++simple("lookup_tb",
++    "ldp x27, x16, [x28], #16",
++    # What curr_cflags() and check_for_breakpoints() look at.
++    "ldp x1, x2, [x16, %[lk_one]]",
++    "ldrb w1, [x1]",
++    "ldr w2, [x2]",
++    "ldr x3, [x16, %[lk_logmask]]",
++    "tst w2, w3",
++    "ccmp w1, #0, #0, eq",
++    "b.ne 9f",
++    "ldp x1, x2, [x16, %[lk_sstep]]",
++    "ldr w1, [x14, x1]",
++    "ldr x2, [x14, x2]",
++    "tst w1, #1",
++    "ccmp x2, #0, #0, eq",
++    "b.ne 9f",
++    # The state: flags, pc and cflags.
++    "ldp x1, x2, [x16, %[lk_flags]]",
++    "ldp x3, x4, [x16, %[lk_masks]]",
++    "ldr w1, [x14, x1]",
++    "ldr w2, [x14, x2]",
++    "tst w1, w4",
++    "b.eq 9f",
++    "and w2, w2, w3",
++    "orr w1, w1, w2",
++    "ldp x4, x5, [x16, %[lk_pc]]",
++    "ldr x4, [x14, x4]",
++    "ldr w5, [x14, x5]",
++    # The entry, as tb_jmp_cache_hash_func() finds it, and its partner.
++    "ldr x6, [x16, %[lk_jc]]",
++    "ldr x6, [x14, x6]",
++    "eor x7, x4, x4, lsr #%[shift]",
++    "lsr x2, x7, #%[shift]",
++    "and x2, x2, #%[page_mask]",
++    "and x7, x7, #%[addr_mask]",
++    "orr x7, x2, x7",
++    "add x6, x6, #%[jc_array]",
++    "add x3, x6, x7, lsl #4",
++    *lookup_way("1f"),
++    "b 2f",
++    "1:",
++    "eor x7, x7, #1",
++    "add x3, x6, x7, lsl #4",
++    *lookup_way("9f"),
++    "2:",
++    "ldr x3, [x16, %[lk_io]]",
++    "mov w0, #1",
++    "strb w0, [x14, x3]",
++    "ldr x0, [x2, %[tb_tc_ptr]]",
++    *EPILOGUE,
++    "9:",
++    "mov x0, x14",
++    "str x28, [x25]",
++    *C_CALL_PROLOGUE,
++    "blr x27",
++    "mov x27, x0",
++    *C_CALL_EPILOGUE,
++    "mov x0, x27",
++    operands=", ".join([
++        '[lk_flags] "i" (TCTI_LK(flags_ofs))',
++        '[lk_masks] "i" (TCTI_LK(extra_mask))',
++        '[lk_pc] "i" (TCTI_LK(pc_ofs))',
++        '[lk_jc] "i" (TCTI_LK(jc_ofs))',
++        '[lk_sstep] "i" (TCTI_LK(sstep_ofs))',
++        '[lk_io] "i" (TCTI_LK(io_ofs))',
++        '[lk_one] "i" (TCTI_LK(one_insn_per_tb))',
++        '[lk_logmask] "i" (TCTI_LK(log_mask))',
++        '[shift] "i" (TCTI_LK_HASH_SHIFT)',
++        '[page_mask] "i" (TCTI_LK_PAGE_MASK)',
++        '[addr_mask] "i" (TCTI_LK_ADDR_MASK)',
++        '[jc_array] "i" (TCG_LOOKUP_JC_ARRAY_OFS)',
++        '[tb_cs_base] "i" (offsetof(TranslationBlock, cs_base))',
++        '[tb_flags] "i" (offsetof(TranslationBlock, flags))',
++        '[tb_tc_ptr] "i" (offsetof(TranslationBlock, tc.ptr))',
++    ]))
++
+ # The inline float fast path (tcg/tcg-inline-fp.h): a registered SSE float
+ # helper's operation done here on NEON, under the conditions that make it
+ # exactly the helper's, and the call otherwise. The "_env" forms compute the
+-- 
+2.56.0
+

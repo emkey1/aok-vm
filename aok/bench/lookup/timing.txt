@@ -1,0 +1,28 @@
+l-teoff: /Users/mke/m0-q/teoff/qemu-system-x86_64 on tcti, 3 round(s), disk d9f049e41fd2
+l-lkoff: /Users/mke/m0-q/lkoff/qemu-system-x86_64 on tcti, 3 round(s), disk d9f049e41fd2
+l-te: /Users/mke/m0-q/te/qemu-system-x86_64 on tcti, 3 round(s), disk d9f049e41fd2
+l-lk: /Users/mke/m0-q/lk/qemu-system-x86_64 on tcti, 3 round(s), disk d9f049e41fd2
+
+                                             l-teoff                   l-lkoff                      l-te                      l-lk
+awk_words count (s)                        11.51 ±3%          11.39 ±0%  0.99x           8.24 ±3%  0.72x           8.22 ±1%  0.71x
+blender_render total (s)                     102 ±0%            102 ±0%  0.99x          67.68 ±0%  0.66x          67.14 ±0%  0.66x
+blender_render render (s)                  84.53 ±0%          83.78 ±0%  0.99x          56.42 ±0%  0.67x          56.04 ±0%  0.66x
+code_reuse rerun (s)                       16.06 ±4%          15.32 ±5%  0.95x          10.56 ±7%  0.66x           9.27 ±7%  0.58x
+configure run (s)                          82.92 ±1%          82.59 ±0%  1.00x          47.45 ±0%  0.57x          47.26 ±1%  0.57x
+coremark run (s)                           12.77 ±1%          12.71 ±0%  1.00x          12.11 ±1%  0.95x          12.04 ±3%  0.94x
+lean_plausible build (s)                   89.85 ±1%          88.81 ±1%  0.99x          55.24 ±1%  0.61x          55.37 ±1%  0.62x
+lua_build build (s)                        72.83 ±1%          72.67 ±0%  1.00x          36.75 ±1%  0.50x          36.47 ±0%  0.50x
+nbody run (s)                              18.77 ±2%          19.01 ±0%  1.01x          19.19 ±0%  1.02x          19.06 ±1%  1.02x
+node_compute run (s)                       13.88 ±1%          13.96 ±3%  1.01x           8.47 ±0%  0.61x           8.17 ±2%  0.59x
+node_prettier format (s)                   18.95 ±1%          18.94 ±1%  1.00x          10.27 ±1%  0.54x          10.20 ±0%  0.54x
+node_startup start (s)                      0.42 ±1%           0.42 ±0%  1.00x           0.28 ±2%  0.67x           0.28 ±2%  0.67x
+pybench run (s)                            20.03 ±2%          20.15 ±2%  1.01x          10.32 ±0%  0.52x           9.94 ±1%  0.50x
+sha256sum hash (s)                         11.02 ±1%          11.13 ±1%  1.01x           9.91 ±2%  0.90x          10.01 ±3%  0.91x
+sympy run (s)                              81.26 ±0%          81.15 ±0%  1.00x          38.37 ±1%  0.47x          37.84 ±0%  0.47x
+xonsh_keys prompt (s)                       8.64 ±0%           8.66 ±0%  1.00x           4.68 ±1%  0.54x           4.57 ±1%  0.53x
+xonsh_keys key_median (ms)                   138 ±1%            142 ±1%  1.03x          88.00 ±2%  0.64x          87.00 ±1%  0.63x
+xonsh_keys key_p90 (ms)                      150 ±1%            154 ±2%  1.03x          94.00 ±3%  0.63x          93.00 ±1%  0.62x
+xonsh_startup start (s)                     6.15 ±0%           6.11 ±0%  0.99x           3.40 ±1%  0.55x           3.34 ±0%  0.54x
+xz compress (s)                            14.72 ±0%         14.38 ±21%  0.98x          11.77 ±7%  0.80x         10.80 ±10%  0.73x
+
+checks: 15 compared, 0 mismatched; 0 workload run(s) failed and are left out

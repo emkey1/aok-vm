@@ -1,0 +1,57 @@
+==> lk-setup.sh
+#!/bin/bash
+# Wrappers for tctish-edition (te) and it with the lookup gadget (lk): rcg=on as te/lk, TCTI alone as teoff/lkoff.
+for n in te lk teoff lkoff; do
+  b=${n%off}
+  mkdir -p ~/m0-q/$n
+  if [ $n != $b ]; then
+    printf '#!/bin/sh\nexec %s "$@"\n' $HOME/aok-vm-bench/build-$b/qemu-system-x86_64-unsigned > ~/m0-q/$n/qemu-system-x86_64
+  else
+    cat > ~/m0-q/$n/qemu-system-x86_64 <<W
+#!/bin/bash
+a=(); while [ \$# -gt 0 ]; do if [ "\$1" = -accel ]; then a+=("\$1" "\$2,rcg=on"); shift 2; else a+=("\$1"); shift; fi; done
+exec $HOME/aok-vm-bench/build-$b/qemu-system-x86_64-unsigned "\${a[@]}"
+W
+  fi
+  chmod +x ~/m0-q/$n/qemu-system-x86_64; ln -sfn ~/aok-vm-bench/build-$b/pc-bios ~/m0-q/$n/pc-bios
+done
+ls ~/m0-q
+
+==> lk-time.sh
+#!/bin/bash
+# The lookup gadget: tctish-edition (te) against it with the gadget (lk), each as TCTI alone (teoff, lkoff)
+# and with RCG (te, lk), by wall clock, ROUNDS rounds alternating, each behind --wait-quiet $WQ.
+export WQ=${WQ:-2}
+R=${1:-3}; cd ~/tctish-bench; mkdir -p ~/incdec-runs
+for r in $(seq $R); do
+  for c in teoff lkoff te lk; do
+    echo "$(date +%H:%M) round $r $c"
+    python3 utils/bench/bench.py run --backend tcti --rounds 1 --label l-$c --qemu $HOME/m0-q/$c/qemu-system-x86_64 \
+      --wait-quiet $WQ > $HOME/incdec-runs/l-$c-$r.log 2>&1 || echo "  failed: $(tail -2 $HOME/incdec-runs/l-$c-$r.log)"
+  done
+done
+python3 utils/bench/bench.py compare l-teoff l-lkoff l-te l-lk
+echo TIME-DONE
+
+==> profile.sh
+#!/bin/bash
+# profile.sh COLUMN WORKLOAD DELAY SECS: run WORKLOAD once under ~/m0-q/COLUMN, and sample its QEMU for SECS
+# seconds, DELAY seconds after its QEMU starts. bench.py's "boot" (QEMU's start to the guest agent's answer,
+# when the workload starts) was 20.6 s under TCTI and 10.8 s under A on the M4, 11.4 s and 10.2 s on MBP5;
+# DELAY is that plus 2. A column ending in "off" runs the build without it (lkoff: build-lk).
+c=$1 w=$2 d=$3 n=$4 WQ=${WQ:-1.5}
+cd ~/tctish-bench; mkdir -p ~/incdec-runs
+python3 utils/bench/bench.py run --backend tcti --rounds 1 --workloads $w --label prof-$c-$w --replace \
+  --qemu $HOME/m0-q/$c/qemu-system-x86_64 --wait-quiet $WQ > ~/incdec-runs/prof-$c-$w.log 2>&1 &
+bp=$!
+# The guest's QEMU, by its machine option: bench.py starts the binary briefly first, to ask about a device.
+b=${c%off}; [ $c = saoff ] && b=sa
+until p=$(pgrep -f "aok-vm-bench/build-$b/qemu-system-x86_64-unsigned .*-M pc-"); do sleep 0.2; done
+sleep $d
+sample $p $n -mayDie -file ~/incdec-runs/prof-$c-$w.sample > ~/incdec-runs/prof-$c-$w.sample-log 2>&1
+wait $bp
+grep -o '"metrics": {[^}]*}' ~/tctish-bench/build-bench/results/prof-$c-$w.jsonl | tail -1
+
+==> profile runs
+export WQ=2.5; for c in te lk; do bash profile.sh $c pybench 12 8; done
+export WQ=2; for c in teoff lkoff; do bash profile.sh $c pybench 13.4 10; done

@@ -13,7 +13,7 @@ def kind(sym):
         f = re.sub(r"(_arg\d+)+.*$", "", sym)
         if f.startswith("_gadget_qemu_"):
             return "tcti: guest memory (qemu_ld/st)"
-        if re.search(r"(brcond|_br$|goto|exit_tb|goto_ptr|call|setcond|movcond)", f):
+        if re.search(r"(brcond|_br$|goto|exit_tb|goto_ptr|call|setcond|movcond|lookup_tb)", f):
             return "tcti: branch/compare/call, TB exits"
         if re.match(r"_gadget_(ld|st)\d*[su]?(_|$)", f) or "_env" in f:
             return "tcti: env load/store (globals, spills)"
