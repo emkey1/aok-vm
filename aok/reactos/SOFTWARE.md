@@ -59,6 +59,37 @@ The image also grows: the starter set below is about 160 MB of installers.
 existing ReactOS.utm passes it on. Its source (ReactOS-0.4.16's source
 archive) should be published with the image whichever way this goes.
 
+## With no network: a CD
+
+For a machine that has no network (an iPad away from Wi-Fi; asked for on
+2026-10-29), `software-cd/make-cd.sh OUT.iso` makes a CD of the starter set
+below on a Mac: the installers from `software-cd/manifest.txt` (RAPPS's URLs
+and SHA-1s, except OpenTTD's zip build with OpenGFX, its base graphics, in
+`baseset`: the installer in RAPPS downloads OpenGFX even when silent and stops
+on "Downloading of OpenGFX failed" with no network), and `INSTALL.CMD`, which
+runs each with its silent switch (NSIS `/S`, Inno Setup `/VERYSILENT ...`, MSI
+`msiexec /qn`, SumatraPDF `-s`, Mypal `-ms`), copies the four that come as zips, makes their Start menu
+entries (`SHORTCUTS.VBS`) and logs to `C:\AOK-install.log`. The user's own
+copy, made on their Mac: nothing is passed on by us.
+
+WinSCP's installer installs, then never exits on ReactOS 0.4.16 (it runs
+WinSCP.exe twice at the end; both setup processes were still running at
+shutdown), so `INSTALL.CMD` starts it last and does not wait for it.
+
+`software-cd/test-cd.sh ISO` tries it on MBP5: the finished disk, no network,
+the CD on `ide.1`, `INSTALL.CMD` typed in the Run box, then the log, Program
+Files and the Start menu read off the disk.
+
+**Putting the CD in the machine.** The machines in the list have one IDE disk
+and no CD drive. The app gives a second IDE drive `ide.1`, where `build.sh`'s
+install CD was, so ReactOS already knows the drive and asks nothing. With the
+machine shut down: its settings, Drives, a new CD/DVD drive on IDE with the
+ISO imported. Or from a Mac with the app closed: the ISO copied into the
+bundle's `Data/` and a drive added to its `config.plist`
+(`{"ImageName": "aok-programs.iso", "ImageType": "CD", "Interface": "IDE",
+"InterfaceVersion": 1, "ReadOnly": true, "Identifier": ...}`) with devicectl.
+The CD is D:; double-click `INSTALL.CMD` on it.
+
 ## A starter set
 
 Small, open source, XP-era builds that are in the RAPPS catalogue (package

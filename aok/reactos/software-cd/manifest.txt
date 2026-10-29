@@ -1,0 +1,22 @@
+# What make-cd.sh puts on the CD: KIND SHA-1 URL [DIR]. setup: into SETUP\, run by INSTALL.CMD (which names each
+# file); zip: unpacked into APPS\DIR. URLs and SHA-1s are ReactOS's Applications Manager's (github.com/reactos/rapps-db,
+# 2026-10-29), all open source (SOFTWARE.md's starter set), except OpenTTD's: its zip build and OpenGFX, its free base graphics
+# (both GPLv2, cdn.openttd.org; SHA-1s ours), because the installer in RAPPS insists on downloading OpenGFX and stops
+# on a message box when it cannot.
+setup 31bba021743eb5b872be8924cb67c428ed4ac861 https://github.com/ip7z/7zip/releases/download/26.02/7z2602.exe
+setup 99d3507a8eab110b7471bf2a8e63e88ecfb4e831 https://github.com/notepad-plus-plus/old-releases/releases/download/v6x-7/npp.6.9.Installer.exe
+setup b750eec0f91a5cf2e43259c935c5473c82d27d72 https://kjkpub.nyc3.digitaloceanspaces.com/software/sumatrapdf/rel/SumatraPDF-3.1.2-install.exe
+setup ad6163ab21b1a48975a3f966699963334aedb4d0 https://web.archive.org/web/20160630022900/http://www.nl.abisource.com/downloads/abiword/2.9.4/Windows/abiword-setup-2.9.4.exe
+setup 213e67b32df5585f9fb50302aa317918064c6f62 https://web.archive.org/web/20210121063508/https://binaries.mpc-hc.org/MPC%20HomeCinema%20-%20Win32/MPC-HC_v1.7.13_x86/MPC-HC.1.7.13.x86.exe
+setup e5fc81d1f33a3054f7bf54bde779f5049190286a https://the.earth.li/~sgtatham/putty/0.83/w32/putty-0.83-installer.msi
+setup 3bd86664777f958e326ec155878239f905a923e0 https://sourceforge.net/projects/winscp/files/WinSCP/5.7.7/winscp577setup.exe
+setup 1484333cdfb7f7d81a38a9b9462d53d880fee500 https://web.archive.org/web/20250711164648/https://www.mypal-browser.org/release/mypal-29.3.0.win32.installer.exe
+setup 1ceeb1cba00d939f41e9b1e6d5aa82d071b010d5 https://download.sourceforge.net/project/tuxpaint/tuxpaint/0.9.22/tuxpaint-0.9.22-win32-installer.exe
+setup fad269d650ae6dd31785e79622749505f4f4cd23 https://sourceforge.net/projects/lzdoom-plus-freedoom/files/lzdoom-installer.exe
+setup c8c1f5a5d17336607c886444518e74e3d1a4e041 https://download.sourceforge.net/project/dosbox/dosbox/0.74-3/DOSBox0.74-3-win32-installer.exe
+setup 46c89a6eebfb5f2e8f9b7edbe5409e314366a66a https://www.python.org/ftp/python/3.4.4/python-3.4.4.msi
+zip 828a7222f0e8daf9e395063e296d86c0cb78248f https://download.explorerplusplus.com/stable/1.3.5/explorerpp_x86.zip Explorer++
+zip 1084204510fb229d39f568bc1ea1474bb62d9f41 https://powdertoy.co.uk/Download/Builds/Build-340/powder-win32.zip The Powder Toy
+zip 455f7571620c9a002562184f8f1f8d9025b34d87 https://download.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win32-bin.zip .
+zip 7aec164e57056e5479f479c8668caf8c5dbb1a8e https://cdn.openttd.org/openttd-releases/1.10.3/openttd-1.10.3-windows-win32.zip OpenTTD
+zip 896388d410f6533f80f45e6d8cf9d668db2d6cc3 https://cdn.openttd.org/opengfx-releases/0.6.1/opengfx-0.6.1-all.zip OpenTTD/baseset
