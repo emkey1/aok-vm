@@ -8,6 +8,7 @@ dev=$1; vms=${2:-$HOME/aok-vm-work/vms}; id=app.ish.aok.vm
 xcrun devicectl device install app --device "$dev" "$HOME/aok-vm-work/dd/Build/Products/Release-iphoneos/AOK VM.app" |
     grep -E "bundleID|ERROR"
 for v in "$vms"/*.utm; do
+    [ -e "$v" ] || continue   # none there: the app alone
     xcrun devicectl device copy to --device "$dev" --domain-type appDataContainer --domain-identifier $id \
         --source "$v" --destination "Documents/$(basename "$v")" > /dev/null
     echo "copied $(basename "$v")"
