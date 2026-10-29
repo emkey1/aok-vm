@@ -46,7 +46,8 @@ is what the second gave the boot.
 
 - `usbhub-wait.patch`: the change in ReactOS's source (0.4.16's
   `drivers/usb/usbhub/pnp.c`; the same as the change offered to ReactOS,
-  emkey1/reactos branch `usbhub-root-hub-wait`, against master).
+  emkey1/reactos branch `usbhub-root-hub-wait`, against master:
+  https://github.com/reactos/reactos/pull/9751).
 - `patch-sys.py IN OUT`: the same change made in 0.4.16's released
   usbhub.sys (from its CD), same length, the import call kept where its
   relocation is, the PE checksum redone. Refuses any other file.
