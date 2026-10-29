@@ -31,19 +31,33 @@ loses nothing against no wait. What USB still costs (about 0.9 s against no
 USB controller at all, 8.29 to 8.61) is that 0.7 s, the hub's 100 ms settle
 and port reset, and a further half second before the HID driver loads.
 
+## Booting from USB
+
+The second was added for booting ReactOS from a USB stick (ReactOS commit
+d14d7e5b8c, CORE-7826, failing on real hardware). `ros-run.sh` with
+`ROS_USBDISK=uhci` or `ehci` boots the disk from a USB stick instead of IDE:
+stock, patched, and with the sleep made almost nothing, all three reach the
+desktop on both controllers (MBP5, the AOK engine, 2026-10-29). So QEMU does
+not show the failure the second was for, and cannot show that the wait keeps
+the fix; the wait still holds the query until the root hub is ready, which
+is what the second gave the boot.
+
 ## Files
 
 - `usbhub-wait.patch`: the change in ReactOS's source (0.4.16's
-  `drivers/usb/usbhub/pnp.c`).
+  `drivers/usb/usbhub/pnp.c`; the same as the change offered to ReactOS,
+  emkey1/reactos branch `usbhub-root-hub-wait`, against master).
 - `patch-sys.py IN OUT`: the same change made in 0.4.16's released
   usbhub.sys (from its CD), same length, the import call kept where its
   relocation is, the PE checksum redone. Refuses any other file.
 - `patch-disk.sh DISK OUT`: a qcow2 overlay on an installed disk with the
-  patched driver written over the old one, for `ros-stats.sh ROS_BASE=`.
+  patched driver written over the old one, for `ros-stats.sh ROS_BASE=`,
+  and for build.sh, which commits it into the disk it makes.
 
-## Not shipped
+## Shipped
 
-ReactOS.utm's disk still has ReactOS's own driver. A changed GPL binary in
-it would need its source published with it (ReactOS's source and this
-patch; aok/TODO.md has the sources item), and the patch could go to ReactOS
-itself, which is the user's call.
+ReactOS.utm's disk has the patched driver from the image build.sh made on
+2026-10-29 on (its step 6, checked in step 7: the tablet's driver loads).
+The driver is GPL-2.0-or-later; its source is ReactOS 0.4.16's with
+`usbhub-wait.patch`, and `patch-sys.py` is how the binary was made from
+0.4.16's. The machine's notes point here (make-vm.py).

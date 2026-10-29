@@ -4,7 +4,7 @@
 # disk by their contents (the file system's clusters of it are contiguous on build.sh's disk) and written
 # over in the overlay with qemu-io; DISK is left as it was. Needs the ReactOS 0.4.16 CD's usbhub.sys:
 # USBHUB_SYS, default ~/aok-vm-bench/usbhub-exp/reactos/system32/drivers/usbhub.sys (bsdtar -xf the ISO).
-# For experiments on a Mac (ros-stats.sh with ROS_BASE=OUT); not how a shipped disk would be made.
+# For experiments on a Mac (ros-stats.sh with ROS_BASE=OUT), and build.sh's step 6 (then committed into DISK).
 set -e
 PATH=/opt/homebrew/bin:$PATH
 DISK=${1:?DISK}; OUT=${2:?OUT}

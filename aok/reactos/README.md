@@ -126,7 +126,8 @@ Waiting for the root hub's ready event instead of a fixed second (the
 second is paid only at boot: later plug-ins skip it) takes half a second
 off, 9.27 to 9.44 s against 9.72 to 9.98, same CPU time, tablet found every
 time: `usbhub-wait/` (a ReactOS source patch, and the same change in the
-released binary for trying it). Not in the shipped disk yet.
+released binary). In the shipped disk since 2026-10-29 (build.sh's step 6),
+and offered to ReactOS.
 
 **Some of the busy time is waiting too.** Of 205 busy polls in the kernel
 phase, the HAL's calibrated stall loop (`sub eax, 1; jne`,

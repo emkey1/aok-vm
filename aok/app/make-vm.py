@@ -177,13 +177,15 @@ def reactos(outdir, disk):
     as Windows keeps it. Two devices have no ReactOS driver, QEMU's firmware configuration device and the
     guest agent's virtio-serial port UTM adds to every x86 machine; the New Hardware Wizard has asked about
     both during the install and will not again. No sound card (the
-    simulator stops UTM when a guest opens one). One CPU. It logs in as Administrator by itself. DISK is
+    simulator stops UTM when a guest opens one). One CPU. It logs in as Administrator by itself. Its
+    usbhub.sys has one change (aok/reactos/usbhub-wait), which the notes point at, as the GPL asks. DISK is
     build.sh's reactos.qcow2.
     """
     vm = base("ReactOS",
               "ReactOS 0.4.16 (a free system that runs Windows programs and drivers), installed and ready, "
               "on the AOK gadget engine. Applications Manager, on its desktop, installs more programs (free "
-              "ones, from their makers' own sites) when the machine has the network.",
+              "ones, from their makers' own sites) when the machine has the network. Its USB hub driver has "
+              "one change, so that it starts sooner: github.com/emkey1/aok-vm, aok/reactos/usbhub-wait.",
               vm_uuid(9), cpus=1, memory=1024)
     vm["System"]["Target"] = "pc"
     vm["System"]["CPUFlagsAdd"] = []

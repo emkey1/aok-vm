@@ -1,13 +1,10 @@
 --- a/drivers/usb/usbhub/pnp.c
 +++ b/drivers/usb/usbhub/pnp.c
-@@ -1063,12 +1063,18 @@
- 
+@@ -1064,11 +1064,16 @@
      if (!(HubExtension->HubFlags & USBHUB_FDO_FLAG_DO_ENUMERATION))
      {
--        // FIXME: this delay makes devices discovery during early boot more reliable
-+        // Wait until the root hub is ready (USBHUB_RootHubCallBack sets the event), but at most
-+        // one second: the delay made devices discovery during early boot more reliable, and a
-+        // fixed second of it kept every boot waiting long after the root hub was ready
+         // FIXME: this delay makes devices discovery during early boot more reliable
++        // Wait for the root hub's notification (USBHUB_RootHubCallBack), 1 sec. at most
          LARGE_INTEGER Interval;
          Status = STATUS_SUCCESS;
          IoInvalidateDeviceRelations(HubExtension->LowerPDO, BusRelations);

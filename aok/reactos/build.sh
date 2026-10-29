@@ -22,9 +22,11 @@
 #     at the first logon: there the wizard can come up behind the shell, and keys go to the shell; on the
 #     next start it has the keyboard. (A device whose wizard was shown is not asked about again even
 #     unanswered: the port's wizard is the first logon's, and the second start asks only about the other.)
-#  6. Shut down, start again, and check that the desktop comes and that no wizard does, on the screen or
-#     in the debug output (neither device is tried).
-#  7. The disk compressed.
+#  6. The installed usbhub.sys, the USB hub driver, replaced by the CD's with one change (usbhub-wait/: it
+#     waits for the root hub to be ready, at most the second it used to sleep at every start).
+#  7. Start again, and check that the desktop comes, that no wizard does, on the screen or in the debug
+#     output (neither device is tried), and that the USB tablet's driver loads.
+#  8. The disk compressed.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 export ROS_DIR=${1:-${ROS_DIR:-$HOME/aok-vm-bench/reactos}}
@@ -127,6 +129,12 @@ mon system_powerdown
 down 120 || { say "did not power off"; exit 1; }
 
 # 6
+say "the USB hub driver's change"
+rm -f usb.qcow2
+USBHUB_SYS=$W/tree/reactos/system32/drivers/usbhub.sys bash "$here/usbhub-wait/patch-disk.sh" ros.qcow2 usb.qcow2
+"$QIMG" commit -q usb.qcow2 && rm -f usb.qcow2
+
+# 7
 say "starting again"
 start
 until_log "rshell.dll" 600
@@ -136,11 +144,12 @@ python3 -I "$here/screen.py" desktop.ppm && { say "a wizard came back (desktop.p
 for d in "${DEVICES[@]}"; do
     ! tried "$d" || { say "$d was tried again"; exit 1; }
 done
+grep -qF 'drivers\mouhid.sys' serial.log || { say "the tablet's driver did not load"; exit 1; }
 mon system_powerdown
 down 120 || { say "did not power off"; exit 1; }
 qpid=
 
-# 7
+# 8
 say "compressing"
 rm -f reactos.qcow2 && "$QIMG" convert -c -O qcow2 ros.qcow2 reactos.qcow2
 rm -f ./*.ppm

@@ -14,6 +14,9 @@
 #   ROS_BIOS  a firmware directory for -L (the AOK engine's pc-bios)
 #   ROS_NOUSB without the USB controller and tablet: an experiment (the boot without the USB hub driver's
 #             waits), not the machine the app runs
+#   ROS_USBDISK uhci or ehci: the disk as a USB stick on that controller instead of on IDE, ReactOS booted
+#             from USB (what the USB hub driver's start-up wait is for, ReactOS's CORE-7826); a test, not
+#             the machine the app runs
 # Extra arguments are environment settings for QEMU (QEMU_AOK=0 and the like).
 W=${ROS_DIR:-$HOME/aok-vm-bench/reactos}
 cd "$W" || exit 1
@@ -26,11 +29,17 @@ BOOT=0; CD=
 if [ -n "$ROS_CD" ]; then
     BOOT=2; CD="-device ide-cd,bus=ide.1,drive=cd0,bootindex=1 -drive if=none,media=cdrom,id=cd0,file=$ROS_CD,readonly=on"
 fi
+case "$ROS_USBDISK" in
+    "")   HD="-device ide-hd,bus=ide.0,drive=d0,bootindex=$BOOT" ;;
+    uhci) HD="-device usb-storage,bus=usb-bus.0,drive=d0,bootindex=$BOOT"; USB="-usb -device usb-tablet,bus=usb-bus.0" ;;
+    ehci) HD="-device usb-ehci,id=ehci -device usb-storage,bus=ehci.0,drive=d0,bootindex=$BOOT" ;;
+    *)    echo "ROS_USBDISK is uhci or ehci" >&2; exit 1 ;;
+esac
 exec env "$@" "$Q" $L -nodefaults -vga none \
     -device rtl8139,mac=52:54:00:A0:C0:39,netdev=net0 $NET -device VGA -cpu qemu32 -smp 1 \
     -machine pc,vmport=off,hpet=off -global PIIX4_PM.disable_s3=1 -m 1024 \
     $USB \
-    -device ide-hd,bus=ide.0,drive=d0,bootindex=$BOOT -drive if=none,media=disk,id=d0,file="$DISK" $CD \
+    $HD -drive if=none,media=disk,id=d0,file="$DISK" $CD \
     -device virtio-serial -device virtserialport,chardev=ga,name=org.qemu.guest_agent.0 -chardev null,id=ga \
     -rtc base=localtime -display none \
     -monitor unix:"$W/mon.sock",server,nowait -serial file:"$W/serial.log"
