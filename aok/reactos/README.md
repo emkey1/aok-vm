@@ -2,8 +2,8 @@
 
 "ReactOS.utm" is ReactOS 0.4.16 (a free operating system that runs Windows
 programs and drivers), already installed: it starts to a desktop at 1024x768,
-logged in as Administrator, with its network card working, on the AOK gadget
-engine's 32-bit PC. It stands in for Windows XP, which cannot be shipped.
+logged in as Administrator, with its network and sound cards working, on the
+AOK gadget engine's 32-bit PC. It stands in for Windows XP, which cannot be shipped.
 
 `build.sh` makes its disk from the release CD with no one at the keyboard; the
 script's header says what each step does. On MBP5:
@@ -33,6 +33,15 @@ ARCH=i386 REACTOS_DISK=~/aok-vm-bench/reactos-build/reactos.qcow2 python3 aok/ap
   setting to leave it out. A device is asked about once, answered or not;
   `build.sh` answers what the second start asks ("Do not show this dialog
   anymore") and checks on a third that nothing is asked or tried.
+- **The sound card is QEMU's AC97** (Intel 82801AA), which ReactOS has a
+  driver for (`ac97.sys`); the app plays it through SPICE. It came on
+  2026-10-30: the disks before had no card (the simulator stops UTM when a
+  guest opens one, so a simulator test takes it out). The card takes the PCI
+  slot before the guest agent port, so on such a disk the port is new
+  hardware again and the wizard asks about it once ("Communication device";
+  Cancel). `sound-test.sh` (MBP5) records what the card plays (`ROS_SOUND=wav`)
+  over two starts: the first with mplay32 playing ReactOS_Startup.wav, the
+  second with ReactOS playing it at logon.
 - **At the first logon the wizard can be behind the shell**: on the screen,
   its title bar grey, and keys sent to it go to the desktop. On later starts
   it has the keyboard.

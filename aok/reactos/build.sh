@@ -25,7 +25,7 @@
 #  6. The installed usbhub.sys, the USB hub driver, replaced by the CD's with one change (usbhub-wait/: it
 #     waits for the root hub to be ready, at most the second it used to sleep at every start).
 #  7. Start again, and check that the desktop comes, that no wizard does, on the screen or in the debug
-#     output (neither device is tried), and that the USB tablet's driver loads.
+#     output (neither device is tried), and that the USB tablet's and the sound card's drivers load.
 #  8. The disk compressed.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
@@ -60,8 +60,11 @@ wizard_shown() {
         sleep 5; n=$((n + 5)); [ $n -lt "$1" ] || return 1
     done
 }
-start() {
-    rm -f mon.sock serial.log
+starts=0
+start() {   # (each start's debug output is kept, as serial.N.log)
+    [ -f serial.log ] && mv serial.log "serial.$starts.log"
+    starts=$((starts + 1))
+    rm -f mon.sock
     "$here/ros-run.sh" > qemu.out 2>&1 &
     qpid=$!
     local n=0; until [ -S mon.sock ]; do sleep 0.5; n=$((n + 1)); [ $n -lt 20 ] || { cat qemu.out; exit 1; }; done
@@ -145,6 +148,7 @@ for d in "${DEVICES[@]}"; do
     ! tried "$d" || { say "$d was tried again"; exit 1; }
 done
 grep -qF 'drivers\mouhid.sys' serial.log || { say "the tablet's driver did not load"; exit 1; }
+grep -qF 'drivers\ac97.sys' serial.log || { say "the sound card's driver did not load"; exit 1; }
 mon system_powerdown
 down 120 || { say "did not power off"; exit 1; }
 qpid=

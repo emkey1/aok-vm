@@ -172,14 +172,15 @@ def reactos(outdir, disk):
     "ReactOS.utm": ReactOS 0.4.16 installed (aok/reactos/build.sh: its own CD, set to install by itself),
     on this machine, as UTM's command line for it makes it (aok/reactos/ros-run.sh), so that it starts with
     every driver in place and nothing to ask: the i440FX PC ("pc": IDE, which ReactOS has a driver for),
-    qemu32, 1 GB, the standard VGA (1024x768, 32 bits), a Realtek 8139, a USB tablet beside the PS/2
-    keyboard, so that the pointer goes where the finger or the trackpad does, and the clock in local time,
-    as Windows keeps it. Two devices have no ReactOS driver, QEMU's firmware configuration device and the
-    guest agent's virtio-serial port UTM adds to every x86 machine; the New Hardware Wizard has asked about
-    both during the install and will not again. No sound card (the
-    simulator stops UTM when a guest opens one). One CPU. It logs in as Administrator by itself. Its
-    usbhub.sys has one change (aok/reactos/usbhub-wait), which the notes point at, as the GPL asks. DISK is
-    build.sh's reactos.qcow2.
+    qemu32, 1 GB, the standard VGA (1024x768, 32 bits), a Realtek 8139, an AC97 sound card (ReactOS's
+    ac97.sys; the simulator stops UTM when a guest opens a sound card, so a simulator test takes it out), a
+    USB tablet beside the PS/2 keyboard, so that the pointer goes where the finger or the trackpad does, and
+    the clock in local time, as Windows keeps it. Two devices have no ReactOS driver, QEMU's firmware
+    configuration device and the guest agent's virtio-serial port UTM adds to every x86 machine; the New
+    Hardware Wizard has asked about both during the install and will not again. A disk installed without
+    the sound card meets the port in a new PCI slot when the card is added, and asks about it once more.
+    One CPU. It logs in as Administrator by itself. Its usbhub.sys has one change (aok/reactos/usbhub-wait),
+    which the notes point at, as the GPL asks. DISK is build.sh's reactos.qcow2.
     """
     vm = base("ReactOS",
               "ReactOS 0.4.16 (a free system that runs Windows programs and drivers), installed and ready, "
@@ -197,6 +198,7 @@ def reactos(outdir, disk):
                       "DownscalingFilter": "Linear", "NativeResolution": False}]
     vm["Network"] = [{"Mode": "Emulated", "Hardware": "rtl8139", "MacAddress": mac(9),
                       "IsolateFromHost": False, "PortForward": []}]
+    vm["Sound"] = [{"Hardware": "AC97"}]
     vm["Drive"] = [
         {"ImageName": "reactos.qcow2", "ImageType": "Disk", "Interface": "IDE", "InterfaceVersion": 1,
          "Identifier": str(uuid.UUID(int=0xA0C0A0C0_0000_4000_8000_0000000000C9 + A["n"] * 0x100)).upper(),

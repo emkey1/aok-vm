@@ -27,8 +27,8 @@
    "architecture": "i386",
    "summary": "ReactOS 0.4.16, installed: a free system that runs Windows programs, on the x86 engine.",
    "file": "reactos-0.4.16.zip",
-   "size": 159383954,
-   "sha256": "7bc42e5b9fc0756aa5748a3d98fca04bc2b773a98baf10287459fe65d843f1f1"
+   "size": 159408902,
+   "sha256": "db87d5a4ea45b5b123f4079e8a2b65257e65178046ea975ee1f181ea231cc505"
   },
   {
    "id": "kolibrios",
