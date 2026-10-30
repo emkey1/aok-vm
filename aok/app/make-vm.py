@@ -180,13 +180,16 @@ def reactos(outdir, disk):
     Hardware Wizard has asked about both during the install and will not again. A disk installed without
     the sound card meets the port in a new PCI slot when the card is added, and asks about it once more.
     One CPU. It logs in as Administrator by itself. Its usbhub.sys has one change (aok/reactos/usbhub-wait),
-    which the notes point at, as the GPL asks. DISK is build.sh's reactos.qcow2.
+    which the notes point at, as the GPL asks. "Get Programs" on its desktop fetches and installs the programs
+    CD's set (aok/reactos/SOFTWARE.md). DISK is build.sh's reactos.qcow2.
     """
     vm = base("ReactOS",
               "ReactOS 0.4.16 (a free system that runs Windows programs and drivers), installed and ready, "
-              "on the AOK gadget engine. Applications Manager, on its desktop, installs more programs (free "
-              "ones, from their makers' own sites) when the machine has the network. Its USB hub driver has "
-              "one change, so that it starts sooner: github.com/emkey1/aok-vm, aok/reactos/usbhub-wait.",
+              "on the AOK gadget engine. Get Programs, on its desktop, downloads 18 open-source programs "
+              "(7-Zip, Notepad++, a web browser, an office program, games, Python, OpenGL 3.0 and more) from "
+              "their makers' own sites and installs them; Applications Manager installs others. Both need "
+              "the network. Its USB hub driver has one change, so that it starts sooner: "
+              "github.com/emkey1/aok-vm, aok/reactos/usbhub-wait.",
               vm_uuid(9), cpus=1, memory=1024)
     vm["System"]["Target"] = "pc"
     vm["System"]["CPUFlagsAdd"] = []

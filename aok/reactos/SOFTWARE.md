@@ -59,6 +59,24 @@ The image also grows: the starter set below is about 160 MB of installers.
 existing ReactOS.utm passes it on. Its source (ReactOS-0.4.16's source
 archive) should be published with the image whichever way this goes.
 
+## In the machine: "Get Programs" (2026-10-30)
+
+The user asked for the CD's programs to be had from inside the ReactOS
+machine, simply, and chose a fetcher over hosting the CD (which would pass
+the programs on, with the source the GPL then asks for). Since build 12 the
+disk has `C:\AOK\Programs` and "Get Programs" on the desktop
+(`software-cd/put-on-disk.sh`, build.sh's step 7): `GET.CMD` downloads each
+file of `manifest.txt` from its maker's address with `GETFILE.EXE`
+(`getfile.c`: WinInet, the SHA-1 checked with CryptoAPI, three tries, 5 KB,
+no C library, built by put-on-disk.sh with `zig cc`), keeps what it has for
+a second run, unpacks the four zips with the 7-Zip it has just fetched, then
+runs `INSTALL.CMD` from the same folder: the CD's programs, installed the
+CD's way, and nothing of theirs passed on by us. Not ReactOS's own `dwnl`:
+it goes through urlmon, whose user agent is Internet Explorer 8's, and
+SourceForge answers that with "403 No" (four of the programs are there); a
+plain agent gets the file. It needs the network once. `software-cd/get-test.sh DISK`
+tries it on MBP5 with Homebrew's QEMU and its network.
+
 ## With no network: a CD
 
 For a machine that has no network (an iPad away from Wi-Fi; asked for on

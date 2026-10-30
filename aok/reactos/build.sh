@@ -1,8 +1,8 @@
 #!/bin/bash
 # build.sh [ROS_DIR] -- ReactOS for AOK VM, from the release CD to ROS_DIR/reactos.qcow2, the disk that
 # make-vm.py puts in "ReactOS.utm" (ARCH=i386 REACTOS_DISK=ROS_DIR/reactos.qcow2). On a Mac with Homebrew's
-# QEMU (brew install qemu: qemu-system-i386 for its screen dump, qemu-img), in about twenty minutes, by
-# itself. ROS_DIR defaults to ~/aok-vm-bench/reactos.
+# QEMU (brew install qemu: qemu-system-i386 for its screen dump, qemu-img) and mtools, in about twenty
+# minutes, by itself. ROS_DIR defaults to ~/aok-vm-bench/reactos.
 #
 #  1. The release (SourceForge), checked against its SHA-256, and the CD image inside it.
 #  2. The CD's files with two changes: freeldr.ini starts text-mode setup after a second (the release starts
@@ -24,9 +24,10 @@
 #     unanswered: the port's wizard is the first logon's, and the second start asks only about the other.)
 #  6. The installed usbhub.sys, the USB hub driver, replaced by the CD's with one change (usbhub-wait/: it
 #     waits for the root hub to be ready, at most the second it used to sleep at every start).
-#  7. Start again, and check that the desktop comes, that no wizard does, on the screen or in the debug
+#  7. "Get Programs": C:\AOK\Programs and its icon on the desktop (software-cd/put-on-disk.sh; SOFTWARE.md).
+#  8. Start again, and check that the desktop comes, that no wizard does, on the screen or in the debug
 #     output (neither device is tried), and that the USB tablet's and the sound card's drivers load.
-#  8. The disk compressed.
+#  9. The disk compressed.
 set -euo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 export ROS_DIR=${1:-${ROS_DIR:-$HOME/aok-vm-bench/reactos}}
@@ -138,6 +139,11 @@ USBHUB_SYS=$W/tree/reactos/system32/drivers/usbhub.sys bash "$here/usbhub-wait/p
 "$QIMG" commit -q usb.qcow2 && rm -f usb.qcow2
 
 # 7
+say "Get Programs"
+bash "$here/software-cd/put-on-disk.sh" ros.qcow2 get.qcow2 > /dev/null
+mv get.qcow2 ros.qcow2
+
+# 8
 say "starting again"
 start
 until_log "rshell.dll" 600
@@ -153,7 +159,7 @@ mon system_powerdown
 down 120 || { say "did not power off"; exit 1; }
 qpid=
 
-# 8
+# 9
 say "compressing"
 rm -f reactos.qcow2 && "$QIMG" convert -c -O qcow2 ros.qcow2 reactos.qcow2
 rm -f ./*.ppm

@@ -4,6 +4,9 @@
 programs and drivers), already installed: it starts to a desktop at 1024x768,
 logged in as Administrator, with its network and sound cards working, on the
 AOK gadget engine's 32-bit PC. It stands in for Windows XP, which cannot be shipped.
+"Get Programs" on its desktop downloads 18 open-source programs from their
+makers and installs them (`SOFTWARE.md`; `software-cd/`, which also makes
+the same set as a CD for a machine with no network).
 
 `build.sh` makes its disk from the release CD with no one at the keyboard; the
 script's header says what each step does. On MBP5:

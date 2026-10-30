@@ -1,11 +1,11 @@
 @echo off
-rem AOK VM: installs the programs on this CD one after another, with no questions and no network.
-rem What each one did goes to C:\AOK-install.log.
+rem AOK VM: installs the programs on this CD (or the ones GET.CMD downloaded, beside it) one after another, with
+rem no questions and no network. What each one did goes to C:\AOK-install.log.
 set CD=%~dp0
 set LOG=C:\AOK-install.log
 set INNO=/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /SP-
 echo Installing the programs on %CD% > %LOG%
-echo Installing the programs on this CD. This takes a few minutes; windows may come and go.
+echo Installing the programs. This takes a few minutes; windows may come and go.
 echo.
 
 call :run "7-Zip" "%CD%SETUP\7z2602.exe" /S

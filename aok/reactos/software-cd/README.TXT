@@ -1,8 +1,18 @@
 Programs for ReactOS in AOK VM
 
-Double-click INSTALL.CMD to install all of them. It needs no network and asks
-no questions; it takes a few minutes. Afterwards they are in the Start menu,
-under Programs, and C:\AOK-install.log says how each install went.
+"Get Programs" on the desktop (GET.CMD in C:\AOK\Programs) downloads the
+programs below from their makers' own sites, about 180 MB, checks each
+against the SHA-1 in FILES.TXT (which also says where each comes from), and
+installs them all. It needs the network once, and takes a while; if the
+network drops, run it again: what it already has is kept. C:\AOK-get.log
+says what it fetched.
+
+On a CD made with AOK VM's make-cd.sh, double-click INSTALL.CMD instead: the
+same programs, with no network.
+
+Either way they are installed with no questions. Afterwards they are in the
+Start menu, under Programs, and C:\AOK-install.log says how each install
+went.
 
   7-Zip                    archives
   Notepad++ 6.9            a text editor
@@ -29,4 +39,4 @@ faster on ReactOS's own: Control Panel, OpenGL Configuration, Renderer
 itself, double-click SETUP\mesa3d_setup.exe.
 
 All are open source, each from its own makers, as ReactOS's Applications
-Manager lists them (it installs the same ones over the network).
+Manager lists them (it installs the same ones over the network, one by one).

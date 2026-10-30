@@ -25,10 +25,10 @@
    "id": "reactos",
    "name": "ReactOS",
    "architecture": "i386",
-   "summary": "ReactOS 0.4.16, installed: a free system that runs Windows programs, on the x86 engine.",
+   "summary": "ReactOS 0.4.16, installed: a free system that runs Windows programs, on the x86 engine. Get Programs, on its desktop, installs 18 open-source programs from their makers' sites.",
    "file": "reactos-0.4.16.zip",
-   "size": 159408902,
-   "sha256": "db87d5a4ea45b5b123f4079e8a2b65257e65178046ea975ee1f181ea231cc505"
+   "size": 159400021,
+   "sha256": "607137c26c726e0cd04c8d5a7217b4a4c7bbb5a0e00c7346a7693ef4d8dba911"
   },
   {
    "id": "kolibrios",
