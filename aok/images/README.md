@@ -29,15 +29,17 @@ in about ten minutes. Its header says what it needs.
 ## In the app
 
 `index.py ZIPDIR` writes `machines.json` (name, line, zip, size, SHA-256 of
-each), which the app carries with the zips of two machines: Alpine for
-aarch64, and ReactOS (Devuan for aarch64 too until build 6, which made it a
-download to save 94 MB). The Xcode build's "Copy AOK VM machines" phase copies
-them from `aok/images/bundled/` (not in git: copy them there from `build.sh`'s
-`zips/` and aok/reactos's, as `alpine-3.24.2-aarch64.zip` and
-`reactos-0.4.16.zip`). On its first start the app adds those two to the list
-(`Platform/Shared/AOKMachines.swift`, each once: one its user removes stays
-removed). "+" -> "Get a Ready-Made Machine..." lists all nine; the seven it
-does not carry are downloaded from the list's `baseURL`,
+each), which the app carries with the zips of three machines: Alpine for
+aarch64, ReactOS, and KolibriOS (1.3 MB, since build 12; Devuan for aarch64
+too until build 6, which made it a download to save 94 MB). The Xcode
+build's "Copy AOK VM machines" phase copies them from `aok/images/bundled/`
+(not in git: copy them there from `build.sh`'s `zips/`, aok/reactos's and
+the hosted list's, as `alpine-3.24.2-aarch64.zip`, `reactos-0.4.16.zip` and
+`kolibrios-0.7.7.0-8930.zip`). On its first start the app adds those to the
+list (`Platform/Shared/AOKMachines.swift`, each once: one its user removes
+stays removed; one an update brings is added on the first start after it).
+"+" -> "Get a Ready-Made Machine..." lists all eleven; the eight it does
+not carry are downloaded from the list's `baseURL`,
 checked against their SHA-256, and a newer list is fetched from `indexURL`.
 A machine added from the list gets no more memory than the device has room
 for, and no more CPUs than leave one core to the app

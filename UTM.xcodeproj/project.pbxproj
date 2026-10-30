@@ -3898,6 +3898,7 @@
 				"$(SRCROOT)/aok/images/machines.json",
 				"$(SRCROOT)/aok/images/bundled/alpine-3.24.2-aarch64.zip",
 				"$(SRCROOT)/aok/images/bundled/reactos-0.4.16.zip",
+				"$(SRCROOT)/aok/images/bundled/kolibrios-0.7.7.0-8930.zip",
 				"$(SRCROOT)/aok/RELEASE-NOTES.md",
 			);
 			name = "Copy AOK VM machines";
@@ -3907,6 +3908,7 @@
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/machines.json",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/alpine-3.24.2-aarch64.zip",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/reactos-0.4.16.zip",
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKMachines/kolibrios-0.7.7.0-8930.zip",
 				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/AOKReleaseNotes.md",
 			);
 			runOnlyForDeploymentPostprocessing = 0;

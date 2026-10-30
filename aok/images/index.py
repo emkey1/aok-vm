@@ -34,7 +34,7 @@ MACHINES = [
 ARCH = {"aarch64": "aarch64", "x86_64": "x86_64", "x86": "i386", "riscv64": "riscv64", "reactos": "i386",
         "kolibrios": "x86_64", "freedos": "x86_64"}
 # The app carries these (the Xcode project's "Copy AOK VM machines" names them too).
-BUNDLED = {"alpine-aarch64", "devuan-aarch64", "reactos"}
+BUNDLED = {"alpine-aarch64", "reactos", "kolibrios"}
 VERSION = 1
 
 
