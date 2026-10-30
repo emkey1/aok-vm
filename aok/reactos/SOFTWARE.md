@@ -76,6 +76,19 @@ WinSCP's installer installs, then never exits on ReactOS 0.4.16 (it runs
 WinSCP.exe twice at the end; both setup processes were still running at
 shutdown), so `INSTALL.CMD` starts it last and does not wait for it.
 
+**OpenGL: Mesa's llvmpipe is on the CD (2026-10-30).** ReactOS's own
+OpenGL is OpenGL 1.1 on the CPU (Mesa 2.6), and no QEMU display device has a
+3D driver for ReactOS. RAPPS's `mesagallium` (Mesa 17.0.1, llvmpipe, MIT)
+installs silently with `/S` and makes itself the renderer
+(`HKCU\Software\ReactOS\OpenGL` = `Mesa3D`; Control Panel, OpenGL
+Configuration switches back). `software-cd/gl-test.sh DL` measured both on MBP5 with wglgears (MIT,
+RAPPS's) and LZDoom: llvmpipe gives OpenGL 3.0 but draws the gears at half
+the rate (AOK engine: 76 fps against 160; Homebrew's QEMU 63 against 123),
+and it is what makes Direct3D work (ReactOS's is Wine's, drawn through
+OpenGL): with ReactOS's own OpenGL, LZDoom's Direct3D fails and its window
+stays black, with Mesa its title screen is up in about half a minute. So
+`INSTALL.CMD` installs it and leaves it the renderer.
+
 `software-cd/test-cd.sh ISO` tries it on MBP5: the finished disk, no network,
 the CD on `ide.1`, `INSTALL.CMD` typed in the Run box, then the log, Program
 Files and the Start menu read off the disk.

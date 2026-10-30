@@ -20,6 +20,13 @@ under Programs, and C:\AOK-install.log says how each install went.
   Explorer++ 1.3.5         a file manager
   The Powder Toy           a falling-sand game
   Tiny C Compiler 0.9.27   in C:\tcc; "Tiny C Compiler prompt" puts it on the PATH
+  Mesa 3D 17.0.1           OpenGL 3.0 (llvmpipe, on the CPU), and with it
+                           Direct3D, which ReactOS draws through OpenGL
+
+Mesa takes over OpenGL. Old programs that need only OpenGL 1.1 can run
+faster on ReactOS's own: Control Panel, OpenGL Configuration, Renderer
+"ReactOS Software Implementation" (or Mesa3D to go back). To install Mesa by
+itself, double-click SETUP\mesa3d_setup.exe.
 
 All are open source, each from its own makers, as ReactOS's Applications
 Manager lists them (it installs the same ones over the network).

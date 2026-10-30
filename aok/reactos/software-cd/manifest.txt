@@ -15,6 +15,7 @@ setup 1ceeb1cba00d939f41e9b1e6d5aa82d071b010d5 https://download.sourceforge.net/
 setup fad269d650ae6dd31785e79622749505f4f4cd23 https://sourceforge.net/projects/lzdoom-plus-freedoom/files/lzdoom-installer.exe
 setup c8c1f5a5d17336607c886444518e74e3d1a4e041 https://download.sourceforge.net/project/dosbox/dosbox/0.74-3/DOSBox0.74-3-win32-installer.exe
 setup 46c89a6eebfb5f2e8f9b7edbe5409e314366a66a https://www.python.org/ftp/python/3.4.4/python-3.4.4.msi
+setup 4c0d42844ff3693612edfdac51799fd7c63dcafd https://svn.reactos.org/packages/mesa3d_setup.exe
 zip 828a7222f0e8daf9e395063e296d86c0cb78248f https://download.explorerplusplus.com/stable/1.3.5/explorerpp_x86.zip Explorer++
 zip 1084204510fb229d39f568bc1ea1474bb62d9f41 https://powdertoy.co.uk/Download/Builds/Build-340/powder-win32.zip The Powder Toy
 zip 455f7571620c9a002562184f8f1f8d9025b34d87 https://download.savannah.gnu.org/releases/tinycc/tcc-0.9.27-win32-bin.zip .

@@ -19,6 +19,8 @@ call :run "Tux Paint" "%CD%SETUP\tuxpaint-0.9.22-win32-installer.exe" %INNO%
 call :run "LZDoom with Freedoom" "%CD%SETUP\lzdoom-installer.exe" /S
 call :run "DOSBox" "%CD%SETUP\DOSBox0.74-3-win32-installer.exe" /S
 call :msi "Python 3.4" "%CD%SETUP\python-3.4.4.msi" ALLUSERS=1
+rem Mesa makes itself the OpenGL renderer: OpenGL 3.0 and Direct3D, which ReactOS draws through OpenGL.
+call :run "Mesa 3D (OpenGL 3.0 on the CPU)" "%CD%SETUP\mesa3d_setup.exe" /S
 call :copy "OpenTTD, with the OpenGFX graphics" "%CD%APPS\OpenTTD" "%ProgramFiles%\OpenTTD"
 call :copy "Explorer++" "%CD%APPS\Explorer++" "%ProgramFiles%\Explorer++"
 call :copy "The Powder Toy" "%CD%APPS\The Powder Toy" "%ProgramFiles%\The Powder Toy"
