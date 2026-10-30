@@ -38,13 +38,23 @@ the hosted list's, as `alpine-3.24.2-aarch64.zip`, `reactos-0.4.16.zip` and
 `kolibrios-0.7.7.0-8930.zip`). On its first start the app adds those to the
 list (`Platform/Shared/AOKMachines.swift`, each once: one its user removes
 stays removed; one an update brings is added on the first start after it).
-"+" -> "Get a Ready-Made Machine..." lists all eleven; the eight it does
+"+" -> "Get a Ready-Made Machine..." lists all twelve; the nine it does
 not carry are downloaded from the list's `baseURL`,
 checked against their SHA-256, and a newer list is fetched from `indexURL`.
 A machine added from the list gets no more memory than the device has room
 for, and no more CPUs than leave one core to the app
 (`UTMDownloadVMTask.fitToDevice`: UTM's own memory estimate, under 90% of
 what iOS gives the app, 512 MB on a 2 GB device; one CPU on a dual-core one).
+
+"KolibriOS with Extras" (since 2026-10-30) is the KolibriOS machine with a
+CD in its empty CD drive: the `kolibrios` folder of KolibriOS's own CD for
+the same revision, without Wolfenstein 3D, whose game data there is the full
+game, still sold. KolibriOS mounts that folder from any disk at start, as
+`/kolibrios`, where App+ and its menus find the programs; the CD does not
+boot, so the machine still starts from its floppy.
+`kolibrios-extras.sh aok/images/bundled/kolibrios-0.7.7.0-8930.zip OUTDIR`
+makes its zip on a Mac in a few seconds once it has KolibriOS's CD (44 MB,
+fetched and checked against the SHA-256 it pins).
 
 ## A machine
 

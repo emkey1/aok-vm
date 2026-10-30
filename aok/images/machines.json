@@ -40,6 +40,15 @@
    "sha256": "d17e64eb49d06d3c9d5ec6067d84e30759ccfece1e103d397e788e7a76724c38"
   },
   {
+   "id": "kolibrios-extras",
+   "name": "KolibriOS with Extras",
+   "architecture": "x86_64",
+   "summary": "KolibriOS 0.7.7 with its CD of extras: Doom, Quake, Tyrian, DOSBox, ScummVM, NES, SNES and Game Boy emulators, Free Pascal, Tiny C, Lua, a web browser, a PDF reader and more.",
+   "file": "kolibrios-extras-0.7.7.0-8930.zip",
+   "size": 49835753,
+   "sha256": "e1bd2ef8e35a5b5c6262ba4cf12774e3b5caf225e9a5afef9ecbb3e062d13d06"
+  },
+  {
    "id": "freedos",
    "name": "FreeDOS 1.4",
    "architecture": "x86_64",

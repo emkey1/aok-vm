@@ -21,6 +21,9 @@ MACHINES = [
     ("kolibrios", "kolibrios-0.7.7.0-8930.zip", "KolibriOS",
      "KolibriOS 0.7.7, a tiny and fast system written in assembly: a desktop, a web browser, an editor and "
      "games, from one floppy. Made by Mighty-Moth-Boy."),
+    ("kolibrios-extras", "kolibrios-extras-0.7.7.0-8930.zip", "KolibriOS with Extras",
+     "KolibriOS 0.7.7 with its CD of extras: Doom, Quake, Tyrian, DOSBox, ScummVM, NES, SNES and Game Boy "
+     "emulators, Free Pascal, Tiny C, Lua, a web browser, a PDF reader and more."),
     ("freedos", "freedos-1.4.zip", "FreeDOS 1.4",
      "FreeDOS 1.4, installed in full from its LiveCD: DOS with its programs, compilers and games, Freedoom "
      "among them. Made by Mighty-Moth-Boy."),
@@ -32,7 +35,7 @@ MACHINES = [
     ("devuan-riscv64", "devuan-6-riscv64.zip", "Devuan 6 (riscv64)", DEVUAN),
 ]
 ARCH = {"aarch64": "aarch64", "x86_64": "x86_64", "x86": "i386", "riscv64": "riscv64", "reactos": "i386",
-        "kolibrios": "x86_64", "freedos": "x86_64"}
+        "kolibrios": "x86_64", "kolibrios-extras": "x86_64", "freedos": "x86_64"}
 # The app carries these (the Xcode project's "Copy AOK VM machines" names them too).
 BUNDLED = {"alpine-aarch64", "reactos", "kolibrios"}
 VERSION = 1
@@ -56,7 +59,7 @@ def main():
     for mid, zipname, name, summary in MACHINES:
         path = os.path.join(zips, zipname)
         machines.append({
-            "id": mid, "name": name, "architecture": ARCH[mid.split("-")[-1]], "summary": summary,
+            "id": mid, "name": name, "architecture": ARCH.get(mid) or ARCH[mid.split("-")[-1]], "summary": summary,
             "file": zipname, "size": os.path.getsize(path), "sha256": sha256(path),
         })
     out = {"version": VERSION, "indexURL": index, "baseURL": base, "machines": machines}
