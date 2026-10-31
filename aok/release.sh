@@ -6,10 +6,11 @@
 # .../releases/latest/download/AOK-VM.ipa), at the commit both were built from.
 #
 # The version and build are Build.xcconfig's MARKETING_VERSION and CURRENT_PROJECT_VERSION. App Store Connect takes
-# a build number once, so raise CURRENT_PROJECT_VERSION, commit and push before a new one. Run it once without
-# "publish", try the build (TestFlight's internal testing), then again with "publish": an archive of the same
-# commit is used again, not rebuilt. Needs what app/build-app.sh needs (the sysroot with the engines in it,
-# CodeSigning.xcconfig), the three machines in images/bundled (images/README.md), and gh signed in for "publish".
+# a build number once, so raise CURRENT_PROJECT_VERSION, commit and push before a new one. Without "publish" it
+# first shows what users have reported (triage.sh) and stops, until TRIAGED=BUILD says that has been gone through.
+# Run it once without "publish", try the build (TestFlight's internal testing), then again with "publish": an
+# archive of the same commit is used again, not rebuilt. Needs what app/build-app.sh needs (the sysroot with the
+# engines in it, CodeSigning.xcconfig), the three machines in images/bundled (images/README.md), and gh signed in.
 # Out: $OUT (~/aok-vm-work/archives): AOKVM-VERSION-BUILD.xcarchive, appstore-BUILD/, AOK-VM-VERSION-BUILD.ipa.
 set -e
 R=$(cd "$(dirname "$0")/.." && pwd)
@@ -36,6 +37,14 @@ if [ "$1" = publish ]; then
     git fetch -q origin
     [ -n "$(git branch -r --contains HEAD)" ] || { echo "$HEAD is not pushed" >&2; exit 1; }
     ! gh release view "$TAG" -R $REPO > /dev/null 2>&1 || { echo "$TAG is released already" >&2; exit 1; }
+fi
+
+# What users have reported, before a build is made (README.md, "Releasing", step 1): this build is for fixing it.
+if [ "$1" != publish ] && [ "$TRIAGED" != "$B" ]; then
+    bash "$R/aok/triage.sh"
+    echo "release.sh: go through the reports above first: fix what this build should, and download the Organizer's" \
+        "crashes and feedback again if they are stale. Then: TRIAGED=$B bash aok/release.sh" >&2
+    exit 1
 fi
 
 # The archive: again only if it was made from another commit (or from uncommitted changes).
