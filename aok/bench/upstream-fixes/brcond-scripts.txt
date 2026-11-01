@@ -1,0 +1,67 @@
+
+# ---- 2026-11-01, tctiSH 0c7e606fbb on our engine ----
+
+# === brc.sh
+#!/bin/bash
+# tctiSH's 0c7e606fbb (brcond and the exit check branch, no CSEL) on our engine: host cycles, interleaved, old against new.
+export PATH=/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench; W=$PWD; L=logs/brc; mkdir -p $L; rm -f $L/DONE
+c=$(git -C src-aok rev-parse --short=10 refs/heads/tcti-brcond)
+if [ -d src-brc ]; then git -C src-brc checkout -q --detach $c; else git -C src-aok worktree add -q --detach ../src-brc $c || exit 1; fi
+cfg() { ../src-brc/configure --target-list=$1 --without-default-features --enable-fdt=internal --enable-tcg --disable-werror --disable-docs --enable-tcg-threaded-interpreter --enable-aok-gadgets > configure.log 2>&1; }
+for pair in build-brc:riscv64-softmmu build-brc-a64:aarch64-softmmu build-brc-x64:x86_64-softmmu; do
+  b=${pair%%:*}; t=${pair#*:}
+  if [ ! -f $b/build.ninja ]; then rm -rf $b; mkdir $b; (cd $b && cfg $t) || { echo "configure $b FAILED"; tail -20 $b/configure.log; exit 1; }; fi
+  ninja -C $b > $b/ninja.log 2>&1 && echo "$(date +%H:%M) $b ok ($(grep -c warning: $b/ninja.log) warnings)" || { echo "$b FAILED"; grep -m8 error $b/ninja.log; exit 1; }
+done
+common="-smp 1 -m 2048 -display none -monitor none -serial stdio -no-reboot"
+list=coremark,python,sha256,awk
+one() { # one GUEST TAG(old|new) MODE(aok|qemu)
+  g=$1 t=$2 m=$3 suf= extra=
+  [ $t = new ] && P=build-brc || P=build-aok
+  e=X=1; [ $m = qemu ] && e=QEMU_AOK=0
+  case $g in
+    riscv64) q="$W/$P/qemu-system-riscv64-unsigned -M virt -cpu rv64 -L $W/src-aok/pc-bios $common -initrd $W/initramfs-riscv64.cpio -kernel $W/kernel/Image-lts-riscv64"; con=ttyS0 ;;
+    aarch64) q="$W/$P-a64/qemu-system-aarch64-unsigned -M virt -cpu cortex-a72 $common -initrd $W/initramfs-aarch64.cpio -kernel $W/kernel/vmlinuz-virt-aarch64"; con=ttyAMA0 ;;
+    x86_64)  q="$W/$P-x64/qemu-system-x86_64-unsigned -M q35 -cpu qemu64,+rdrand -nic none -L $W/src-aok/pc-bios $common -initrd $W/initramfs-x86_64.cpio -kernel $W/kernel/vmlinuz-virt-x86_64"; con=ttyS0; extra=random.trust_cpu=on ;;
+  esac
+  env $e "$W/cycwrap" -q "$g-$m-$t" $q -append "console=$con rdinit=/init quiet $extra bench=$list" < /dev/null 2>&1 | grep -a "^WL "
+}
+for r in 1 2 3; do
+  for g in x86_64 aarch64 riscv64; do
+    for m in aok qemu; do
+      for t in old new; do one $g $t $m; done
+    done
+  done
+  echo "$(date +%H:%M) round $r done" >&2
+done > $L/cyc.txt 2> $L/rounds.txt
+touch $L/DONE; echo BRC-DONE
+
+# === brc-ppc.sh
+#!/bin/bash
+# PowerPC, old engine against the brcond change: host cycles, interleaved, gadgets on and off.
+cd ~/aok-vm-bench; W=$PWD; L=logs/brc; mkdir -p $L; rm -f $L/PPC-DONE
+common="-display none -monitor none -serial stdio -no-reboot"
+list=${1:-coremark,python,sha256,awk}
+one() { # one TAG(old|new) MODE(1|0)
+  b=$W/build-aok-ppc; [ $1 = old ] && b=$W/old-1113
+  QEMU_AOK=$2 "$W/cycwrap" -q "ppc-$2-$1" $b/qemu-system-ppc-unsigned -M mac99,via=pmu -cpu g4 -m 1024 -L $W/src/pc-bios -kernel $W/kit/ppc/vmlinux -initrd $W/kit/ppc/initramfs.cpio $common -append "console=ttyS0 rdinit=/init quiet bench=$list" < /dev/null 2>&1 | grep -a "^WL "
+}
+for r in 1 2 3; do for m in 1 0; do for t in old new; do one $t $m; done; done; echo "$(date +%H:%M) round $r" >&2; done > $L/ppc.txt 2> $L/ppc-rounds.txt
+touch $L/PPC-DONE; echo PPC-DONE
+
+# === mbrc.sh
+#!/bin/bash
+# The whole gates on the engine with tctiSH's brcond change, on MBP5. Old binaries kept for A/B.
+cd ~/aok-vm-bench; L=logs/merge/gbrc; mkdir -p $L old-1113; rm -f $L/DONE
+export PATH=/opt/homebrew/bin:$PATH
+cp -f build-aok-ppc/qemu-system-ppc-unsigned old-1113/qemu-system-ppc-unsigned
+cp -f build-aok-x64/qemu-system-x86_64-unsigned old-1113/qemu-system-x86_64-unsigned
+git -C src-aok merge -q --ff-only tcti-brcond || { echo "ff FAILED" > $L/build.txt; touch $L/DONE; exit 1; }
+git -C src-aok log -1 --format='%h %s' > $L/commit.txt
+bash merge-build.sh > $L/build.txt 2>&1
+tail -1 $L/build.txt | grep -q BUILD-DONE || { touch $L/DONE; exit 1; }
+bash merge-gates-rv-a64.sh > $L/rv-a64.txt 2>&1 &
+bash merge-gates-x64-ppc.sh > $L/x64-ppc.txt 2>&1 &
+wait
+touch $L/DONE

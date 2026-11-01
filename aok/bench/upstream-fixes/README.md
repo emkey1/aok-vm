@@ -12,3 +12,21 @@ Suspending a machine whose disk is zstd-compressed (QEMUKit e8e9e877) was tried 
 machine with `qemu-img convert -c -O qcow2 -o compression_type=zstd`, and the `AutosaveBackground` default on, send the
 app to the background. Before: `error saving snapshot: ... Invalid parameter 'zstd'`. After: `Save snapshot complete`,
 and a relaunch restores that session.
+
+## tctiSH's 0c7e606fbb on our engine (2026-11-01)
+
+brcond, brcondi and the exit check branch around a move instead of a CSEL into
+x28. Local branch `tcti-brcond` (aa2a88c556), on 7a7aab20d9. Host cycles, new
+against old, on MBP5, three runs interleaved (brcond-scripts.txt):
+
+| guest | gadgets on | gadgets off | coremark, gadgets off |
+|---|---|---|---|
+| x86-64 | 1.002 | 0.898 | 0.783 |
+| ARM64 | 1.004 | 0.925 | 0.780 |
+| RISC-V | 0.996 | 0.888 | 0.774 |
+| PowerPC | 1.001 | 0.942 | 0.865 |
+
+Gadget code is level; what the gadgets leave to TCTI gains. The whole gates: every
+line identical, 16 of 16, as before; TLBFOLD 0 of 120000 wrong in 13 runs. Not
+tried: the A10X, where a branch may do otherwise than on M-series cores.
+

@@ -51,3 +51,14 @@ matched.
 - **#8 against RCG: 0.996, level.** Every workload is between xz 0.968 and
   sympy 1.034: coremark 0.999, sha256sum 0.993, pybench 0.988, nbody 0.986.
   So #8 is coverage only, as on `structure-a`.
+
+## After the review (2026-11-01)
+
+Approved, then rebased by hand onto tctish-edition f27b7821c1 with the
+maintainer's suggestions: one generated CF fact (`RCGCF`) for INC, DEC, ADC and
+SBB, and CF into INC and DEC from each flags state in `carry_cases()`. Tests:
+../lookup/scripts.txt, m4-te2.sh. Two controls, chosen by an environment variable
+in one build: CF not stored fails 1018 INC and DEC cases; CF from cc_src whatever
+the state fails 998, 48 of the 60 new ones. Still level: 0.998 by wall clock on
+the M4 Pro, 0.999 in host cycles on the M5 Max (../lookup/timing-review.txt).
+

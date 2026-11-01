@@ -99,3 +99,21 @@ memory system tests; the x86-64 build's RCG tests pass as before (rcg-insns
 matches with rcg on, off and plain; rcg-faults 0 of 27684 failed). 32-bit
 code under qemu-system-x86_64 still pays the checks; it would want its own
 mode in the key (pc = cs_base + eip, cs_base checked).
+
+## After the review (2026-11-01)
+
+The maintainer approved of the key and asked for the copied C to be tied to
+its sources, and measured about 1%, not the 2.1% above. They were right.
+`tcti-lookup-pr` is rebased onto tctish-edition f27b7821c1, and `timing-review.txt`
+has the numbers: under RCG, against the tip, 0.992 by wall clock on the M4 Pro
+and 0.999 in host cycles on the M5 Max, though host instructions fall to 0.952
+(pybench 0.878). The gadget takes an eighth of pybench's instructions away and
+little of its time.
+
+Two of their follow-ups were built on top (`tcti-lookup-next`), tested the same
+way, and timed before deciding: joining lookup_tb and goto_ptr (0.997 wall, 0.991
+cycles), then the key's offsets as stream words with CPUState's fields as
+constants (0.987 wall, 0.993 cycles, more instructions). Neither is clearly
+better than #9 alone, on either machine. `CPUState` is over 4 KiB, so a base
+register made with one SUB does not work; a build check caught that.
+
