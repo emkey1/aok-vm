@@ -1,0 +1,98 @@
+# ---- 2026-11-03, the A10X: the boot round, then the new engine against build 12s ----
+
+# === a10x1.sh
+#!/bin/bash
+U=5c56dee8545a5a555e052ecd50aa0e3ca9334a3b
+S=/private/tmp/claude-501/-Users-mke-git-ish-AOK/7b3fb99e-2b30-444a-9291-e34744be360f/scratchpad
+APP="$HOME/aok-vm-work/dd/Build/Products/Release-iphoneos/AOK VM.app"
+V=$HOME/aok-vm-work/vms-iphone
+mkdir -p $S/a10x
+echo "csel into x28: $(otool -tv "$APP/Frameworks/qemu-x86_64-softmmu.framework/qemu-x86_64-softmmu" | grep -c -E 'csel[[:space:]]+x28')"
+date +%T
+xcrun devicectl device install app --device $U "$APP" 2>&1 | grep -E 'installationURL|ERROR' | cut -c1-100
+xcrun devicectl device copy to --device $U --domain-type appDataContainer --domain-identifier app.ish.aok.vm --source "$V/AOK RISC-V Console.utm" --destination "Documents/AOK RISC-V Console.utm" 2>&1 | tail -1 | cut -c1-60
+date +%T
+for pair in "Alpine 3.24.2 (aarch64):a64:90" "ReactOS:ros:120" "AOK x86-64 Default:x64:120" "AOK RISC-V Console:rv:120" "AOK PowerPC Check:ppc:150" "AOK 68k Console:m68k:120"; do
+  m=${pair%%:*}; r=${pair#*:}; t=${r%%:*}; w=${r#*:}
+  bash /Users/mke/git/aok-vm/aok/app/start-vm.sh $U "$m" 2>&1 | tail -1 | cut -c1-70
+  sleep $w
+  xcrun devicectl device capture screenshot --device $U --destination "$S/a10x/$t.png" 2>&1 | tail -1
+  sips -Z 1100 "$S/a10x/$t.png" --out "$S/a10x/s-$t.png" > /dev/null 2>&1
+  rm -rf "$S/a10x/log-$t"; mkdir -p "$S/a10x/log-$t"
+  xcrun devicectl device copy from --device $U --domain-type appDataContainer --domain-identifier app.ish.aok.vm --source "Documents/$m.utm/Data/debug.log" --destination "$S/a10x/log-$t/debug.log" >/dev/null 2>&1
+  echo "== $m: $(wc -l < "$S/a10x/log-$t/debug.log" 2>/dev/null) log lines; $(grep -iE 'abort|assert|fatal|segv|panic|Guest crashed|Error:' "$S/a10x/log-$t/debug.log" 2>/dev/null | grep -v 'Could not connect' | head -3 | cut -c1-140) $(date +%T)"
+done
+bash /Users/mke/git/aok-vm/aok/app/start-vm.sh $U --stop 2>&1 | head -1
+ideviceinfo -u $U -q com.apple.mobile.battery -k BatteryCurrentCapacity 2>/dev/null
+idevicediagnostics -u $U ioregentry AppleARMPMUCharger 2>/dev/null | grep -A1 -E '<key>Temperature</key>' | tail -1 | tr -d '\t'
+echo A10X-ROUND-DONE
+
+# === a10x2.sh
+#!/bin/bash
+# A10X: the new engine against build 12's, alternating, on what TCTI runs: 68k (few gadgets), RISC-V with QEMU_AOK=0; and RISC-V with the gadgets.
+U=5c56dee8545a5a555e052ecd50aa0e3ca9334a3b
+S=/private/tmp/claude-501/-Users-mke-git-ish-AOK/7b3fb99e-2b30-444a-9291-e34744be360f/scratchpad/a10x
+NEW="$HOME/aok-vm-work/dd/Build/Products/Release-iphoneos/AOK VM.app"
+OLD="$HOME/aok-vm-work/archives/AOKVM-1.0-12.xcarchive/Products/Applications/AOK VM.app"
+SV=/Users/mke/git/aok-vm/aok/app/start-vm.sh
+temp() { idevicediagnostics -u $U ioregentry AppleARMPMUCharger 2>/dev/null | grep -A1 -E '<key>Temperature</key>' | tail -1 | sed 's/[^0-9]//g'; }
+shot() { # shot NAME
+  xcrun devicectl device capture screenshot --device $U --destination "$S/$1.png" > /dev/null 2>&1
+}
+round() { # round TAG APP N
+  local t=$1 app=$2 n=$3
+  echo "$(date +%T) install $t (temp $(temp))"
+  xcrun devicectl device install app --device $U "$app" 2>&1 | grep -E 'ERROR' | cut -c1-120
+  for i in 1 2; do
+    bash $SV $U "AOK 68k Console" > /dev/null 2>&1; sleep 80; shot ab-$n-$t-68k$i
+    sips --cropToHeightWidth 300 1500 --cropOffset 20 0 "$S/ab-$n-$t-68k$i.png" --out "$S/c-ab-$n-$t-68k$i.png" > /dev/null 2>&1
+  done
+  AOKVM_ENV='"QEMU_AOK":"0"' bash $SV $U "AOK RISC-V Console" > /dev/null 2>&1; sleep 170; shot ab-$n-$t-rvoff
+  bash $SV $U "AOK RISC-V Console" > /dev/null 2>&1; sleep 85; shot ab-$n-$t-rvon
+  echo "$(date +%T) done $t (temp $(temp), battery $(ideviceinfo -u $U -q com.apple.mobile.battery -k BatteryCurrentCapacity 2>/dev/null))"
+}
+round new "$NEW" 1
+round old "$OLD" 2
+round new "$NEW" 3
+bash $SV $U --stop 2>&1 | head -1
+rm -rf "$S/crash"; mkdir -p "$S/crash"; idevicecrashreport -k -u $U "$S/crash" > /dev/null 2>&1
+find "$S/crash" -type f \( -name 'AOK*' -o -name 'JetsamEvent*' -o -name 'forceReset*' \) -newermt '2026-11-03 00:00' | sed 's|.*/||' | head -10
+echo AB-DONE
+
+# === a10x3.sh
+#!/bin/bash
+# A10X: is RISC-V coremark's slow mode under the gadgets in both engines? Four boots of each; the new build stays installed.
+U=5c56dee8545a5a555e052ecd50aa0e3ca9334a3b
+S=/private/tmp/claude-501/-Users-mke-git-ish-AOK/7b3fb99e-2b30-444a-9291-e34744be360f/scratchpad/a10x
+NEW="$HOME/aok-vm-work/dd/Build/Products/Release-iphoneos/AOK VM.app"
+OLD="$HOME/aok-vm-work/archives/AOKVM-1.0-12.xcarchive/Products/Applications/AOK VM.app"
+SV=/Users/mke/git/aok-vm/aok/app/start-vm.sh
+temp() { idevicediagnostics -u $U ioregentry AppleARMPMUCharger 2>/dev/null | grep -A1 -E '<key>Temperature</key>' | tail -1 | sed 's/[^0-9]//g'; }
+boots() { # boots TAG
+  for i in 1 2 3 4; do
+    bash $SV $U "AOK RISC-V Console" > /dev/null 2>&1; sleep 80
+    xcrun devicectl device capture screenshot --device $U --destination "$S/cm-$1-$i.png" > /dev/null 2>&1
+  done
+  echo "$(date +%T) $1 done, temp $(temp)"
+}
+boots new
+xcrun devicectl device install app --device $U "$OLD" 2>&1 | grep ERROR | cut -c1-120
+boots old
+xcrun devicectl device install app --device $U "$NEW" 2>&1 | grep ERROR | cut -c1-120
+bash $SV $U --stop 2>&1 | head -1
+cd "$S" && ./ocr cm-new-*.png cm-old-*.png | cut -c1-210
+echo CM-DONE
+
+# === a10x/ocr.swift: RESULT lines from the screenshots, by Vision
+import Foundation
+import Vision
+import AppKit
+for path in CommandLine.arguments.dropFirst() {
+    guard let img = NSImage(contentsOfFile: path), let cg = img.cgImage(forProposedRect: nil, context: nil, hints: nil) else { print("\(path): no image"); continue }
+    let req = VNRecognizeTextRequest()
+    req.recognitionLevel = .accurate
+    req.usesLanguageCorrection = false
+    try? VNImageRequestHandler(cgImage: cg, options: [:]).perform([req])
+    let lines = (req.results ?? []).compactMap { $0.topCandidates(1).first?.string }.filter { $0.hasPrefix("RESULT") || $0.contains("STRESS") || $0.contains("checks wrong") || $0.hasPrefix("BENCH-END") }
+    print((path as NSString).lastPathComponent, "|", lines.joined(separator: " ; "))
+}
