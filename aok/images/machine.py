@@ -52,7 +52,8 @@ def config(os_name, arch):
              "imports, with an Alpine kernel. root is logged in on the display and the serial terminal. "
              "Small on purpose: `aok-update` brings the /AOK/tools scripts, and "
              "/AOK/tools/provision-ultimate-%s.sh a desktop and the rest, downloaded when wanted. "
-             "/AOK/persist is iSH-AOK's shared directory." % (title, a["label"], os_name))
+             "/AOK/persist is iSH-AOK's shared directory. Sources: https://github.com/emkey1/ish-AOK-rootfs/"
+             "releases/tag/aok-vm-machines-1" % (title, a["label"], os_name))
     drive = lambda image, kind, iface, k: {
         "ImageName": image, "ImageType": kind, "Interface": iface, "InterfaceVersion": 1,
         "Identifier": ident(k, n), "ReadOnly": kind != "Disk"}

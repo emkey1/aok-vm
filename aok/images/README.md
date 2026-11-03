@@ -56,6 +56,23 @@ boot, so the machine still starts from its floppy.
 makes its zip on a Mac in a few seconds once it has KolibriOS's CD (44 MB,
 fetched and checked against the SHA-256 it pins).
 
+## Sources
+
+GPLv2 asks that the corresponding source be offered from the same place as the
+binaries, so the release that hosts the zips holds their sources too, listed in
+its `SOURCES.md` (`sources/SOURCES.md` here).
+
+```bash
+python3 -I aok/images/sources/collect.py
+```
+
+on MBP5 reads the package databases of the root archives and of a machine's disk,
+fetches the source of exactly those versions into `~/aok-vm-bench/images-sources`,
+checks it where the distribution gives a checksum, and packs one tar per asset. It
+runs nothing it fetches. `git archive HEAD aok/images aok/machine aok/reactos` is
+the last asset. A machine, kernel or package version that changes means collecting
+and uploading again, before or with its zip.
+
 ## A machine
 
 - **The root disk** is the archive iSH-AOK ships for that OS and

@@ -94,3 +94,8 @@ and this fork's changes to it are offered under the same. What is under
 `aok/` was written in iSH-AOK's repository and came here under its licence
 (`aok/LICENSE.md`: GPLv3, and GPLv2 as well). QEMU's and the gadget
 sources' are in their own repositories.
+
+The ready-made machines are other people's free software, each under its
+own licences. Their sources are in the release that hosts them:
+https://github.com/emkey1/ish-AOK-rootfs/releases/tag/aok-vm-machines-1
+(`images/README.md`, "Sources").
