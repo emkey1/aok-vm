@@ -6076,9 +6076,9 @@
 		};
 		84B36D1C27B3261E00C22685 /* XCRemoteSwiftPackageReference "CocoaSpice" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/utmapp/CocoaSpice.git";
+			repositoryURL = "https://github.com/emkey1/CocoaSpice.git";
 			requirement = {
-				branch = main;
+				branch = "aok-vm";
 				kind = branch;
 			};
 		};
