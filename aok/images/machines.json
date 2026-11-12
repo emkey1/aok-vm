@@ -110,6 +110,15 @@
    "file": "devuan-6-riscv64.zip",
    "size": 82657879,
    "sha256": "537430ed0cd3f143b3693f942401adf043991c3cb7de44f8f1b109abee446d4c"
+  },
+  {
+   "id": "tinycore",
+   "name": "Tiny Core Linux 17.1",
+   "architecture": "i386",
+   "summary": "Tiny Core Linux 17.1, a small Linux with a desktop, on the x86 engine. Apps installs programs from its repository, LibreOffice and Firefox among them, and keeps them. Suggested by Mighty-Moth-Boy.",
+   "file": "tinycore-17.1.zip",
+   "size": 52905209,
+   "sha256": "90de38550971ebdb1f583eb31c2cdac957740c03c407960c1a99d4ed9fb1e0f7"
   }
  ]
 }

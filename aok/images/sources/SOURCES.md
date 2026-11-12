@@ -14,6 +14,7 @@ https://github.com/emkey1/aok-vm.
 | ReactOS | ReactOS 0.4.16, tag `0.4.16-release` (822e8647792a) | `sources-reactos-0.4.16.tar` |
 | KolibriOS, KolibriOS with Extras | KolibriOS 0.7.7.0+8930, commit d50642ce1f | `sources-kolibrios-0.7.7.0-8930.tar` |
 | FreeDOS 1.4 | The official LiveCD it is installed from | `sources-freedos-1.4.tar` |
+| Tiny Core Linux 17.1 | Its kernel, core and the 43 extensions on its disk, at their versions | `sources-tinycore-17.1.tar` |
 | All | The scripts that make the machines, and AOK VM's changes to ReactOS | `sources-aok-vm-machine-scripts.tar` |
 
 ## In each asset
@@ -36,6 +37,15 @@ https://github.com/emkey1/aok-vm.
   programs are each under their own licences; see the `README` on that CD.
 - **FreeDOS:** `FD14-LiveCD.zip` as FreeDOS publishes it. Each of its 191 packages
   has a `SOURCE` folder.
+- **Tiny Core Linux:** Linux 6.18.35 as Tiny Core patches it, with its configuration;
+  for the core (`core.gz`), Tiny Core 17's toolchain sources (glibc, util-linux,
+  e2fsprogs, GCC), BusyBox 1.36.1 with Tiny Core's patches and configurations, and
+  the other programs in it (sudo, udev, zsync and more); for each extension, Tiny
+  Core's source folder where it holds that version, else the upstream release. Tiny
+  Core's own programs (its scripts, Xvesa, flwm, its FLTK tools) are its GitHub
+  repositories at the commits `INDEX.json` names. wbar is upstream's 2.3.0, without
+  Tiny Core's two small 2012 fixes to it (`--nofont`, and desktop files with more
+  than one `Name=`), which Tiny Core has not published.
 
 ## Not here
 

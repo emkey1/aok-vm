@@ -14,6 +14,7 @@
 # 58 s after the app starts the machine, where the CD's full set took 150 s. Apps installs into the same tce/, so
 # what it installs stays. Checked 2026-11-12: the desktop, the disk mounted as /mnt/sda1, and a DHCP lease from the
 # app's user-mode network (a filter-dump of the RTL8139's traffic), on the A10X and on Homebrew's QEMU on MBP5.
+# And that tce-load -wi (what Apps runs) downloads into tce/ and onboot.lst, and the program is there after a restart.
 # On a Mac: curl, bsdtar, Homebrew's qemu-img and e2fsprogs, python3, zip. OUTDIR also keeps the ISO (~290 MB).
 set -euo pipefail
 OUT=$(mkdir -p "$1" && cd "$1" && pwd)

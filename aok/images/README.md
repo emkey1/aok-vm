@@ -38,7 +38,7 @@ the hosted list's, as `alpine-3.24.2-aarch64.zip`, `reactos-0.4.16.zip` and
 `kolibrios-0.7.7.0-8930.zip`). On its first start the app adds those to the
 list (`Platform/Shared/AOKMachines.swift`, each once: one its user removes
 stays removed; one an update brings is added on the first start after it).
-"+" -> "Get a Ready-Made Machine..." lists all twelve; the nine it does
+"+" -> "Get a Ready-Made Machine..." lists all thirteen; the ten it does
 not carry are downloaded from the list's `baseURL`,
 checked against their SHA-256, and a newer list is fetched from `indexURL`.
 A machine added from the list gets no more memory than the device has room

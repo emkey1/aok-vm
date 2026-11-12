@@ -27,6 +27,9 @@ MACHINES = [
     ("freedos", "freedos-1.4.zip", "FreeDOS 1.4",
      "FreeDOS 1.4, installed in full from its LiveCD: DOS with its programs, compilers and games, Freedoom "
      "among them. Made by Mighty-Moth-Boy."),
+    ("tinycore", "tinycore-17.1.zip", "Tiny Core Linux 17.1",
+     "Tiny Core Linux 17.1, a small Linux with a desktop, on the x86 engine. Apps installs programs from its "
+     "repository, LibreOffice and Firefox among them, and keeps them. Suggested by Mighty-Moth-Boy."),
     ("alpine-x86_64", "alpine-3.24.2-x86_64.zip", "Alpine 3.24.2 (x86_64)", ALPINE),
     ("alpine-x86", "alpine-3.24.2-x86.zip", "Alpine 3.24.2 (x86)", ALPINE),
     ("alpine-riscv64", "alpine-3.24.2-riscv64.zip", "Alpine 3.24.2 (riscv64)", ALPINE),
@@ -35,7 +38,8 @@ MACHINES = [
     ("devuan-riscv64", "devuan-6-riscv64.zip", "Devuan 6 (riscv64)", DEVUAN),
 ]
 ARCH = {"aarch64": "aarch64", "x86_64": "x86_64", "x86": "i386", "riscv64": "riscv64", "reactos": "i386",
-        "kolibrios": "x86_64", "kolibrios-extras": "x86_64", "freedos": "x86_64"}
+        "kolibrios": "x86_64", "kolibrios-extras": "x86_64", "freedos": "x86_64",
+        "tinycore": "i386"}
 # The app carries these (the Xcode project's "Copy AOK VM machines" names them too).
 BUNDLED = {"alpine-aarch64", "reactos", "kolibrios"}
 VERSION = 1

@@ -4,7 +4,7 @@ asks that the corresponding source be offered from the same place as the binarie
 
 Reads the package databases of the root archives build.sh uses, fetches the source of exactly those versions, checks
 it where the distribution gives a checksum, and packs one tar per asset in $OUT/assets (under the 2 GB a GitHub asset
-may be). It runs nothing that it fetches. WHAT is any of linux alpine devuan reactos kolibrios freedos; default all.
+may be). It runs nothing that it fetches. WHAT is any of linux alpine devuan reactos kolibrios freedos tinycore; default all.
     W=~/aok-vm-bench  OUT=$W/images-sources  ROOTFS=$W/images/rootfs
 """
 import hashlib, json, lzma, os, re, shutil, subprocess, sys, tarfile, time, urllib.error, urllib.parse, urllib.request
@@ -372,8 +372,111 @@ def do_freedos():
     return pack("sources-freedos-1.4.tar", root, ["FD14-LiveCD.zip"])
 
 
+TC = "https://distro.ibiblio.org/tinycorelinux/"
+TC_GIT = ("Core-scripts", "tc-misc", "tinyx", "flwm", "fltk_projects")
+# What the Tiny Core Linux 17.1 machine holds (images/tinycore.sh): core.gz and the kernel, and 43 extensions, each at
+# the version its .tcz.info gives. Tiny Core's own source folders where they hold that version; else upstream's.
+TC_DIRS = {  # folder in the asset: Tiny Core folders whose files it takes, all of them
+    "kernel": ["17.x/x86/release/src/kernel/linux-6.18.35", "17.x/x86/release/src/kernel/linux-6.18.35/6.18.35-patches"],
+    # core.gz's glibc, util-linux, e2fsprogs, GCC's libraries; the extensions glibc_gconv, gzip and perl5
+    "base/toolchain-17": ["17.x/x86/release/src/toolchain"],
+    "base/busybox-1.36.1": ["15.x/x86/release/src/busybox"],
+    "base/udev-174": ["12.x/x86/tcz/src/udev"],
+    "base/zsync": ["11.x/x86/tcz/src/zsync"],
+    "extensions/advcomp": ["10.x/x86/tcz/src/advcomp"],
+    "extensions/aterm": ["5.x/x86/tcz/src/aterm"],
+    "extensions/ezremaster": ["11.x/x86/tcz/src/ezremaster"],
+    "extensions/fltk-1.3": ["16.x/x86/tcz/src/fltk-1.3"],
+    "extensions/flwm_topside": ["16.x/x86/tcz/src/flwm"],
+    "extensions/freetype": ["13.x/x86/tcz/src/freetype"],
+    "extensions/hwdata": ["16.x/x86/tcz/src/hwdata"],
+    "extensions/imlib2": ["13.x/x86/tcz/src/imlib2"],
+    "extensions/libjpeg-turbo": ["14.x/x86/tcz/src/libjpeg-turbo"],
+    "extensions/libpng": ["16.x/x86/tcz/src/libpng"],
+    "extensions/pciutils": ["16.x/x86/tcz/src/pciutils"],
+    "extensions/mkisofs-tools": ["9.x/x86/tcz/src/cdrtools"],
+    "extensions/syslinux": ["7.x/x86/tcz/src/syslinux"],
+    "extensions/tc-install": ["8.x/x86/tcz/src/tc-install"],
+}
+XORG_LIB = "https://www.x.org/releases/individual/lib/"
+TC_FILES = [  # folder, URL
+    ("kernel", TC + "17.x/x86/release/src/kernel/linux-6.18.35-patched.tar.xz"),
+    ("base", TC + "16.x/x86/release/src/toolchain/libxcrypt-4.4.36.tar.xz"),
+    ("base", "https://zlib.net/fossils/zlib-1.3.1.tar.gz"),
+    ("base", "https://www.sudo.ws/dist/OLD/sudo-1.7.8p1.tar.gz"),
+    ("base/udev-174", "https://mirrors.edge.kernel.org/pub/linux/utils/kernel/hotplug/udev-174.tar.bz2"),
+    ("base", "https://downloads.sourceforge.net/project/linux-diag/sysfsutils/2.1.0/sysfsutils-2.1.0.tar.gz"),
+    ("base", "https://downloads.sourceforge.net/project/bcrypt/bcrypt/1.1/bcrypt-1.1.tar.gz"),
+    ("base", "https://mirrors.edge.kernel.org/pub/linux/utils/kernel/pcmcia/pcmciautils-018.tar.xz"),
+    ("base/zsync", "https://github.com/cph6/zsync/archive/refs/tags/0.6.4.tar.gz"),
+    ("extensions", "https://sourceware.org/pub/bzip2/bzip2-1.0.8.tar.gz"),
+    ("extensions", "https://github.com/dosfstools/dosfstools/archive/refs/tags/v3.0.3.tar.gz"),
+    ("extensions", "https://mirrors.edge.kernel.org/pub/linux/utils/kbd/kbd-1.15.2.tar.gz"),
+    ("extensions", "https://ftp.gnu.org/gnu/mtools/mtools-4.0.17.tar.bz2"),
+    ("extensions", "https://ftp.gnu.org/gnu/tar/tar-1.35.tar.xz"),
+    ("extensions", "https://storage.googleapis.com/google-code-archive-downloads/v2/code.google.com/wbar/"
+                   "wbar_2.3.0.orig.tar.gz"),
+    ("extensions/xorg", "https://xcb.freedesktop.org/dist/libxcb-1.17.0.tar.xz"),
+    ("extensions/xorg", XORG_LIB + "libXfont-1.5.2.tar.bz2"),
+] + [("extensions/xorg", XORG_LIB + n + ".tar.xz") for n in (
+    "libICE-1.1.2", "libSM-1.2.6", "libX11-1.8.12", "libXau-1.0.12", "libXcursor-1.2.3", "libXdmcp-1.1.5",
+    "libXext-1.3.7", "libXfixes-6.0.2", "libXmu-1.3.0", "libXrender-0.9.12", "libXt-1.3.1", "libfontenc-1.1.8")]
+# Tiny Core's build scripts for those X libraries
+TC_XORG = ["libICE", "libSM", "libX11", "libXau", "libXcursor", "libXdmcp", "libXext", "libXfixes", "libXmu",
+           "libXrender", "libXt", "libfontenc", "libxcb"]
+
+
+def listing(url):
+    """The files (not folders) an Apache index at url links to."""
+    req = urllib.request.Request(url + "/", headers={"User-Agent": "aok-vm-sources/1 (curl compatible)"})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        page = r.read().decode("utf-8", "replace")
+    names = [urllib.parse.unquote(h) for h in re.findall(r'href="([^"?/][^"]*)"', page)]
+    return [n for n in names if not n.endswith("/") and "://" not in n]
+
+
+def do_tinycore():
+    root = OUT + "/work/tinycore"
+    os.makedirs(root, exist_ok=True)
+    got = []
+    for folder, dirs in TC_DIRS.items():
+        for d in dirs:
+            for n in listing(TC + d):
+                if n.endswith(".so"):  # uname_hack.so: a build helper, not source
+                    continue
+                fetch(f"{TC}{d}/{urllib.parse.quote(n)}", f"{root}/{folder}/{n}")
+                got.append(f"{d}/{n}")
+    for folder, url in TC_FILES:
+        name = url.rsplit("/", 1)[1]
+        if "github.com" in url:  # a tag's archive: name it after the project
+            name = url.split("/")[4] + "-" + name.lstrip("v")
+        fetch(url, f"{root}/{folder}/{name}")
+        got.append(url)
+    for n in TC_XORG:
+        fetch(f"{TC}17.x/x86/tcz/src/xorg/compile_{n}", f"{root}/extensions/xorg/compile_{n}")
+    commits = {}
+    for repo in TC_GIT:  # Tiny Core's own: its scripts, Xvesa (tinyx), flwm, and its FLTK programs (Xprogs etc.)
+        d = f"{OUT}/work/tinycore-{repo}.git"
+        if not os.path.isdir(d):
+            subprocess.check_call(["git", "clone", "-q", "--bare", f"https://github.com/tinycorelinux/{repo}.git", d])
+        full = subprocess.check_output(["git", "-C", d, "rev-parse", "HEAD"], text=True).strip()
+        commits[repo] = full
+        out = f"{root}/tinycore/{repo}-{full[:10]}.tar.xz"
+        os.makedirs(os.path.dirname(out), exist_ok=True)
+        if not os.path.exists(out):
+            a = subprocess.Popen(["git", "-C", d, "archive", f"--prefix={repo}-{full[:10]}/", full],
+                                 stdout=subprocess.PIPE)
+            with open(out, "wb") as f:
+                subprocess.check_call(["xz", "-6", "-T0"], stdin=a.stdout, stdout=f)
+            a.wait()
+    with open(f"{root}/INDEX.json", "w") as f:
+        json.dump({"fetched": got, "tinycorelinux-git": commits}, f, indent=1)
+    say("tinycore", len(got), "files,", commits)
+    return pack("sources-tinycore-17.1.tar", root)
+
+
 def main():
-    what = sys.argv[1:] or ["linux", "alpine", "devuan", "reactos", "kolibrios", "freedos"]
+    what = sys.argv[1:] or ["linux", "alpine", "devuan", "reactos", "kolibrios", "freedos", "tinycore"]
     for w in what:
         say("==", w)
         try:
