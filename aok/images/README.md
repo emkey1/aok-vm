@@ -56,6 +56,15 @@ boot, so the machine still starts from its floppy.
 makes its zip on a Mac in a few seconds once it has KolibriOS's CD (44 MB,
 fetched and checked against the SHA-256 it pins).
 
+**Tiny Core Linux 17.1** (Mighty-Moth-Boy's suggestion, issue 1) is made from
+Tiny Core's official CorePlus ISO, not from their machine, which was an
+ISA-only PC whose NE2000 card Linux cannot find by itself. It is a `pc` with
+an RTL8139, booted straight into the ISO's kernel (no 60-second boot menu),
+with the desktop's extensions in a `tce` folder on its disk, where Apps also
+installs, and without the ISO's wireless firmware.
+`tinycore.sh OUTDIR` makes its zip on a Mac (Homebrew's `qemu-img` and
+`e2fsprogs`), fetching the ISO (290 MB) and checking its MD5.
+
 ## Sources
 
 GPLv2 asks that the corresponding source be offered from the same place as the
