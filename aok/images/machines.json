@@ -63,8 +63,8 @@
    "architecture": "x86_64",
    "summary": "iSH-AOK's Alpine root on a machine of its own: busybox, apk, a terminal.",
    "file": "alpine-3.24.2-x86_64.zip",
-   "size": 51587028,
-   "sha256": "738e1b219aaa3115e54638618e3606f2a02f3028deaaca743ad01c42d4ea068e"
+   "size": 51587087,
+   "sha256": "b89188ae5cca701b9ced139bcbc3f9cf83fb878379d3c6ca95681dcde4955b7e"
   },
   {
    "id": "alpine-x86",
@@ -90,8 +90,8 @@
    "architecture": "x86_64",
    "summary": "iSH-AOK's Devuan root on a machine of its own: sysvinit, apt, a terminal.",
    "file": "devuan-6-x86_64.zip",
-   "size": 108165398,
-   "sha256": "e54baaf664876d9042ed948bdd38a1bd379e87c8e6792d7aee1db82aed1f7de6"
+   "size": 108165459,
+   "sha256": "e69f60513375f7ba123b6ed0220536b242275356fee6a734418a0136e201127c"
   },
   {
    "id": "devuan-x86",
