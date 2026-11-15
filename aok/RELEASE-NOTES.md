@@ -1,4 +1,19 @@
-# AOK VM 1.0 (release candidate 5)
+# AOK VM 1.0 (release candidate 6)
+## New in build 13
+* **Saved machines come back**: a machine suspended by the app (by hand, or when the app goes to the background) restores where it was, in cases where it did not before:
+  * ARM64 and RISC-V machines could not be restored at all: the saved state was refused ("the snapshot's vCPUs don't fit this machine") and forgotten.
+  * A restored machine's screen stayed black until the machine next drew something. The picture is there at once now.
+  * A machine saved just before the app was ended could start afresh next time, with its saved state unused.
+  * A save that took more than 10 seconds failed.
+  * A restore, or resuming a paused machine, could hang for good.
+  * A machine whose disk had been made smaller with Compress could not be suspended ("Invalid parameter 'zstd'").
+* **Faster RISC-V and ARM64 machines**: the gadget engine joins common pairs of RISC-V instructions into one step, and on RISC-V and ARM64 a memory access no longer spends an instruction adding the page's address to it. RISC-V machines take a few percent fewer cycles (up to 5% in our benchmarks on an A10X iPad Pro), ARM64 machines up to 2% on an M4 iPad Pro.
+* **QEMU 11.1.3**: the engine has QEMU 11.1.3's fixes, and also:
+  * A USB disk could stop on its first read.
+  * x86: ENTER and RETF with a size of 0x8000 or more gave the wrong result, and FCOMI and FUCOMI now leave the x87's C1 flag alone, as real processors do.
+  * PowerPC Macs: the Screamer sound chip's input channel no longer reports itself as running when it is stopped.
+  * The threaded interpreter, which runs what the gadget engine hands over, takes 6 to 11% fewer cycles (tctiSH's change).
+* Already in the list without an update: **Tiny Core Linux 17.1** under + and Get a Ready-Made Machine (52.9 MB), and the ready-made x86-64 machines' CPU is "max", with AVX-512.
 ## New in build 12
 * **KolibriOS comes with the app**: Mighty-Moth-Boy's KolibriOS machine (1.3 MB: a desktop, a web browser, an editor and games, written in assembly) is added to the list on the first start, beside Alpine and ReactOS. FreeDOS 1.4, also theirs, is under + and Get a Ready-Made Machine.
 * **KolibriOS with Extras**: under + and Get a Ready-Made Machine (50 MB), KolibriOS with its CD of extras: Doom and Quake (their shareware episodes), Tyrian, DOSBox, ScummVM, emulators for the NES, SNES, Game Boy, Mega Drive and ZX Spectrum, Free Pascal, Tiny C, Lua, the NetSurf web browser, a PDF reader, a video player and more. App+, on its desktop, starts many of them.
