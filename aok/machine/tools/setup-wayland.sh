@@ -178,19 +178,29 @@ if [ "$IN_AOK" = 0 ]; then
         seat_group=seat
     fi
     # The keyboard and the pointer: libinput takes only the input devices a
-    # udev daemon has recorded, and AOK VM's base machines run none (busybox's
-    # init on Alpine, and Devuan's root as iSH-AOK ships it has no eudev).
+    # udev daemon has recorded, and AOK VM's base machines run none (Devuan's
+    # root as iSH-AOK ships it has no eudev, and Alpine's has neither eudev nor
+    # mdev in its boot). On Alpine the boot then gets udev as Alpine's own
+    # setup-devd gives it: without udev-trigger, OpenRC still started udevd
+    # (seatd wants it), which recorded nothing, and the desktop stopped with
+    # "no input devices" after every reboot. Devuan's eudev script triggers.
     if command -v apt-get >/dev/null 2>&1; then
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends eudev >/dev/null 2>&1 \
             || note "warning: eudev did not install; the desktop may find no keyboard or pointer"
     elif command -v apk >/dev/null 2>&1; then
-        apk_add eudev || note "warning: eudev did not install; the desktop may find no keyboard or pointer"
+        if apk_add eudev; then
+            for _s in udev:sysinit udev-trigger:sysinit udev-settle:sysinit udev-postmount:default; do
+                rc-update add "${_s%%:*}" "${_s#*:}" >/dev/null 2>&1
+            done
+        else
+            note "warning: eudev did not install; the desktop may find no keyboard or pointer"
+        fi
     fi
     # `desktop`: the desktop on this machine's display, as the Ultimate machines
-    # have it. It starts udevd and seatd itself where nothing else has (AOK
-    # VM's Alpine machines boot with busybox's init, no OpenRC to run them).
-    # `desktop soft`: composited without the GPU, for a display whose GL path
-    # does not show.
+    # have it. It starts seatd itself where nothing else has, and
+    # start-wayland.sh starts and triggers udev when it has recorded no input
+    # device. `desktop soft`: composited without the GPU, for a display whose
+    # GL path does not show.
     mkdir -p /usr/local/bin
     cat > /usr/local/bin/desktop <<'D'
 #!/bin/sh
@@ -198,14 +208,7 @@ if [ "$IN_AOK" = 0 ]; then
 # desktop soft: composited without the GPU.
 [ "$1" = soft ] && { shift; export WLR_RENDERER=pixman; }
 if [ "$(id -u)" = 0 ]; then
-    # udev, for libinput to find the keyboard and the pointer
-    if ! pidof udevd systemd-udevd >/dev/null 2>&1; then
-        for u in /sbin/udevd /usr/sbin/udevd /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd; do
-            [ -x "$u" ] || continue
-            "$u" --daemon && udevadm trigger --action=add && udevadm settle --timeout=5
-            break
-        done
-    fi
+    # (udev, for libinput to find the keyboard and the pointer: start-wayland.sh)
     # seatd, for the compositor to take the display and the input devices
     if command -v seatd >/dev/null 2>&1 && ! pidof seatd >/dev/null 2>&1; then
         seatd -g SEAT_GROUP >/dev/null 2>&1 &

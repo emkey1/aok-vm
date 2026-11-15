@@ -321,6 +321,29 @@ for bin in $DESKTOP_BINS foot $_wl_vnc; do
         || die "'$bin' not found -- run 'sudo sh /AOK/tools/$DESKTOP_SETUP' first"
 done
 
+# On a machine's own display the compositor finds the keyboard and the pointer
+# through libinput, which takes only the input devices udev has recorded, and
+# stops with "libinput initialization failed, no input devices" when there are
+# none. On Alpine, OpenRC starts udevd at boot as a dependency but not its
+# udev-trigger service, so udevd runs and has recorded nothing: `desktop`
+# worked in the boot setup-wayland.sh ran in (it started udevd and triggered it
+# itself) and never after a reboot. Record them here when udev has no input
+# device yet. setup-wayland.sh and aok-update also put udev-trigger in the
+# boot; this covers a machine that has neither, and the first start after one.
+if [ "$AOK_WL_DISPLAY" = 1 ] && command -v udevadm >/dev/null 2>&1 &&
+   ! ls /run/udev/data/c13:* >/dev/null 2>&1; then
+    if [ "$(id -u)" = 0 ]; then
+        if ! pidof udevd systemd-udevd >/dev/null 2>&1; then
+            for _wl_u in /sbin/udevd /usr/sbin/udevd /lib/systemd/systemd-udevd /usr/lib/systemd/systemd-udevd; do
+                [ -x "$_wl_u" ] && { "$_wl_u" --daemon; break; }
+            done
+        fi
+        udevadm trigger --action=add && udevadm settle --timeout=5
+    else
+        printf 'start-wayland.sh: udev has recorded no keyboard or pointer, so %s may stop at once; as root: udevadm trigger --action=add\n' "$COMPOSITOR_BIN" >&2
+    fi
+fi
+
 # Clean up any compositor/foot/wayvnc a dead session left behind. The
 # one-session check above has already refused, or waited out, every session
 # whose script is still alive, so whatever is killed here is an orphan: its

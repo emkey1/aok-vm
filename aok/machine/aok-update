@@ -48,6 +48,15 @@ if [ -n "$newer" ] && [ "${0##*/}" = aok-update ] && [ -z "$AOK_UPDATE_AGAIN" ];
     rm -rf "${t:?}"; trap - EXIT
     AOK_UPDATE_AGAIN=1 exec sh /usr/local/bin/aok-update
 fi
+# Alpine with a desktop (2026-11-15): setup-wayland.sh installed eudev without putting udev-trigger in the
+# boot, so udev recorded no keyboard or pointer after a reboot and `desktop` stopped with "no input devices".
+# The boot gets udev as Alpine's setup-devd gives it.
+if [ "$os" = alpine ] && [ -x /etc/init.d/udev-trigger ] && ! [ -e /etc/runlevels/sysinit/udev-trigger ]; then
+    for s in udev:sysinit udev-trigger:sysinit udev-settle:sysinit udev-postmount:default; do
+        rc-update add "${s%%:*}" "${s#*:}" > /dev/null 2>&1
+    done
+    echo "  udev: records the keyboard and pointer at boot (for the desktop)"
+fi
 # An iPad keyboard's power key reaches the guest as one, and elogind's default is to power off.
 k=/etc/elogind/logind.conf.d/50-aok-vm-keys.conf
 if [ -d /etc/elogind ] && ! [ -f "$k" ]; then
