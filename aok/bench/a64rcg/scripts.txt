@@ -1,0 +1,843 @@
+==> split/gen.sh
+#!/bin/bash
+# gen.sh OUTDIR: every output of rcg-gen.py from the worktree, into OUTDIR
+set -e
+cd ~/git/qemu-rcg-a64
+o=$1; mkdir -p $o/g
+python3 target/i386/tcg/rcg-gen.py --check
+python3 target/i386/tcg/rcg-gen.py --gadgets $o/g 2> $o/gadgets.stderr
+python3 target/i386/tcg/rcg-gen.py --insn-tests $o/insns.h --jcc-tests $o/jcc.h --fault-tests $o/faults.h --jcc-fault-tests $o/jccfaults.h
+(cd $o && find . -type f ! -name SHA | sort | xargs shasum -a 256 > SHA)
+wc -l $o/SHA; cat $o/gadgets.stderr
+
+==> split/split.py
+#!/usr/bin/env python3
+# split.py: build tcg/aarch64-tcti/rcg_core.py and the slimmed
+# target/i386/tcg/rcg-gen.py from the rcg-gen.py at HEAD, so that every
+# block that moves is copied by line number and stays verbatim.
+import subprocess
+import sys
+
+REPO = sys.argv[1]
+src = subprocess.run(["git", "-C", REPO, "show",
+                      "HEAD:target/i386/tcg/rcg-gen.py"],
+                     capture_output=True, text=True, check=True).stdout
+L = src.split("\n")
+assert L[-1] == ""
+L = L[:-1]
+
+
+def ln(a, b=None):
+    """ Lines a to b of the original, 1-based and inclusive. """
+    return L[a - 1:(b or a)]
+
+
+def at(n, text):
+    assert L[n - 1].startswith(text), (n, L[n - 1], text)
+
+
+def sub(lines, old, new, count=1):
+    text = "\n".join(lines)
+    assert text.count(old) == count, (old, text.count(old))
+    return text.replace(old, new).split("\n")
+
+
+# The landmarks, checked so that a rebase that moves them fails here.
+at(112, "NARROW_WORDS = ")
+at(116, "def stream_words(words):")
+at(131, "#")
+at(1292, "# A gadget's operand words arrive")
+at(1335, "class Harness:")
+at(1391, "class Body:")
+at(1396, "    def __init__(self, spec, harness):")
+at(1409, "    def word(self, name):")
+at(1591, "    def load256(self, addr, aligned):")
+at(1913, "    def branch(self, arm):")
+at(1923, "    def write_cc(self, dst=None, src=None):")
+at(1936, "def eflags_tests(reg, jcc_op):")
+at(3287, "# The \"i\" asm operands the bodies use")
+at(3293, "BODY_OPERANDS = {")
+at(3354, "class CheckHarness(Harness):")
+at(3374, "def check():")
+at(3409, "    return len(names)")
+at(3416, "class TctiHarness(Harness):")
+at(3497, "# The ops and forms as the translator names them")
+at(3519, "MAX_WORDS = len(WORD_REGS)")
+at(3521, "TABLE_WORDS = 2")
+at(3562, "def write_gadgets(outdir):")
+at(3610, "def write_cond_table(conds, out):")
+at(3680, "def write_table(all_specs, out):")
+at(6056, "def write_cases(cases, out, prefix, faults=False):")
+at(6092, "def jcc_cases():")
+at(6106, "def check_coverage(order, nm, traces):")
+at(6167, "def main():")
+
+core = []
+add = core.extend
+
+add('''# SPDX-License-Identifier: GPL-2.0-or-later
+""" What RCG's gadget generators have in common, whatever the guest.
+
+A guest's generator, target/<arch>/tcg/rcg-gen.py, holds that guest's
+tables, the bodies of its gadgets and its tests' cases. This holds the
+host's side that none of those change: the registers a body computes in
+and how it reaches guest memory through TCTI's templates (Body), the ways
+a gadget can be entered and left (Harness, with TCTI's and the checker's),
+and the frames of what a generator writes: the gadgets' source files, the
+head of the translator's table, the tests' cases and the coverage check.
+
+A generator imports this as it imports tcti_memory, from this directory.
+"""
+
+import os
+import re
+import sys
+
+import tcti_memory
+
+
+#
+# The stream: how a gadget's operand words are packed.
+#
+
+def stream_words(words, narrow_words):
+    """ How a spec's words go in the stream, which the translator's
+    rcg_pack_words() must match: a list of stream words, each a tuple of
+    the words it holds. narrow_words are the guest's words that always fit
+    in 32 bits, signed. A gadget that accesses memory, which is one with a
+    tlb word, has its narrow words two to a stream word, the first in the
+    low half, then an odd one out alone, then each of the others alone. Any
+    other gadget has each word alone. A memory gadget splits the pairs
+    while it waits for the TLB entry; packing the others only made them
+    slower. """
+    if "tlb" not in words:
+        return [(w,) for w in words]
+    narrow = [w for w in words if w in narrow_words]
+    return ([tuple(narrow[i:i + 2]) for i in range(0, len(narrow), 2)] +
+            [(w,) for w in words if w not in narrow_words])
+
+
+#
+# The host's side: what a gadget body is written with.
+#
+'''.split("\n"))
+
+# WORD_REGS to ARM_INVERT.
+block = ln(1292, 1333)
+block = sub(block, "Both accesses zero-extend, as TCG's loads\n"
+            "# of x86 operands do. STORES is the same for stores, with STLR.",
+            "Both accesses zero-extend. STORES is\n"
+            "# the same for stores, with STLR.")
+add(block)
+add([""])
+
+# Harness.
+block = ln(1335, 1389)
+block = sub(block, "load a spec's table (Spec.has_table), after its",
+            "load a spec's table (its has_table), after its")
+block = sub(block, "if arm holds that also makes the jump to the next TB "
+            "each way, for\n        jccgoto and fjccgoto (see "
+            "tcg_gen_rich_br()), with labels as for\n        branch(). \"\"\"",
+            "if arm holds that also makes the jump to the next TB "
+            "each way (see\n        tcg_gen_rich_br()), as x86's jccgoto and "
+            "fjccgoto do, with labels as\n        for branch(). \"\"\"")
+add(block)
+add([""])
+
+# Body: the generic part.
+block = ln(1391, 1590)
+block = sub(block, '''class Body:
+    """ A gadget body as it is written: the lines on the way through (hot),
+    and the slow paths, which go after the gadget's end and branch back
+    (cold). """
+''', '''class Body:
+    """ A gadget body as it is written: the lines on the way through (hot),
+    and the slow paths, which go after the gadget's end and branch back
+    (cold). This is the part no guest changes: the words, the labels, what
+    a slow path keeps across its call, and guest memory. A generator
+    subclasses it with its guest's registers and flags.
+
+    spec is the gadget's spec, of which a body needs name, words (the
+    operand words, in the translator's order), stream (how they go in the
+    stream; see stream_words()) and ordered (whether it is the twin that
+    keeps the guest's memory order). """
+''')
+block = sub(block, "        self.used = set()\n        self.reads = set()\n",
+            "        self.used = set()\n")
+block = sub(block, "qreg = the spec's table (Spec.has_table), after any",
+            "qreg = the spec's table (its has_table), after any")
+add(block)
+add(ln(1913, 1922))
+add([""])
+
+add('''# The "i" asm operands the memory templates use, which the C compiler works
+# out from QEMU's definitions. They are the TLB lookup's (see
+# tcti_memory.tlb_operands()), with two changes: the CPUTLBDescFast's offset
+# is a word instead, and the comparator is two operands, one to read and one
+# to write, as a gadget may do both. HARNESS_OPERANDS is the exit request's
+# offset, for TctiHarness.jumps(). A generator's own operands, those its
+# bodies use directly, go with these.
+MEMORY_OPERANDS = {
+    "tlb_shift": "TCTI_TLB_INDEX_SHIFT",
+    "tlb_cmp_read": "offsetof(CPUTLBEntry, addr_read)",
+    "tlb_cmp_write": "offsetof(CPUTLBEntry, addr_write)",
+    "tlb_addend": "offsetof(CPUTLBEntry, addend)",
+    "tlb_page_mask": "TCTI_TLB_PAGE_MASK",
+}
+HARNESS_OPERANDS = {
+    "exit_ofs": "TCTI_EXIT_REQUEST_OFS",
+}
+
+
+#
+# Checking the bodies without building them.
+#
+'''.split("\n"))
+
+add(ln(3354, 3372))
+add('''
+def check_lines(name, lines, harness, operands):
+    """ Checks the rendered lines of gadget name, from harness: that each
+    names only the asm operands of operands and the registers a body may
+    use, none of V8 to V15, which TCTI expects unchanged, and that every
+    branch it makes has a label to go to. """
+    h = harness
+    allowed = {*h.scratch, h.env, h.retaddr, "x15", "sp", "lr", "xzr"}
+    labels = {line[:-1] for line in lines if re.fullmatch(r"\\d+:", line)}
+    for line in lines:
+        if line.startswith("//"):
+            continue
+        for operand in re.findall(r"%\\[(\\w+)\\]", line):
+            assert operand in operands, (name, line)
+        # The getpc register may appear, but only as a base address.
+        regs = line.replace(f"[{h.getpc}]", "")
+        for reg in re.findall(r"\\b([xw](?:\\d+|zr)|sp|lr)\\b", regs):
+            assert "x" + reg[1:] in allowed or reg in allowed, (name, line)
+        for reg in re.findall(r"(?<![.%])\\b[vqdsh](\\d+)\\b", line):
+            assert not 8 <= int(reg) <= 15, (name, line)
+        for target in re.findall(r"(?<!\\.)\\b(\\d+)[bf]\\b", line):
+            assert target in labels, (name, line)
+
+
+#
+# TCTI's gadgets, and the head of the translator's table of them.
+#
+
+# The most operand words a gadget takes.
+MAX_WORDS = len(WORD_REGS)
+# The stream words of a gadget's table (see Harness.load_table()): its 16
+# bytes.
+TABLE_WORDS = 2
+
+'''.split("\n"))
+
+add(ln(3416, 3495))
+add('''
+
+def write_gadgets(outdir, files, includes, operands, gadgets):
+    """ Writes TCTI's gadgets as naked functions to outdir, in a source file
+    rcg_gadgets_<file>.c for each name in files, split so that they compile
+    in parallel. includes are the headers the files need between osdep.h
+    and tcti-gadget-defs.h, operands the "i" asm operands the bodies name,
+    and gadgets gives each gadget's file, name and lines. Returns how many
+    instructions the gadgets have. """
+    operands = ", ".join(f'[{k}] "i" ({v})' for k, v in operands.items())
+    out = {}
+    for name in files:
+        f = open(os.path.join(outdir, f"rcg_gadgets_{name}.c"), "w")
+        print("/* Automatically generated by rcg-gen.py. Do not edit. */\\n",
+              file=f)
+        print('#include "qemu/osdep.h"', file=f)
+        for header in includes:
+            print(f'#include "{header}"', file=f)
+        print('#include "tcti-gadget-defs.h"\\n', file=f)
+        out[name] = f
+
+    instructions = 0
+    for file, name, lines in gadgets:
+        f = out[file]
+        instructions += sum(1 for line in lines
+                            if not line.endswith(":") and
+                            not line.startswith("."))
+        print(f"void rcg_gadget_{name}(void);", file=f)
+        print(f"__attribute__((naked)) void rcg_gadget_{name}(void)",
+              file=f)
+        print("{\\n    asm(", file=f)
+        for line in lines:
+            print(f'        "{line}\\\\n"', file=f)
+        print(f"        :: {operands});\\n}}\\n", file=f)
+    for f in out.values():
+        f.close()
+    return instructions
+
+
+def write_table_head(out, assumptions, word_names, narrow_words):
+    """ The start of the translator's table: assumptions, what the bodies
+    take for granted of QEMU's definitions beyond what their operands say,
+    as QEMU_BUILD_BUG_ONs; the words a gadget can take, word_names, as
+    RCG_W_*; and which of them stream_words() treats as narrow_words. """
+    p = lambda *a: print(*a, file=out)
+    p("/* Automatically generated by rcg-gen.py. Do not edit. */\\n")
+    p("/* What the bodies assume of QEMU's definitions. */")
+    for assumption in assumptions:
+        p(f"QEMU_BUILD_BUG_ON({assumption});")
+    p("")
+    p("enum {")
+    p("    RCG_W_END,")
+    for w in word_names:
+        p(f"    RCG_W_{w.upper()},")
+    p("};")
+    p(f"#define RCG_MAX_WORDS {MAX_WORDS}")
+    p(f"#define RCG_TABLE_WORDS {TABLE_WORDS}\\n")
+    p("/* Whether a word always fits in 32 bits, signed: rcg_pack_words(). */")
+    p("static inline bool rcg_word_narrow(uint8_t w)\\n{\\n    switch (w) {")
+    for w in narrow_words:
+        p(f"    case RCG_W_{w.upper()}:")
+    p("        return true;\\n    default:\\n        return false;\\n    }\\n}\\n")
+
+
+def write_gadget_type(out):
+    """ The table's entry for one gadget: its address and its words. """
+    p = lambda *a: print(*a, file=out)
+    p("typedef struct RCGGadget {")
+    p("    const void *gadget;")
+    p("    uint8_t words[RCG_MAX_WORDS];")
+    p("} RCGGadget;\\n")
+
+
+#
+# The tests.
+#
+
+def write_cases(cases, out, prefix, define, row):
+    """ The cases as the macros of the guest's rcg-test.h, which make the
+    functions that run each case's instruction, then a table of the cases,
+    of struct rcg_case. define gives the macro lines of a case and row the
+    fields of its entry in the table, each from the case's name, prefix and
+    its number, and the case. """
+    cases = list(cases)
+    print("/* Automatically generated by rcg-gen.py. Do not edit. */\\n",
+          file=out)
+    for i, c in enumerate(cases):
+        for line in define(f"{prefix}{i}", c):
+            print(line, file=out)
+    print(f"\\nstatic const struct rcg_case {prefix}cases[] = {{", file=out)
+    for i, c in enumerate(cases):
+        print(f"    {{ {row(f'{prefix}{i}', c)} }},", file=out)
+    print("};", file=out)
+
+
+def check_coverage(order, nm, traces, specs, setters):
+    """ Checks that the rcg_insn and rcg_jumps trace events in traces, from
+    runs of a QEMU system emulator, took every gadget of specs that the
+    translator or TCTI can pick under order: "ordered" where
+    tcg_ldst_ordered() holds, which picks the ordered twins, else "plain".
+    nm is nm's listing of that
+    QEMU, from which each trace's ASLR slide is found. The events come at
+    translation, so this says that each gadget was picked, not that it
+    ran. Also checks that a branch right after a setter it can join took a
+    fused gadget, which the tests' hashes cannot show: setters gives, for
+    the name of each such setter, what the name of the branch gadget it
+    should not be followed by starts with. Returns whether both hold. """
+'''.split("\n"))
+
+# check_coverage's body, from its first statement.
+block = ln(6117, 6164)
+at(6117, "    names = {}")
+at(6123, "    # What a setter's Jcc would be called.")
+at(6125, "    setters = {spec.name:")
+at(6128, "    unjoined = set()")
+at(6152, "    want = {spec.name")
+at(6153, "            for spec in [*specs(), *cond_specs(), *fused_specs()]")
+at(6164, "    return not missed and not unjoined")
+block = ln(6117, 6122) + ln(6128, 6152) + \
+    ["            for spec in specs"] + ln(6154, 6164)
+add(block)
+
+open(f"{REPO}/tcg/aarch64-tcti/rcg_core.py", "w").write("\n".join(core) + "\n")
+
+#
+# The x86 generator, without what moved.
+#
+x86 = []
+add = x86.extend
+
+block = ln(1, 53)
+block = sub(block, '''# The guest-memory templates are TCTI's, so that RCG's accesses look the
+# address up, call cputlb and keep the guest's memory order exactly as
+# TCTI's do. They are imported without leaving bytecode in the source tree.
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.path.join(SRC, "tcg", "aarch64-tcti"))
+import tcti_memory  # noqa: E402
+''', '''# The guest-memory templates are TCTI's, so that RCG's accesses look the
+# address up, call cputlb and keep the guest's memory order exactly as
+# TCTI's do, and rcg_core is what RCG's generators share: the harnesses and
+# the part of a body that is the same for every guest. They are imported
+# without leaving bytecode in the source tree.
+sys.dont_write_bytecode = True
+sys.path.insert(0, os.path.join(SRC, "tcg", "aarch64-tcti"))
+import tcti_memory  # noqa: E402
+import rcg_core  # noqa: E402
+from rcg_core import (ADDR, A, B, R, T, OUT, ARM_INVERT,  # noqa: E402
+                      CheckHarness, TctiHarness, w)
+''')
+block = sub(block, '''gadget loads its operands from env or guest memory, computes, then writes
+the result and the flags state. The translator is not here; where these
+tables say what "the translator" does, they say what it must do.
+
+How a gadget is entered, how it gets its operand words and how it leaves
+are a harness's business, not the body's (see Harness), so that the same
+bodies can run under more than one harness: a gadget is a harness around a
+body.
+''', '''gadget loads its operands from env or guest memory, computes, then writes
+the result and the flags state. The translator is not here; where these
+tables say what "the translator" does, they say what it must do.
+
+How a gadget is entered, how it gets its operand words and how it leaves
+are a harness's business, not the body's (see rcg_core's Harness), so that
+the same bodies can run under more than one harness: a gadget is a harness
+around a body. The harnesses, and the part of a body that no guest changes,
+are in tcg/aarch64-tcti/rcg_core.py.
+''')
+add(block)
+add(ln(54, 115))
+add('''def stream_words(words):
+    """ How a Spec's words go in the stream: rcg_core.stream_words(), with
+    x86's narrow words. """
+    return rcg_core.stream_words(words, NARROW_WORDS)
+'''.split("\n"))
+add(ln(130, 1291))
+
+# The x86 Body.
+add('''class Body(rcg_core.Body):
+    """ An x86 gadget's body: rcg_core's, with x86's registers, effective
+    addresses, 32-byte accesses and lazy flags. reads are the words whose
+    register it has read with read_reg(). """
+
+    def __init__(self, spec, harness):
+        super().__init__(spec, harness)
+        self.reads = set()
+'''.split("\n"))
+add(ln(1591, 1912))
+add(ln(1923, 3286))
+
+block = ln(3287, 3334)
+block = sub(block, '''# The "i" asm operands the bodies use, which the C compiler works out from
+# QEMU's definitions. They are the TLB lookup's (see
+# tcti_memory.tlb_operands()), with two changes: the CPUTLBDescFast's offset
+# is a word instead, and the comparator is two operands, one to read and one
+# to write, as a gadget may do both. Then come those the bodies use
+# directly, and the exit request's offset for TctiHarness.jumps().
+BODY_OPERANDS = {
+    "tlb_shift": "TCTI_TLB_INDEX_SHIFT",
+    "tlb_cmp_read": "offsetof(CPUTLBEntry, addr_read)",
+    "tlb_cmp_write": "offsetof(CPUTLBEntry, addr_write)",
+    "tlb_addend": "offsetof(CPUTLBEntry, addend)",
+    "tlb_page_mask": "TCTI_TLB_PAGE_MASK",
+''', '''# The "i" asm operands the bodies use, which the C compiler works out from
+# QEMU's definitions: rcg_core's for the TLB lookup, then those the bodies
+# use directly, with rcg_core's for TctiHarness.jumps() among them.
+BODY_OPERANDS = {
+    **rcg_core.MEMORY_OPERANDS,
+''')
+block = sub(block, '''    "exit_ofs": "TCTI_EXIT_REQUEST_OFS",
+''', '''    **rcg_core.HARNESS_OPERANDS,
+''')
+add(block)
+add(ln(3335, 3353))
+
+# check().
+at(3379, "    reads its \"d\" register only if reads_d says so.")
+add('''def check():
+    """ Renders every gadget's body, the condition gadgets' included, and
+    checks its lines as rcg_core.check_lines() does, against BODY_OPERANDS,
+    and that it reads its "d" register only if reads_d says so. Returns how
+    many gadgets were checked. """
+    h = CheckHarness()
+    names = set()
+    for spec in [*specs(), *cond_specs(), *fused_specs()]:
+        assert spec.name not in names, spec.name
+        names.add(spec.name)
+        g = Body(spec, h)
+        BODIES[spec.kind](g, spec)
+        lines = g.lines()
+        if isinstance(spec, Spec):
+            assert ("d" in g.reads) == (spec.reads_d and "d" in spec.words), \\
+                spec.name
+            assert (g.table is not None) == spec.has_table, spec.name
+        rcg_core.check_lines(spec.name, lines, h, BODY_OPERANDS)
+    return len(names)
+
+
+#
+# TCTI's gadgets, and the translator's table of them.
+#
+'''.split("\n"))
+
+block = ln(3497, 3561)
+block = sub(block, '''              "tlb", "ccop", "v", "c", "oi2")
+MAX_WORDS = len(WORD_REGS)
+# The stream words of a vtbl gadget's table: its 16 bytes.
+TABLE_WORDS = 2
+''', '''              "tlb", "ccop", "v", "c", "oi2")
+''')
+add(block)
+
+at(3565, "    harness = TctiHarness()")
+at(3566, "    operands = ")
+at(3570, "")
+at(3599, "    with open(os.path.join(outdir, \"rcg-table.c.inc\"), \"w\") as out:")
+add(ln(3562, 3565))
+add(ln(3567, 3570))
+add('''    instructions = rcg_core.write_gadgets(
+        outdir, GADGET_FILES, ("cpu.h", "fpu/softfloat.h"), BODY_OPERANDS,
+        ((gadget_file(spec), spec.name, body(spec, harness))
+         for spec in all_specs + conds + fused))
+'''.split("\n"))
+add(ln(3599, 3683))
+
+at(3684, "    p = lambda *a: print(*a, file=out)")
+at(3685, "    p(\"/* Automatically generated")
+at(3702, "    p(\"typedef enum RCGOp {\")")
+at(3715, "    p(\"typedef struct RCGGadget {\")")
+at(3718, "    p(\"} RCGGadget;\\n\")")
+add(ln(3684))
+add(["    rcg_core.write_table_head(out, BODY_ASSUMPTIONS, WORD_NAMES,",
+     "                              NARROW_WORDS)"])
+add(ln(3702, 3714))
+add(["    rcg_core.write_gadget_type(out)"])
+add(ln(3719, 6055))
+
+add('''def write_cases(cases, out, prefix, faults=False):
+    """ The cases as rcg-test.h's RCG_CASE() macros, one per case, which
+    make the functions that run the instruction, then a table of the
+    cases (see rcg_core.write_cases()). faults adds the functions of
+    RCG_ADC_CASE() and RCG_STC_CASE(), which rcg-faults runs: the
+    instruction after an ADC and after an STC. """
+    def define(name, c):
+        args = f'{name}, "{c.insn}", {int(c.xmm)}, {int(c.ymm)}'
+        yield f"RCG_CASE({args})"
+        if faults:
+            yield f"RCG_ADC_CASE({args})"
+            yield f"RCG_STC_CASE({args})"
+
+    def row(name, c):
+        if faults:
+            fn_more = (f"{name}_adc, {name}_adc_insn, {name}_adc_end, "
+                       f"{name}_stc, {name}_stc_insn, {name}_stc_end")
+        else:
+            fn_more = "NULL, NULL, NULL, NULL, NULL, NULL"
+        return (f'"{c.insn}", {name}, {name}_insn, {name}_end, '
+                f'{name}_sub, {name}_sub_insn, {name}_sub_end, {fn_more}, '
+                f'{c.width}, {c.a}, {c.b}, {int(c.mem)}, {c.base}, '
+                f'{c.index}, {c.base_value:#x}, {c.index_value}, '
+                f'{int(c.stack)}, {int(c.writes)}, {c.operand:#x}, '
+                f'{c.rsp:#x}, {c.moved}, {c.target}, {int(c.xmm)}, '
+                f'{int(c.aligned)}, {c.store_offset}, {int(c.ymm)}')
+
+    rcg_core.write_cases(cases, out, prefix, define, row)
+
+'''.split("\n"))
+add(ln(6092, 6105))
+add('''def check_coverage(order, nm, traces):
+    """ Checks that the tests' traces, from runs of QEMU's x86_64 system
+    emulator, took every gadget that can be picked under order, and that a
+    Jcc right after a setter it can join took a fused gadget: see
+    rcg_core.check_coverage(). """
+    # What a setter's Jcc would be called. A Jcc of another state ran after
+    # a TCG instruction, which the trace does not show, set the flags again.
+    setters = {spec.name: (f"jcc_{'sub' if spec.op.cc == 'SUB' else 'logic'}"
+                           f"{spec.width}_")
+               for spec in fused_setters()}
+    return rcg_core.check_coverage(
+        order, nm, traces, [*specs(), *cond_specs(), *fused_specs()],
+        setters)
+
+'''.split("\n"))
+add(ln(6166, len(L)))
+
+open(f"{REPO}/target/i386/tcg/rcg-gen.py", "w").write("\n".join(x86) + "\n")
+print(len(L), "->", len(x86), "+", len(core))
+
+==> split/cov.sh
+#!/bin/bash
+# cov.sh SCRIPT: run --coverage over the synthetic traces
+S=/private/tmp/claude-501/-Users-mke-git-ish-AOK/7b3fb99e-2b30-444a-9291-e34744be360f/scratchpad/split
+cd $S
+for order in ordered plain; do
+  for t in "cov-all.trace" "cov-some.trace" "cov-shuf.trace cov-empty.trace" "cov-bad.trace" "cov-some.trace cov-shuf.trace" "cov-all.trace cov-pair.trace" "cov-empty.trace"; do
+    echo "## $order $t"
+    python3 ~/git/qemu-rcg-a64/target/i386/tcg/$1 --coverage $order cov.nm $t 2>&1
+    echo "exit $?"
+  done
+done
+
+==> split/m4-split.sh
+#!/bin/bash
+# tctiSH tctish-edition fcf9d302d6 with the rcg_core split: a hybrid build as CI configures it (x86_64 only),
+# then: the generated gadget sources against the same tip's unpatched generator, and whether touching
+# rcg_core.py makes ninja regenerate the gadgets.
+export PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench
+T=fcf9d302d6fcc77d62a734392df59c5cff8e8534
+git -C src-aok fetch -q https://github.com/tctiSH/qemu tctish-edition || { echo "fetch FAILED"; exit 1; }
+if [ ! -d src-split ]; then
+  git -C src-aok worktree add -q --detach ../src-split $T || { echo "worktree FAILED"; exit 1; }
+  git -C src-split apply ~/aok-vm-bench/core-split.diff || { echo "apply FAILED"; exit 1; }
+fi
+git -C src-split status --short
+if [ ! -f build-split/build.ninja ]; then
+  rm -rf build-split; mkdir build-split
+  (cd build-split && ../src-split/configure --target-list=x86_64-softmmu --enable-tcg-hybrid=runtime \
+     --disable-werror --disable-docs --disable-tools --disable-guest-agent --disable-plugins \
+     > configure.log 2>&1) || { echo "configure FAILED"; tail -15 build-split/configure.log; exit 1; }
+fi
+echo "$(date +%H:%M) configured"
+ninja -C build-split > build-split/ninja.log 2>&1 && echo "$(date +%H:%M) build ok ($(grep -c warning: build-split/ninja.log) warnings)" \
+  || { echo "build FAILED"; grep -m8 -B2 -A6 'error' build-split/ninja.log; exit 1; }
+ls -la build-split/qemu-system-x86_64* | head -3
+# The gadget sources the build generated, against the unpatched generator's at the same tip.
+rm -rf /tmp/split-base && mkdir -p /tmp/split-base/g /tmp/split-base/t/target/i386/tcg /tmp/split-base/t/tcg/aarch64-tcti /tmp/split-base/t/tests/tcg/x86_64/system
+git -C src-split show $T:target/i386/tcg/rcg-gen.py > /tmp/split-base/t/target/i386/tcg/rcg-gen.py
+git -C src-split show $T:tcg/aarch64-tcti/tcti_memory.py > /tmp/split-base/t/tcg/aarch64-tcti/tcti_memory.py
+git -C src-split show $T:tests/tcg/x86_64/system/rcg-test.h > /tmp/split-base/t/tests/tcg/x86_64/system/rcg-test.h
+python3 /tmp/split-base/t/target/i386/tcg/rcg-gen.py --gadgets /tmp/split-base/g 2>/dev/null
+d=$(dirname $(find build-split -name rcg-table.c.inc | head -1))
+n=0; bad=0
+for f in /tmp/split-base/g/*; do n=$((n+1)); cmp -s $f $d/$(basename $f) || { bad=$((bad+1)); echo "DIFFERS: $(basename $f)"; }; done
+echo "generated by the build in $d: $n files compared with the unpatched generator's, $bad differ"
+ninja -C build-split -n | grep -c . | sed 's/^/ninja -n lines before touch: /'
+touch src-split/tcg/aarch64-tcti/rcg_core.py
+ninja -C build-split -n -d explain 2>&1 | grep -m3 -i 'rcg' 
+echo SPLIT-DONE
+
+==> a64/m4-a64.sh
+#!/bin/bash
+# tctish-edition fcf9d302d6 with the rcg_core split and the A64 skeleton: a hybrid build of both targets as CI
+# configures it. m4-a64.sh [fresh]: fresh re-applies ~/aok-vm-bench/a64.diff to a clean tree first.
+export PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench
+T=fcf9d302d6fcc77d62a734392df59c5cff8e8534
+if [ ! -d src-a64 ]; then
+  git -C src-aok worktree add -q --detach ../src-a64 $T || { echo "worktree FAILED"; exit 1; }
+  set -- fresh
+fi
+if [ "$1" = fresh ]; then
+  git -C src-a64 checkout -q -f $T && git -C src-a64 clean -q -fd -- include target tests tcg accel && \
+    git -C src-a64 apply ~/aok-vm-bench/a64.diff || { echo "apply FAILED"; exit 1; }
+fi
+if [ ! -f build-a64/build.ninja ]; then
+  rm -rf build-a64; mkdir build-a64
+  (cd build-a64 && ../src-a64/configure --target-list=x86_64-softmmu,aarch64-softmmu --enable-tcg-hybrid=runtime \
+     --disable-werror --disable-docs --disable-tools --disable-guest-agent --disable-plugins \
+     > configure.log 2>&1) || { echo "configure FAILED"; tail -15 build-a64/configure.log; exit 1; }
+fi
+echo "$(date +%H:%M) configured"
+ninja -C build-a64 > build-a64/ninja.log 2>&1 && echo "$(date +%H:%M) build ok ($(grep -c warning: build-a64/ninja.log) warnings)" \
+  || { echo "build FAILED"; grep -m12 -B2 -A8 -E 'error|FAILED' build-a64/ninja.log | cut -c1-300; }
+grep -B2 -A6 'warning:' build-a64/ninja.log | grep -v '^--$' | cut -c1-240 | head -40
+echo A64-DONE
+
+==> a64/k/build.sh
+#!/bin/bash
+# Builds the aarch64 RCG test kernel as tests/tcg/aarch64/Makefile.softmmu-target does.
+set -e
+cd "$(dirname "$0")"
+CC=aarch64-linux-gnu-gcc
+CFLAGS="-Wall -Werror -O0 -g -fno-strict-aliasing -ffreestanding -fno-stack-protector -nostdlib -ggdb -I."
+$CC $CFLAGS -x assembler-with-cpp -Wa,--noexecstack -c boot.S -o boot.o
+$CC $CFLAGS -c printf.c -o printf.o
+$CC $CFLAGS rcg-insns.c -o rcg-insns -Wl,-Tkernel.ld -static -nostdlib printf.o -lgcc boot.o
+ls -la rcg-insns; aarch64-linux-gnu-size rcg-insns
+
+==> a64/m4-a64-test.sh
+#!/bin/bash
+# The A64 RCG test on the M4: rcg-insns under the JIT, TCTI alone, and TCTI with RCG (ordered and plain), on
+# -cpu max and cortex-a72; RCG's outputs must equal TCTI's; then rcg-gen.py --coverage over the traces.
+# m4-a64-test.sh [BUILD]   (default build-a64)
+B=~/aok-vm-bench/${1:-build-a64}
+cd ~/rcgtests-a64 || exit 1
+run() { # run NAME ACCEL CPU
+  local n=$1 a=$2 c=$3 s=$(date +%s)
+  $B/qemu-system-aarch64-unsigned -accel tcg,$a -M virt -cpu $c -display none -monitor none \
+    -chardev file,path=out.$n,id=output -semihosting-config enable=on,target=native,chardev=output \
+    -trace rcg_insn -trace rcg_jumps -D trace.$n -kernel rcg-insns
+  echo "$n ($a, $c) exit $? in $(( $(date +%s) - s ))s, $(wc -l < out.$n) lines, $(grep -c rcg_insn trace.$n) rcg_insn events"
+}
+rm -f out.* trace.*
+run jit tcti=off max & run off tcti=on,rcg=off max & run ord tcti=on,rcg=on max & run plain tcti=on,rcg=on,tcti-ordered=off max &
+run a72off tcti=on,rcg=off cortex-a72 & run a72 tcti=on,rcg=on cortex-a72 &
+wait
+for n in jit ord plain; do cmp -s out.$n out.off && echo "$n: matches TCTI without RCG" || echo "$n: DIFFERS from TCTI without RCG ($(diff out.$n out.off | grep -c '^<') lines)"; done
+cmp -s out.a72 out.a72off && echo "a72: matches TCTI without RCG" || echo "a72: DIFFERS ($(diff out.a72 out.a72off | grep -c '^<') lines)"
+cmp -s out.a72off out.off && echo "cortex-a72 and max agree" || echo "cortex-a72 and max differ"
+nm $B/qemu-system-aarch64-unsigned > nm.a64
+S=~/aok-vm-bench/src-a64
+for o in ordered:ord plain:plain; do
+  python3 $S/target/arm/tcg/rcg-gen.py --coverage ${o%%:*} nm.a64 trace.${o#*:} && echo "coverage ${o%%:*}: every gadget taken"
+done
+echo "distinct hashes in out.off: $(cut -d: -f2 out.off | sort -u | wc -l) of $(wc -l < out.off)"
+echo TEST-DONE
+
+==> a64/ctl-edit.py
+#!/usr/bin/env python3
+# ctl-edit.py NAME GEN: break one thing in rcg-gen.py (GEN), only in gadgets the test program's own code does
+# not run: the flags of the forms shifted by ASR, or an immediate form's result for one operand value.
+import sys
+name, path = sys.argv[1:]
+s = open(path).read()
+ASR = "getattr(self.spec, 'shift', '') == 'asr'"
+EDITS = {
+    "cf": ('f"cset {w(A)}, cs",', 'f"cset {w(A)}, {\'cc\' if ' + ASR + ' else \'cs\'}",'),
+    "vf": ('f"lsl {w(B)}, {w(T)}, #3",', 'f"lsl {w(B)}, {w(T)}, #{2 if ' + ASR + ' else 3}",'),
+    "zf": ('f"cset {w(ADDR)}, ne",', 'f"cset {w(ADDR)}, {\'eq\' if ' + ASR + ' else \'ne\'}",'),
+    "nf": ('f"stp {w(T)}, {w(ADDR)}, [{R}, #8]")',
+           'f"stp {w(B) if ' + ASR + ' else w(T)}, {w(ADDR)}, [{R}, #8]")'),
+    "imm": ('    g.emit(f"{op} {r}, {a}, {b}")\n',
+            '    g.emit(f"{op} {r}, {a}, {b}")\n'
+            '    if spec.kind == "addsub_i" and spec.flags == "none":\n'
+            '        g.emit(f"mov {T}, #0xcdef", f"movk {T}, #0x89ab, lsl #16",\n'
+            '               f"movk {T}, #0x4567, lsl #32", f"movk {T}, #0x0123, lsl #48",\n'
+            '               f"cmp {A}, {T}", f"cinc {R}, {R}, eq")\n'),
+}
+old, new = EDITS[name]
+assert s.count(old) == 1, (name, s.count(old))
+open(path, "w").write(s.replace(old, new))
+
+==> a64/m4-a64-ctl.sh
+#!/bin/bash
+# Positive controls for the A64 RCG test: break one thing in the generator (ctl-edit.py), rebuild, run rcg-insns
+# with RCG on for at most two minutes, and say which cases differ from TCTI's output (out.off, from
+# m4-a64-test.sh). Then restore and rebuild.
+export PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench
+G=src-a64/target/arm/tcg/rcg-gen.py
+cp $G /tmp/rcg-gen.good
+ctl() {
+  cp /tmp/rcg-gen.good $G
+  python3 ctl-edit.py $1 $G || { echo "$1: edit FAILED"; return; }
+  ninja -C build-a64 > build-a64/ninja-ctl.log 2>&1 || { echo "$1: build FAILED"; grep -m3 error: build-a64/ninja-ctl.log; return; }
+  (cd ~/rcgtests-a64 && rm -f out.ctl-$1
+   perl -e 'alarm 120; exec @ARGV' ~/aok-vm-bench/build-a64/qemu-system-aarch64-unsigned -accel tcg,tcti=on,rcg=on -M virt -cpu max \
+     -display none -monitor none -chardev file,path=out.ctl-$1,id=output \
+     -semihosting-config enable=on,target=native,chardev=output -kernel rcg-insns
+   echo "$1: exit $?, $(wc -l < out.ctl-$1) lines"
+   diff out.ctl-$1 out.off | grep '^<' | sed 's/^< //; s/: [0-9a-f]*$//' > differ.$1
+   echo "$1: $(wc -l < differ.$1) cases differ; by mnemonic: $(awk '{print $1}' differ.$1 | sort | uniq -c | tr '\n' ' '); without asr: $(grep -v -c asr differ.$1); with a register for #imm: $(grep -v -c '#0x' differ.$1)")
+}
+for c in "$@"; do ctl $c; done
+cp /tmp/rcg-gen.good $G
+ninja -C build-a64 > build-a64/ninja-ctl.log 2>&1 && echo "restored and rebuilt" || echo "restore build FAILED"
+git -C src-a64 diff --stat -- target/arm/tcg/rcg-gen.py | tail -1
+echo CTL-DONE
+
+==> a64/x/build.sh
+#!/bin/bash
+# Builds the x86_64 RCG test kernels as tests/tcg/x86_64/Makefile.softmmu-target does.
+set -e
+cd "$(dirname "$0")"
+CF="-Wall -Werror -O0 -g -fno-strict-aliasing -ffreestanding -fno-stack-protector -nostdlib -ggdb -fno-pie -no-pie -I."
+gcc $CF -Wa,--noexecstack -c boot.S -o boot.o
+gcc $CF -c printf.c -o printf.o
+for t in rcg-insns rcg-faults; do
+  gcc $CF $t.c -o $t -Wl,-Tkernel.ld -Wl,-melf_x86_64 -static -nostdlib printf.o -lgcc boot.o -Wl,--defsym=rcg_mem=0x3000000
+done
+ls -la rcg-insns rcg-faults
+
+==> a64/m4-x86-test.sh
+#!/bin/bash
+# x86's RCG tests on the A64 skeleton's build, as CI runs them: rcg-insns against rcg-insns.ref and rcg-faults,
+# with RCG ordered and plain, tracing rcg_insn (now in accel/tcg's trace events), then --coverage.
+B=~/aok-vm-bench/${1:-build-a64}
+cd ~/rcgtests-x86 || exit 1
+CPU=qemu64,+xsave,+xsaveopt,+avx,+ssse3,+sse4.1,+avx2,+adx,+bmi1,+bmi2,+abm,+fma
+run() { # run NAME ACCEL TEST
+  local n=$1 a=$2 t=$3 s=$(date +%s)
+  $B/qemu-system-x86_64-unsigned -accel tcg,$a -cpu $CPU -monitor none -display none -chardev file,path=$t.$n.out,id=output \
+    -device isa-debugcon,chardev=output -device isa-debug-exit,iobase=0xf4,iosize=0x4 \
+    -trace rcg_insn -trace rcg_jumps -D trace.$n.$t -kernel $t
+  echo "$t $n ($a) exit $? in $(( $(date +%s) - s ))s, $(grep -c rcg_insn trace.$n.$t) rcg_insn events"
+}
+rm -f *.out trace.*
+run ord tcti=on,rcg=on rcg-insns & run ord tcti=on,rcg=on rcg-faults &
+run plain tcti=on,rcg=on,tcti-ordered=off rcg-insns & run plain tcti=on,rcg=on,tcti-ordered=off rcg-faults &
+wait
+for n in ord plain; do
+  cmp -s rcg-insns.$n.out rcg-insns.ref && echo "$n: rcg-insns matches rcg-insns.ref ($(wc -l < rcg-insns.ref) lines)" || echo "$n: rcg-insns DIFFERS from rcg-insns.ref ($(diff rcg-insns.$n.out rcg-insns.ref | grep -c '^<') lines)"
+  echo "  rcg-faults $n: $(tail -1 rcg-faults.$n.out)"
+done
+nm $B/qemu-system-x86_64-unsigned > nm.x86
+for o in ordered:ord plain:plain; do
+  python3 ~/aok-vm-bench/src-a64/target/i386/tcg/rcg-gen.py --coverage ${o%%:*} nm.x86 trace.${o#*:}.* 2>&1 | tail -4
+done
+echo X86-DONE
+
+==> a64/alp/boot.py
+#!/usr/bin/env python3
+# boot.py QEMU ACCEL OUT: boot AOK VM's Alpine aarch64 machine (a snapshot of its disk) under ACCEL, run a fixed
+# set of commands on its serial console, and write what they print to OUT. For comparing RCG on against off.
+import os, re, socket, subprocess, sys, time
+qemu, accel, out = sys.argv[1:]
+D = os.path.expanduser("~/rcgtests-a64/alpine")
+sock = f"/tmp/rcg-a64-{os.getpid()}.sock"
+q = subprocess.Popen([qemu, "-accel", f"tcg,{accel}", "-M", "virt", "-cpu", "max", "-smp", "2", "-m", "1024",
+    "-kernel", f"{D}/vmlinuz", "-initrd", f"{D}/initramfs", "-append", "root=/dev/vda rw console=ttyAMA0 quiet",
+    "-drive", f"file={D}/disk.qcow2,format=qcow2,if=none,id=d0,snapshot=on", "-device", "virtio-blk-pci,drive=d0",
+    "-device", "virtio-rng-pci", "-display", "none", "-monitor", "none", "-serial", f"unix:{sock},server,nowait"],
+    stdout=subprocess.DEVNULL, stderr=subprocess.STDOUT)
+for _ in range(100):
+    if os.path.exists(sock): break
+    time.sleep(0.1)
+ser = socket.socket(socket.AF_UNIX); ser.connect(sock); ser.settimeout(0.5)
+buf = b""; raw = open(out + ".raw", "wb")
+def read_until(pat, timeout):
+    global buf
+    end = time.time() + timeout; rx = re.compile(pat.encode())
+    while time.time() < end:
+        m = rx.search(buf)
+        if m:
+            got = buf[:m.end()]; buf = buf[m.end():]; return got.decode(errors="replace")
+        try:
+            d = ser.recv(65536)
+            if d: raw.write(d); raw.flush(); buf += d
+        except socket.timeout: pass
+    q.kill(); raise SystemExit(f"TIMEOUT waiting for {pat!r}; tail: {buf[-300:]!r}")
+t0 = time.time()
+ser.sendall(b"\n"); read_until(r"(~|/)[^\n]*# ", 600)
+boot = time.time() - t0
+ser.sendall(b"stty -echo cols 200; export PS1='# '\n"); read_until(r"# $", 30); time.sleep(0.5)
+CMDS = [
+    "uname -m",
+    "sha256sum /bin/busybox /lib/ld-musl-aarch64.so.1",
+    "find /etc /bin /sbin /lib -xdev -type f | sort | xargs sha256sum | sha256sum",
+    "awk 'BEGIN{s=0;for(i=0;i<300000;i++){s+=(i*i)%7-(i%13)};print s}'",
+    "seq 1 20000 | sort -rn | md5sum",
+    "i=0; s=0; while [ $i -lt 20000 ]; do s=$((s+i*3-i/7)); i=$((i+1)); done; echo $s",
+    "dd if=/dev/zero bs=1M count=8 2>/dev/null | gzip -c | md5sum",
+    "expr 9223372036854775807 - 1; echo $((0x7fffffff + 1)) $((-5 - 7)) $((1 - 4294967296))",
+]
+res = []; n = 0
+for c in CMDS:
+    n += 1; mark = f"@@{n}@@"
+    ser.sendall((c + f"; echo {mark[:2]}''{mark[2:]} $?\n").encode())
+    got = read_until(re.escape(mark) + r" (\d+)", 600)
+    res.append(f"$ {c}\n{got.strip()}\n")
+total = time.time() - t0
+open(out, "w").write("\n".join(l.replace("\r", "") for l in res))
+ser.sendall(b"poweroff\n")
+try: q.wait(60)
+except subprocess.TimeoutExpired: q.kill()
+os.unlink(sock) if os.path.exists(sock) else None
+print(f"{accel}: boot to prompt {boot:.1f}s, total {total:.1f}s, {len(res)} commands")
+
+==> a64/alp/run.sh
+#!/bin/bash
+# Alpine aarch64 under TCTI without RCG and with it: the commands' output must be the same.
+cd ~/rcgtests-a64
+Q=~/aok-vm-bench/${1:-build-a64}/qemu-system-aarch64-unsigned
+python3 alpine/boot.py $Q tcti=on,rcg=off alp.off &
+python3 alpine/boot.py $Q tcti=on,rcg=on alp.on &
+wait
+cmp -s alp.off alp.on && echo "Alpine: RCG on gives the same output as RCG off ($(wc -l < alp.on) lines)" || { echo "Alpine: OUTPUT DIFFERS"; diff alp.off alp.on | head -20; }
+echo ALP-DONE
+
