@@ -693,6 +693,8 @@ EDITS = {
     "zf": ('f"cset {w(ADDR)}, ne",', 'f"cset {w(ADDR)}, {\'eq\' if ' + ASR + ' else \'ne\'}",'),
     "nf": ('f"stp {w(T)}, {w(ADDR)}, [{R}, #8]")',
            'f"stp {w(B) if ' + ASR + ' else w(T)}, {w(ADDR)}, [{R}, #8]")'),
+    "asr": ('g.emit(f"{spec.shift} {b}, {b}, {reg(g.word(\'sa\'), width)}")',
+            'g.emit(f"{\'lsr\' if spec.shift == \'asr\' else spec.shift} {b}, {b}, {reg(g.word(\'sa\'), width)}")'),
     "imm": ('    g.emit(f"{op} {r}, {a}, {b}")\n',
             '    g.emit(f"{op} {r}, {a}, {b}")\n'
             '    if spec.kind == "addsub_i" and spec.flags == "none":\n'
@@ -722,13 +724,130 @@ ctl() {
      -display none -monitor none -chardev file,path=out.ctl-$1,id=output \
      -semihosting-config enable=on,target=native,chardev=output -kernel rcg-insns
    echo "$1: exit $?, $(wc -l < out.ctl-$1) lines"
-   diff out.ctl-$1 out.off | grep '^<' | sed 's/^< //; s/: [0-9a-f]*$//' > differ.$1
+   # Line by line: diff misreports unchanged lines inside long changed runs.
+   paste -d'\t' out.ctl-$1 out.off | awk -F'\t' '$1 != $2 { sub(/: [0-9a-f]*$/, "", $2); print $2 }' > differ.$1
    echo "$1: $(wc -l < differ.$1) cases differ; by mnemonic: $(awk '{print $1}' differ.$1 | sort | uniq -c | tr '\n' ' '); without asr: $(grep -v -c asr differ.$1); with a register for #imm: $(grep -v -c '#0x' differ.$1)")
 }
 for c in "$@"; do ctl $c; done
 cp /tmp/rcg-gen.good $G
 ninja -C build-a64 > build-a64/ninja-ctl.log 2>&1 && echo "restored and rebuilt" || echo "restore build FAILED"
 git -C src-a64 diff --stat -- target/arm/tcg/rcg-gen.py | tail -1
+echo CTL-DONE
+
+==> a64/ctl2-patch.py
+#!/usr/bin/env python3
+# ctl2-patch.py GEN: add control hooks to a copy of the A64 rcg-gen.py (never to the tree's). RCG_CTL in the
+# environment then breaks one thing when the gadgets are generated:
+#   res:KIND    the result of KIND's gadgets (not MOV/MVN) is wrong in bit 0 when the first register read
+#               holds 0x0123456789abcdef, one of the test's values
+#   flags       ZF is wrong after any S form whose first register read holds that value
+#   movi        the constant gadget stores 0x1235 for 0x1234
+#   adr         ADR to the test slot + 4, and ADRP to slot page + 0xfffff000, are wrong in bit 1
+#   movzn       MOV and MVN of x28 to x30 are wrong in bit 0
+import sys
+path = sys.argv[1]
+s = open(path).read()
+MAGIC = ('"mov x12, #0xcdef", "movk x12, #0x89ab, lsl #16", '
+         '"movk x12, #0x4567, lsl #32", "movk x12, #0x0123, lsl #48"')
+def rep(old, new):
+    global s
+    assert s.count(old) == 1, old
+    s = s.replace(old, new)
+rep('''import argparse
+''', '''import argparse
+CTL = __import__("os").environ.get("RCG_CTL", "")
+CTL_WHAT, _, CTL_KIND = CTL.partition(":")
+
+
+def ctl_on(spec):
+    return (CTL_WHAT == "flags" or (CTL_WHAT == "res" and
+            spec.kind == CTL_KIND)) and not getattr(spec, "zn", False)
+
+''')
+rep('''        self.emit(f"ldr {dest}, [{self.env}, {self.word(word)}]")
+        self.define(dest)
+
+    def write_reg(self, value, word):''', '''        self.emit(f"ldr {dest}, [{self.env}, {self.word(word)}]")
+        self.define(dest)
+        if ctl_on(self.spec) and not getattr(self, "first", None):
+            self.first = dest
+            self.emit(f"mov x13, {dest}")
+
+    def write_reg(self, value, word):''')
+rep('''        self.emit(f"str {value}, [{self.env}, {self.word(word)}]")
+''', '''        if CTL_WHAT == "res" and getattr(self, "first", None):
+            skip, _ = self._labels()
+            self.emit(''' + MAGIC + ''', "eor x12, x12, x13",
+                      f"cbnz x12, {skip}f", f"eor {value}, {value}, #1",
+                      f"{skip}:")
+        self.emit(f"str {value}, [{self.env}, {self.word(word)}]")
+''')
+rep('''                  f"cset {w(ADDR)}, ne",
+''', '''                  f"cset {w(ADDR)}, ne",
+                  *([''' + MAGIC + ''', "cmp x12, x13", "cset w12, eq",
+                     f"eor {w(ADDR)}, {w(ADDR)}, w12"]
+                    if CTL_WHAT == "flags" and getattr(self, "first", None)
+                    else []),
+''')
+rep('''    g.write_reg(g.word("imm"), "d")
+''', '''    if CTL_WHAT == "movi":
+        g.emit("mov x12, #0x1234", f"eor x12, x12, {g.word('imm')}",
+               "cbnz x12, 1f", f"eor {g.word('imm')}, {g.word('imm')}, #1",
+               "1:")
+    g.write_reg(g.word("imm"), "d")
+''')
+rep('''           f"add {A}, {A}, {g.word('imm')}")
+    g.write_reg(A, "d")
+''', '''           f"add {A}, {A}, {g.word('imm')}")
+    if CTL_WHAT == "adr":
+        slot = int(CTL_KIND, 16)
+        for v in (slot + 4, (slot & ~0xfff) + 0xfffff000):
+            g.emit(f"mov x12, #{v & 0xffff:#x}",
+                   f"movk x12, #{(v >> 16) & 0xffff:#x}, lsl #16",
+                   f"movk x12, #{(v >> 32) & 0xffff:#x}, lsl #32",
+                   f"eor x12, x12, {A}", "cmp x12, #0",
+                   f"eor x12, {A}, #2", f"csel {A}, x12, {A}, eq")
+    g.write_reg(A, "d")
+''')
+rep('''    g.emit(f"{logic_name(spec.op, spec.inv, spec.flags)} {r}, {a}, {b}")
+''', '''    g.emit(f"{logic_name(spec.op, spec.inv, spec.flags)} {r}, {a}, {b}")
+    if CTL_WHAT == "movzn" and getattr(spec, "zn", False):
+        g.emit("mov x13, %[x28]", f"cmp {g.word('d')}, %[x30]",
+               f"ccmp {g.word('m')}, x13, #0, eq",
+               f"eor x12, {R}, #1", f"csel {R}, x12, {R}, eq")
+''')
+rep('''    "pc": "offsetof(CPUARMState, pc)",
+''', '''    "pc": "offsetof(CPUARMState, pc)",
+    "x28": "offsetof(CPUARMState, xregs[28])",
+    "x30": "offsetof(CPUARMState, xregs[30])",
+''')
+open(path, "w").write(s)
+
+==> a64/m4-a64-ctl2.sh
+#!/bin/bash
+# Positive controls for the A64 RCG test, one per argument (see ctl2-patch.py): generate the gadgets with one
+# thing broken, rebuild, run rcg-insns with RCG on for at most three minutes, and say which cases differ from
+# TCTI's output (out.off, from m4-a64-test.sh), comparing line by line. Then restore the generator and rebuild.
+export PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench
+G=src-a64/target/arm/tcg/rcg-gen.py
+cp $G /tmp/rcg-gen.good
+python3 ctl2-patch.py $G || { echo "patch FAILED"; cp /tmp/rcg-gen.good $G; exit 1; }
+for c in "$@"; do
+  touch $G
+  RCG_CTL=$c ninja -C build-a64 > build-a64/ninja-ctl.log 2>&1 || { echo "$c: build FAILED"; grep -m3 error: build-a64/ninja-ctl.log | cut -c1-200; continue; }
+  (cd ~/rcgtests-a64 && rm -f out.ctl
+   perl -e 'alarm 180; exec @ARGV' ~/aok-vm-bench/build-a64/qemu-system-aarch64-unsigned -accel tcg,tcti=on,rcg=on -M virt -cpu max \
+     -display none -monitor none -chardev file,path=out.ctl,id=output \
+     -semihosting-config enable=on,target=native,chardev=output -kernel rcg-insns
+   x=$?; n=$(wc -l < out.ctl | tr -d ' ')
+   # Line by line: diff misreports unchanged lines inside long changed runs.
+   paste -d'\t' out.ctl out.off | awk -F'\t' '$1 != $2 { sub(/: [0-9a-f]*$/, "", $2); print $2 }' > differ.$(echo $c | tr ':' '-')
+   echo "$c: exit $x, $n lines, $(wc -l < differ.$(echo $c | tr ':' '-') | tr -d ' ') differ: $(awk '{print $1}' differ.$(echo $c | tr ':' '-') | sort | uniq -c | awk '{printf "%s %s, ", $1, $2}')")
+done
+cp /tmp/rcg-gen.good $G
+ninja -C build-a64 > build-a64/ninja-ctl.log 2>&1 && echo "restored and rebuilt" || echo "restore build FAILED"
+git -C src-a64 status --short -- target/arm/tcg/rcg-gen.py | head -2
 echo CTL-DONE
 
 ==> a64/x/build.sh
