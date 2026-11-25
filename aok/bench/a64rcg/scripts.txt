@@ -647,8 +647,10 @@ CC=aarch64-linux-gnu-gcc
 CFLAGS="-Wall -Werror -O0 -g -fno-strict-aliasing -ffreestanding -fno-stack-protector -nostdlib -ggdb -I."
 $CC $CFLAGS -x assembler-with-cpp -Wa,--noexecstack -c boot.S -o boot.o
 $CC $CFLAGS -c printf.c -o printf.o
-$CC $CFLAGS rcg-insns.c -o rcg-insns -Wl,-Tkernel.ld -static -nostdlib printf.o -lgcc boot.o
-ls -la rcg-insns; aarch64-linux-gnu-size rcg-insns
+for t in rcg-insns rcg-branch; do
+  $CC $CFLAGS $t.c -o $t -Wl,-Tkernel.ld -static -nostdlib printf.o -lgcc boot.o
+done
+aarch64-linux-gnu-size rcg-insns rcg-branch; aarch64-linux-gnu-nm rcg-insns | grep rcg_insn_slot
 
 ==> a64/m4-a64-test.sh
 #!/bin/bash
@@ -668,6 +670,14 @@ rm -f out.* trace.*
 run jit tcti=off max & run off tcti=on,rcg=off max & run ord tcti=on,rcg=on max & run plain tcti=on,rcg=on,tcti-ordered=off max &
 run a72off tcti=on,rcg=off cortex-a72 & run a72 tcti=on,rcg=on cortex-a72 &
 wait
+# The branch cases without goto_tb, which run the gadgets that only branch: TCTI alone, and with RCG.
+grep -E '(^|; )(b\.[a-z]+|cbn?z|tbn?z) ' out.off > branch.ref
+for a in rcg=off rcg=on; do
+  $B/qemu-system-aarch64-unsigned -accel tcg,tcti=on,$a -d nochain -M virt -cpu max -display none -monitor none \
+    -chardev file,path=branch.$a,id=output -semihosting-config enable=on,target=native,chardev=output -kernel rcg-branch
+  cmp -s branch.$a branch.ref && echo "rcg-branch ($a, nochain): matches rcg-insns' lines ($(wc -l < branch.ref | tr -d ' ') cases)" || echo "rcg-branch ($a, nochain): DIFFERS from rcg-insns' lines ($(paste -d'\t' branch.$a branch.ref | awk -F'\t' '$1 != $2' | wc -l | tr -d ' ') of $(wc -l < branch.ref | tr -d ' '))"
+done
+echo "rcg_jumps events with chaining: $(grep -c rcg_jumps trace.ord)"
 for n in jit ord plain; do cmp -s out.$n out.off && echo "$n: matches TCTI without RCG" || echo "$n: DIFFERS from TCTI without RCG ($(diff out.$n out.off | grep -c '^<') lines)"; done
 cmp -s out.a72 out.a72off && echo "a72: matches TCTI without RCG" || echo "a72: DIFFERS ($(diff out.a72 out.a72off | grep -c '^<') lines)"
 cmp -s out.a72off out.off && echo "cortex-a72 and max agree" || echo "cortex-a72 and max differ"
@@ -848,6 +858,82 @@ done
 cp /tmp/rcg-gen.good $G
 ninja -C build-a64 > build-a64/ninja-ctl.log 2>&1 && echo "restored and rebuilt" || echo "restore build FAILED"
 git -C src-a64 status --short -- target/arm/tcg/rcg-gen.py | head -2
+echo CTL-DONE
+
+==> a64/ctl3-patch.py
+#!/usr/bin/env python3
+# ctl3-patch.py GEN: add a control hook for the conditional gadgets to a copy of the A64 rcg-gen.py (never to
+# the tree's). RCG_CTL=KIND in the environment then makes KIND's gadgets (bcond, cbz, tbz, fused, csel, ccmp)
+# take their condition the wrong way when the guest's X28 holds 0x1d1d1d1d1d1d1d39, which is what the test's
+# first start puts there and nothing in the test program's own code does.
+import sys
+path = sys.argv[1]
+s = open(path).read()
+def rep(old, new):
+    global s
+    assert s.count(old) == 1, old
+    s = s.replace(old, new)
+rep('''import argparse
+''', '''import argparse
+CTL = __import__("os").environ.get("RCG_CTL", "")
+
+
+def ctl_arm(g, spec, arm):
+    """ arm, or with the control on for spec's kind, a condition that is
+    arm's the wrong way round when X28 holds the control's value. """
+    if spec.kind != CTL:
+        return arm
+    g.emit(f"cset w13, {arm}", f"ldr x12, [{g.env}, %[x28]]",
+           "mov x11, #0x1d39", "movk x11, #0x1d1d, lsl #16",
+           "movk x11, #0x1d1d, lsl #32", "movk x11, #0x1d1d, lsl #48",
+           "cmp x12, x11", "cset w12, eq", "eor w13, w13, w12",
+           "cmp w13, #0")
+    return "ne"
+
+''')
+rep('''    arm = g.test_cond(spec.cond)
+    g.emit(f"{select_name(spec.op)}''', '''    arm = ctl_arm(g, spec, g.test_cond(spec.cond))
+    g.emit(f"{select_name(spec.op)}''')
+rep('''    arm = g.test_cond(spec.cond)
+    g.emit(f"csel {R}, {R}, {g.word('mask')}, {arm}",''', '''    arm = ctl_arm(g, spec, g.test_cond(spec.cond))
+    g.emit(f"csel {R}, {R}, {g.word('mask')}, {arm}",''')
+rep('''    if spec.jumps:
+        g.jumps(arm)
+''', '''    arm = ctl_arm(g, spec, arm)
+    if spec.jumps:
+        g.jumps(arm)
+''')
+rep('''    "pc": "offsetof(CPUARMState, pc)",
+''', '''    "pc": "offsetof(CPUARMState, pc)",
+    "x28": "offsetof(CPUARMState, xregs[28])",
+''')
+open(path, "w").write(s)
+
+==> a64/m4-a64-ctl3.sh
+#!/bin/bash
+# Positive controls for the A64 conditional gadgets, one per argument (see ctl3-patch.py): generate the gadgets
+# with one kind taking its condition the wrong way for one start, rebuild, run rcg-insns with RCG on, and
+# rcg-branch without chaining, each for at most three minutes, and say which cases differ from TCTI's output
+# (out.off and branch.ref, from m4-a64-test.sh), comparing line by line. Then restore and rebuild.
+export PATH=$HOME/aok-vm-bench/venv/bin:/opt/homebrew/bin:$PATH
+cd ~/aok-vm-bench
+G=src-a64/target/arm/tcg/rcg-gen.py
+cp $G /tmp/rcg-gen.good
+python3 ctl3-patch.py $G || { echo "patch FAILED"; cp /tmp/rcg-gen.good $G; exit 1; }
+Q="$HOME/aok-vm-bench/build-a64/qemu-system-aarch64-unsigned -accel tcg,tcti=on,rcg=on -M virt -cpu max -display none -monitor none -semihosting-config enable=on,target=native,chardev=output"
+differ() { paste -d'\t' $1 $2 | awk -F'\t' '$1 != $2 { sub(/: [0-9a-f]*$/, "", $2); print $2 }'; }
+for c in "$@"; do
+  touch $G
+  RCG_CTL=$c ninja -C build-a64 > build-a64/ninja-ctl.log 2>&1 || { echo "$c: build FAILED"; grep -m3 error: build-a64/ninja-ctl.log | cut -c1-200; continue; }
+  (cd ~/rcgtests-a64 && rm -f out.ctl branch.ctl
+   perl -e 'alarm 180; exec @ARGV' $Q -chardev file,path=out.ctl,id=output -kernel rcg-insns; x=$?
+   perl -e 'alarm 180; exec @ARGV' $Q -d nochain -chardev file,path=branch.ctl,id=output -kernel rcg-branch; y=$?
+   differ out.ctl out.off > differ.$c; differ branch.ctl branch.ref > differ.$c.branch
+   echo "$c: exit $x, $(wc -l < out.ctl | tr -d ' ') lines, $(wc -l < differ.$c | tr -d ' ') differ: $(sed 's/.*; //' differ.$c | awk '{print $1}' | sed 's/\..*//' | sort | uniq -c | awk '{printf "%s %s, ", $1, $2}')"
+   echo "$c, nochain: exit $y, $(wc -l < branch.ctl | tr -d ' ') lines, $(wc -l < differ.$c.branch | tr -d ' ') differ")
+done
+cp /tmp/rcg-gen.good $G
+ninja -C build-a64 > build-a64/ninja-ctl.log 2>&1 && echo "restored and rebuilt" || echo "restore build FAILED"
 echo CTL-DONE
 
 ==> a64/x/build.sh

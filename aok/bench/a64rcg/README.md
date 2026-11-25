@@ -8,6 +8,7 @@ is in `~/git/qemu-rcg-a64` (a worktree of `~/git/qemu-rcg-te`), on top of tctish
 | 1, tctiSH/qemu#11 | `rcg-core-split` | `tcg/aarch64-tcti/rcg_core.py`: what the generators share |
 | 2 | `rcg-a64-skeleton` | the shared C helpers; the A64 generator, decoder, translator and test, ADD and SUB only |
 | 3 | `rcg-a64-integer` | the rest of the integer data processing between registers: 376 gadgets, 4477 cases |
+| 4 | `rcg-a64-cond` | the conditional selects, compares and branches, and compare joined to branch: 1032 gadgets, 6012 cases |
 
 `scripts.txt` holds every script, each under a `==> path` line.
 
@@ -53,7 +54,21 @@ is in `~/git/qemu-rcg-a64` (a worktree of `~/git/qemu-rcg-te`), on top of tctish
   function's first instruction.
 - ADR and ADRP results are hashed as distances from the slot, or the reference would depend on the link.
 
-Results as committed (591d836c8a): all matches, 376 of 376 gadgets taken, every control changes exactly the
+## PR 4: conditions and branches
+- A case is now up to three instructions (`RCG_SLOT`): a branch goes forward over `movz x16, #0xbad`, which
+  marks the way not taken, and a setter comes before its B.cond. Cases that read NZCV start from all 16 values.
+- TCTI swaps the jumps gadget in wherever both ways out start with a goto_tb, so with chaining only those
+  run. `rcg-branch` is the branch cases under `-d nochain`, where the gadgets that only branch run;
+  `m4-a64-test.sh` runs it and compares with the reference's lines for those cases, as the Makefile does.
+- `m4-a64-ctl3.sh` with `ctl3-patch.py`: a kind's gadgets take their condition the wrong way when the guest's
+  X28 holds what the test's first start puts there. Counts are predictable exactly: the B.cond control also
+  changes the cases where B.cond follows an instruction it does not join.
+
+Results as committed (5a68844f17): all matches with and without chaining, 1032 of 1032 gadgets taken, no
+unjoined setter, controls 29, 8, 10, 168, 252 and 280 as predicted, Alpine boots and agrees (about 22% less
+time for its command set than with RCG off, for what one run says).
+
+PR 3's results as committed (591d836c8a): all matches, 376 of 376 gadgets taken, every control changes exactly the
 cases its kind runs with a value in the first source (counts in the commit message), Alpine boots and agrees.
 
 PR 2's results as committed (5cc0f07f3d, first pushed as 1a8abb6276 with a function per case): all matches, 120 of 120 gadgets taken, controls change 64, 56, 64, 60 and
