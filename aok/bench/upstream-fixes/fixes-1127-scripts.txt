@@ -1,0 +1,93 @@
+===== mbp5-build.sh
+#!/bin/bash
+# Builds the engine with the two tctiSH fixes beside build-aok-x64, from a worktree of src-aok.
+export PATH=/opt/homebrew/bin:$PATH
+set -e
+W=$HOME/aok-vm-bench
+cd $W
+if [ ! -d src-up ]; then
+    git -C src-aok worktree add --detach ../src-up 6e0ad2a177
+    git -C src-up -c user.name=x -c user.email=x@x am $W/up-patches/*.patch
+fi
+git -C src-up log --oneline -3
+mkdir -p build-up && cd build-up
+[ -f build.ninja ] || ../src-up/configure --target-list=x86_64-softmmu,aarch64-softmmu --without-default-features --enable-fdt=internal --enable-tcg --disable-werror --disable-docs --enable-tcg-threaded-interpreter --enable-aok-gadgets > configure.out 2>&1
+ninja > ninja.out 2>&1 && echo "BUILD-OK $(ls -la qemu-system-x86_64-unsigned qemu-system-aarch64-unsigned | awk '{print $5, $9}' | tr '\n' ' ')" || { echo BUILD-FAILED; grep -n -E 'error|FAILED' ninja.out | head -20; }
+echo UP-BUILD-DONE
+
+===== mbp5-test.sh
+#!/bin/bash
+# The engine with tctiSH's two fixes (build-up) against the one before (build-aok-x64): uetest in both, with the
+# gadgets on and off, against the hardware's transcript; then the x86 gates on the new binary, and its TCG-only
+# transcripts against the TCG references.
+export PATH=/opt/homebrew/bin:$PATH
+W=$HOME/aok-vm-bench; cd $W
+NEW=$W/build-up/qemu-system-x86_64-unsigned; OLD=$W/build-aok-x64/qemu-system-x86_64-unsigned
+ls -la $NEW $OLD | awk '{print $5, $6, $7, $8, $9}'
+# an image with the test in it: a second cpio after the gate's
+T=$(mktemp -d); mkdir -p $T/bench/vec; cp $W/up-uetest $T/bench/vec/uetest; chmod 755 $T/bench/vec/uetest
+( cd $T && find bench | cpio -o -H newc 2>/dev/null ) > $T/extra.cpio
+cat $W/initramfs-x86_64.cpio $T/extra.cpio > $W/initramfs-x86_64-ue.cpio
+ln -sf vmlinuz-virt-x86_64 $W/kernel/vmlinuz-virt-x86_64-ue
+rm -rf $T
+tr -d '\r' < $W/up-uetest.hw > $W/logs/x64/up-ue-hw.txt
+for b in old new; do for a in 1 0; do
+    [ $b = new ] && q=$NEW || q=$OLD
+    QBIN=$q X64_GUEST=x86_64-ue QEMU_AOK=$a ./x64run.sh up-ue-$b-$a vecv-uetest 300 > /dev/null
+    tr -d '\r' < logs/x64/up-ue-$b-$a.log | sed -n '/^WL-START vecv-uetest$/,/^RESULT/p' | grep -av '^WL-START\|^RESULT' > logs/x64/up-ue-$b-$a.txt
+    n=$(wc -l < logs/x64/up-ue-$b-$a.txt | tr -d ' ')
+    d=$(paste -d'|' logs/x64/up-ue-hw.txt logs/x64/up-ue-$b-$a.txt | awk -F'|' '$1 != $2 { n++; printf "    hw: %s\n    us: %s\n", $1, $2 } END { print "DIFFER " n+0 }')
+    echo "uetest $b engine, QEMU_AOK=$a: $n lines (hardware $(wc -l < logs/x64/up-ue-hw.txt | tr -d ' ')), $(echo "$d" | tail -1)"
+    echo "$d" | grep -v '^DIFFER'
+done; done
+echo "== the gates on the new binary (gadgets on, against the references)"
+QBIN=$NEW ./x64gate.sh 1800
+echo "== the new binary with the gadgets off, against the TCG references"
+for t in g1:check,fptest,memtest fpv:fptestv; do
+    QBIN=$NEW QEMU_AOK=0 ./x64run.sh up-off-${t%%:*} ${t#*:} 1800 > /dev/null
+    ./x64cmp.sh up-off-${t%%:*} ref-${t%%:*}.tcg
+done
+echo UP-TEST-DONE
+
+===== regtest.sh
+#!/bin/bash
+# on MBP5: regtest.sh APPDIR TAG -- install APPDIR's "AOK VM.app" in the restore simulator, leave the Alpine x86-64
+# machine suspended, add a registry entry that does not decode, and start the machine again. With the registry fix
+# (UTM 58803db8) the other entries survive, so the machine restores: snapshot-load in its debug.log and the state
+# gone from snapshots.plist. Without it every entry is dropped with the bad one, and the machine boots fresh.
+#
+# The registry is the key Registry in the app's own preferences (its data container). "simctl spawn defaults"
+# writes the device's copy of the domain, which the container's shadows, so the entry goes into the container's
+# file with the app ended, and the simulator's cfprefsd is ended (by its pid) so that the next launch reads the file.
+cd ~/aok-vm-bench/rst || exit 1
+app=$1; tag=$2; D=$(cat simdev); B=app.ish.aok.vm; N='Alpine 3.24.2 (x86_64)'
+S="bash $HOME/aok-vm-bench/rst/step.sh"; PB=/usr/libexec/PlistBuddy
+xcrun simctl bootstatus "$D" -b > /dev/null 2>&1
+xcrun simctl terminate "$D" "$B" > /dev/null 2>&1; sleep 2
+xcrun simctl install "$D" "$app/AOK VM.app" 2>&1 | head -1 | cut -c1-120
+C=$(xcrun simctl get_app_container "$D" "$B" data); U="$C/Documents/$N.utm"; L="$U/Data/debug.log"
+P="$C/Library/Preferences/$B.plist"
+echo "$tag: app $($PB -c 'Print :CFBundleVersion' "$app/AOK VM.app/Info.plist") binary $(stat -f %Sm "$app/AOK VM.app/AOK VM")"
+uuid=$($PB -c 'Print :Information:UUID' "$U/config.plist")
+$PB -c 'Set :QEMU:DebugLog true' "$U/config.plist"
+bash sus.sh 60 | tail -2
+susp() { [ -f "$U/snapshots.plist" ] && $PB -c 'Print :SuspendIdentifier' "$U/snapshots.plist" 2>/dev/null; }
+echo "$tag: suspended as [$(susp)]"
+for i in $(seq 1 20); do [ "$($PB -c "Print :Registry:$uuid:Suspended" "$P" 2>/dev/null)" = true ] && break; sleep 2; done
+echo "$tag: the machine's registry entry on disk says Suspended = $($PB -c "Print :Registry:$uuid:Suspended" "$P" 2>&1), $($PB -c 'Print :Registry' "$P" | grep -c '^    [0-9A-F-]\{36\} = Dict') entries"
+$PB -c 'Add :Registry:AOK-BAD-ENTRY dict' -c 'Add :Registry:AOK-BAD-ENTRY:Name string "no such machine"' "$P"
+pid=$(xcrun simctl spawn "$D" launchctl list 2>/dev/null | awk '$3 ~ /cfprefsd.xpc.daemon$/ && $1 ~ /^[0-9]+$/ { print $1 }' | head -1)
+[ -n "$pid" ] && kill "$pid" && echo "$tag: ended the simulator's cfprefsd ($pid)"; sleep 2
+echo "$tag: on disk before the launch: bad entry [$($PB -c 'Print :Registry:AOK-BAD-ENTRY:Name' "$P" 2>&1)], Suspended = $($PB -c "Print :Registry:$uuid:Suspended" "$P" 2>&1)"
+: > "$L"
+$S restore > /dev/null
+for i in $(seq 1 40); do sleep 3; grep -aq 'snapshot-load\|login on .tty1' "$L" 2>/dev/null && break; done
+sleep 25
+$S shot $tag > /dev/null
+echo "$tag: RESULT snapshot-load commands in the log: $(grep -a 'execute = "snapshot-load"' "$L" | grep -avc QEMULogging); state still listed: [$(susp)]"
+sleep 3
+echo "$tag: registry on disk afterwards: $($PB -c 'Print :Registry' "$P" | grep -c '^    [0-9A-F-]\{36\} = Dict') entries, bad entry [$($PB -c 'Print :Registry:AOK-BAD-ENTRY:Name' "$P" 2>&1 | cut -c1-40)]"
+$S term > /dev/null; sleep 3
+$PB -c 'Delete :Registry:AOK-BAD-ENTRY' "$P" 2>/dev/null
+echo "REGTEST-DONE $tag"
+
