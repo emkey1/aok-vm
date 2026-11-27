@@ -620,6 +620,13 @@ import Virtualization // for getting network interfaces
         }
         if isClassicMacNewWorld {
             properties = properties.appendingDefaultPropertyName("via", value: "pmu")
+            // AOK VM: the Power Mac keeps the USB controller it is built with when the machine's USB support
+            // is off. -nodefaults takes it away (hw/ppc/mac_newworld.c: usb |= defaults_enabled()), and Mac
+            // OS 9 then waits for ever early in its start, on the firmware's last text, with ADB input or
+            // without (aok/bench/upstream-fixes/README.md). A machine property the user set still wins.
+            if !isUsbUsed {
+                properties = properties.appendingDefaultPropertyName("usb", value: "on")
+            }
         }
         return properties
     }
