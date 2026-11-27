@@ -206,7 +206,7 @@ off gets `usb=on` as a machine property, so the Power Mac keeps the controller i
 with; a property the user wrote still wins. On the A10X, the same machine with USB support
 Disabled: 3 of 3 stopped before; with the change `-machine mac99,via=pmu,usb=on` is in its
 log and the Finder is up in 60 s. UTM has the same lines and its QEMU the same default:
-reported there.
+reported there (utmapp/UTM#8233).
 
 **What misled me, for the next time.** The first comparisons ran eight to eighteen machines
 at once, and there the outcome of the same settings changed from round to round, so it
