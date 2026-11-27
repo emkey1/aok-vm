@@ -5,7 +5,7 @@
 # app: the devices AOK VM gives a mac99 machine with USB on. KEEP=1 leaves it running (QMP: macosx/qmp-TAG.sock).
 export PATH=/opt/homebrew/bin:$PATH
 W=$HOME/aok-vm-bench; M=$W/macosx; tag=$1; eng=$2; secs=$3; set_=$4; shift 4
-img=$(ls $M/installed/*.qcow2 | head -1); mkdir -p $M/shots $M/run; cd $M/run
+img=${IMG:-$(ls $M/installed/*.qcow2 | head -1)}; mkdir -p $M/shots $M/run; cd $M/run   # IMG: another disk to start from
 N=$W/engines/UTM/sysroot-ios-tci-arm64/share/qemu/ppc-ndrvloader
 case $eng in brew) Q=(qemu-system-ppc) ;; new) Q=($W/build-os9-new/qemu-system-ppc-unsigned -L $W/src-aok/pc-bios) ;; esac
 rm -f $tag.qcow2 qmp-$tag.sock; qemu-img create -q -f qcow2 -b "$img" -F qcow2 $tag.qcow2

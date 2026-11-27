@@ -31,8 +31,11 @@ zip() {   # NAME DIR FILE
     rm -rf $W/unz "$3"
 }
 want() { [ $# -eq 0 ] && return 0; for x in "$@"; do [ "$x" = "$N" ] && return 0; done; return 1; }
-for N in tenfourfox vlc xbench dosbox scummvm supertux textwrangler wesnoth; do
+# vlc, textwrangler and wesnoth as first chosen (2.0.10, 3.5.3, 1.8.6) need Mac OS X 10.5 and do not start on
+# 10.4; vlc9, tw31 and wes16 are the versions that do. Asked for by name only.
+for N in tenfourfox vlc xbench dosbox scummvm supertux textwrangler wesnoth vlc9 tw31 wes16; do
     want "$@" || continue
+    case $N in vlc9|tw31|wes16) [ $# -eq 0 ] && continue ;; esac
     case $N in
     tenfourfox)   zip TenFourFox tenfourfox TenFourFox7400-FPR32.5.app.zip ;;
     vlc)          dmg VLC vlc vlc-2.0.10-powerpc.dmg ;;
@@ -42,6 +45,9 @@ for N in tenfourfox vlc xbench dosbox scummvm supertux textwrangler wesnoth; do
     supertux)     dmg SuperTux supertux supertux-0.1.3-macosx-universal.dmg ;;
     textwrangler) dmg TextWrangler textwrangler TextWrangler_3.5.3.dmg ;;
     wesnoth)      dmg Wesnoth wesnoth Wesnoth_1.8.6.dmg ;;
+    vlc9)         dmg VLC vlc-tiger vlc-0.9.10-powerpc.dmg ;;
+    tw31)         dmg TextWrangler textwrangler-tiger TextWrangler_3.1.dmg ;;
+    wes16)        dmg Wesnoth wesnoth-tiger Wesnoth_1.6.5.dmg ;;
     esac
 done
 say "done: $(date)"; df -h / | tail -1
