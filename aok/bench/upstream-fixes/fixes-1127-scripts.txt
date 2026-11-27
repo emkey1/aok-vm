@@ -394,3 +394,168 @@ done
 wait
 echo OS9-TB-DONE
 
+===== os9-one.sh
+#!/bin/bash
+# on MBP5: os9-one.sh TAG BIN SECONDS [ARGS...] -- one mac99 machine with Mac OS 9's CD: every 30 s a picture's
+# hash and the CPU's place, a line of result at the end. BIN: old, new (build-os9-*), or a path. KEEP=1 leaves it
+# running afterwards (its monitor: nc -U macos9/mon-TAG.sock). ENV for the machine comes in through the caller's.
+# ARGS replace the plain machine's: "plain" or "app" as the first of them stand for those two sets.
+export PATH=/opt/homebrew/bin:$PATH
+W=$HOME/aok-vm-bench; M=$W/macos9; tag=$1; bin=$2; secs=$3; shift 3
+case $bin in old|new) L=(-L $W/src-aok/pc-bios); bin=$W/build-os9-$bin/qemu-system-ppc-unsigned ;; *) L=() ;; esac
+N=$W/engines/UTM/sysroot-ios-tci-arm64/share/qemu/ppc-ndrvloader
+PLAIN=(-M mac99 -m 512 -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on)
+APP=(-nodefaults -vga none -nic none -device VGA,edid=on -smp cpus=1,sockets=1,cores=1,threads=1 -machine mac99,via=pmu -accel tcg,tb-size=128
+     -device loader,addr=0x4000000,file=$N -prom-env "boot-command=init-program go" -m 512 -audio none -device virtio-tablet-pci
+     -device ide-cd,bus=ide.0,unit=0,drive=cd0,bootindex=0 -drive "if=none,media=cdrom,id=cd0,file.filename=$M/iso/MacOS9.iso,file.locking=off,readonly=on")
+case $1 in plain) shift; A=("${PLAIN[@]}" "$@") ;; app) shift; A=("${APP[@]}" "$@") ;; *) A=("$@") ;; esac
+cd $M; rm -f mon-$tag.sock
+$PRE "$bin" "${L[@]}" "${A[@]}" -display none -serial file:ser-$tag.log -monitor unix:mon-$tag.sock,server=on,wait=off < /dev/null > qemu-$tag.log 2>&1 &
+q=$!
+mon() { ( for c in "$@"; do printf '%s\n' "$c"; sleep 0.5; done; sleep 0.5 ) | nc -U mon-$tag.sock 2>/dev/null | tr -d '\r'; }
+r=; t=0; last=; same=0
+while [ $t -lt $secs ]; do sleep 30; t=$((t+30)); mon "screendump $M/shots/$tag.ppm" > /dev/null
+    h=$(md5 -q shots/$tag.ppm 2>/dev/null | cut -c1-6); nip=$(mon 'info registers' | grep -a '^NIP' | awk '{print $2}')
+    r="$r $h/$nip"; done
+sips -s format png shots/$tag.ppm --out shots/$tag.png > /dev/null 2>&1; rm -f shots/$tag.ppm
+v=OTHER; case $nip in 68067e*) v=STUCK ;; 00f24*|0046*|0045*) v=FINDER ;; fff*) v=OPENBIOS ;; 00000004) v=NIP4 ;; esac
+echo "$tag: $v $r $(head -1 qemu-$tag.log | cut -c1-80)"
+[ -n "$KEEP" ] && { echo "$tag: left running, pid $q"; exit 0; }
+mon quit > /dev/null; sleep 1; kill $q 2>/dev/null
+
+===== os9-e1.sh
+#!/bin/bash
+# on MBP5: the app's devices four times on our engine and twice on Homebrew's QEMU 11.1.2 (the JIT), nothing else running
+O=~/aok-vm-bench/os9-one.sh; cd ~/aok-vm-bench/macos9
+for i in 1 2 3 4; do bash $O e1-app-$i new 180 app & done
+for i in 1 2; do bash $O e1-brew-app-$i /opt/homebrew/bin/qemu-system-ppc 180 app & done
+wait; echo E1-DONE
+
+===== os9-e2.sh
+#!/bin/bash
+# on MBP5: which of the app's devices stops Mac OS 9's start? On Homebrew's QEMU 11.1.2 (JIT, quick), the app's
+# set with one thing changed, twice each, 120 s.
+O=~/aok-vm-bench/os9-one.sh; Q=/opt/homebrew/bin/qemu-system-ppc; W=$HOME/aok-vm-bench; M=$W/macos9; cd $M
+N=$W/engines/UTM/sysroot-ios-tci-arm64/share/qemu/ppc-ndrvloader
+CD=(-device ide-cd,bus=ide.0,unit=0,drive=cd0,bootindex=0 -drive "if=none,media=cdrom,id=cd0,file.filename=$M/iso/MacOS9.iso,file.locking=off,readonly=on")
+LD=(-device loader,addr=0x4000000,file=$N -prom-env "boot-command=init-program go")
+B=(-smp 1 -accel tcg,tb-size=128 -m 512 -audio none)
+PCD=(-boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on)
+for i in 1 2; do
+bash $O e2-a-app-$i        $Q 120 "${B[@]}" -nodefaults -vga none -nic none -device VGA,edid=on -machine mac99,via=pmu "${LD[@]}" -device virtio-tablet-pci "${CD[@]}" &
+bash $O e2-b-cuda-$i       $Q 120 "${B[@]}" -nodefaults -vga none -nic none -device VGA,edid=on -machine mac99          "${LD[@]}" -device virtio-tablet-pci "${CD[@]}" &
+bash $O e2-c-noloader-$i   $Q 120 "${B[@]}" -nodefaults -vga none -nic none -device VGA,edid=on -machine mac99,via=pmu             -device virtio-tablet-pci "${CD[@]}" &
+bash $O e2-d-notablet-$i   $Q 120 "${B[@]}" -nodefaults -vga none -nic none -device VGA,edid=on -machine mac99,via=pmu "${LD[@]}"                            "${CD[@]}" &
+bash $O e2-e-noedid-$i     $Q 120 "${B[@]}" -nodefaults -vga none -nic none -device VGA         -machine mac99,via=pmu "${LD[@]}" -device virtio-tablet-pci "${CD[@]}" &
+bash $O e2-f-defaults-$i   $Q 120 "${B[@]}" -machine mac99,via=pmu "${LD[@]}" -device virtio-tablet-pci "${PCD[@]}" &
+bash $O e2-g-plainpmu-$i   $Q 120 "${B[@]}" -machine mac99,via=pmu "${PCD[@]}" &
+bash $O e2-h-plain-$i      $Q 120 "${B[@]}" -machine mac99 "${PCD[@]}" &
+bash $O e2-i-nodef-only-$i $Q 120 "${B[@]}" -nodefaults -vga none -nic none -device VGA -machine mac99 "${CD[@]}" &
+done
+wait; echo E2-DONE
+
+===== os9-e3.sh
+#!/bin/bash
+# on MBP5, Homebrew's QEMU 11.1.2: what in "-nodefaults -vga none -nic none -device VGA" with the CD on ide.0
+# stops the start? One difference from the plain machine a variant, three times each, 120 s.
+O=~/aok-vm-bench/os9-one.sh; Q=/opt/homebrew/bin/qemu-system-ppc; W=$HOME/aok-vm-bench; M=$W/macos9; cd $M
+ISO="file.filename=$M/iso/MacOS9.iso,file.locking=off,readonly=on"
+B=(-machine mac99 -m 512)
+for i in 1 2 3; do
+bash $O e3-plain-$i        $Q 120 "${B[@]}" -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on &
+bash $O e3-plain-nonic-$i  $Q 120 "${B[@]}" -nic none -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on &
+bash $O e3-plain-ide0-$i   $Q 120 "${B[@]}" -boot d -device ide-cd,bus=ide.0,unit=0,drive=cd0 -drive "if=none,media=cdrom,id=cd0,$ISO" &
+bash $O e3-plain-devvga-$i $Q 120 "${B[@]}" -vga none -device VGA -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on &
+bash $O e3-nodef-$i        $Q 120 "${B[@]}" -nodefaults -vga none -nic none -device VGA -device ide-cd,bus=ide.0,unit=0,drive=cd0,bootindex=0 -drive "if=none,media=cdrom,id=cd0,$ISO" &
+bash $O e3-nodef-ide1-$i   $Q 120 "${B[@]}" -nodefaults -vga none -nic none -device VGA -device ide-cd,bus=ide.1,unit=0,drive=cd0,bootindex=0 -drive "if=none,media=cdrom,id=cd0,$ISO" &
+done
+wait; echo E3-DONE
+
+===== os9-e4.sh
+#!/bin/bash
+# on MBP5, Homebrew's QEMU 11.1.2: is it the guest's speed against its own clock? -icount makes the virtual clock
+# follow the instructions run (2^shift ns each), so the machine has one fixed speed whatever the host does:
+# shift 1 is 500 MIPS, 3 is 125, 5 is 31, 7 is 8. The plain machine and the app's set at each.
+O=~/aok-vm-bench/os9-one.sh; Q=/opt/homebrew/bin/qemu-system-ppc; cd ~/aok-vm-bench/macos9
+ssh_kill() { :; }
+p=$(pgrep -f "mon-k1.sock"); [ -n "$p" ] && kill $p
+for s in 1 3 5 7; do
+    bash $O e4-plain-s$s $Q 150 plain -icount shift=$s,sleep=off &
+    bash $O e4-app-s$s   $Q 150 app   -icount shift=$s,sleep=off &
+done
+bash $O e4-app-alone $Q 150 app &
+wait; echo E4-DONE
+
+===== os9-e5.sh
+#!/bin/bash
+# on MBP5, Homebrew's QEMU 11.1.2 with -icount shift=3 (so the host's load does not matter): from the plain
+# machine to "-nodefaults -vga none -nic none -device VGA" with the CD on ide.0 and bootindex=0, a step a variant.
+O=~/aok-vm-bench/os9-one.sh; Q=/opt/homebrew/bin/qemu-system-ppc; M=$HOME/aok-vm-bench/macos9; cd $M
+I=(-icount shift=3,sleep=off -machine mac99 -m 512)
+ISO="file.filename=$M/iso/MacOS9.iso,file.locking=off,readonly=on"
+DCD=(-drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on)
+r() { t=$1; shift; bash $O e5-$t $Q 150 "${I[@]}" "$@" & }
+r v1-plain          -boot d "${DCD[@]}"
+r v2-nonic          -nic none -boot d "${DCD[@]}"
+r v3-devvga         -vga none -device VGA -boot d "${DCD[@]}"
+r v4-ide0-bootd     -boot d -device ide-cd,bus=ide.0,unit=0,drive=cd0 -drive "if=none,media=cdrom,id=cd0,$ISO"
+r v5-ide0-bootindex -device ide-cd,bus=ide.0,unit=0,drive=cd0,bootindex=0 -drive "if=none,media=cdrom,id=cd0,$ISO"
+r v6-dcd-noboot     "${DCD[@]}"
+r v7-nodef          -nodefaults -vga none -nic none -device VGA -device ide-cd,bus=ide.0,unit=0,drive=cd0,bootindex=0 -drive "if=none,media=cdrom,id=cd0,$ISO"
+r v8-nodef-nic      -nodefaults -vga none -nic user,model=sungem -device VGA -device ide-cd,bus=ide.0,unit=0,drive=cd0,bootindex=0 -drive "if=none,media=cdrom,id=cd0,$ISO"
+r v9-nodef-bootd    -nodefaults -vga none -nic none -device VGA -boot d -device ide-cd,bus=ide.0,unit=0,drive=cd0 -drive "if=none,media=cdrom,id=cd0,$ISO"
+r v10-nodef-vgastd  -nodefaults -vga std -nic none -boot d "${DCD[@]}"
+r v11-nodef-all     -nodefaults -vga std -nic user,model=sungem -boot d "${DCD[@]}"
+wait; echo E5-DONE
+
+===== os9-e6.sh
+#!/bin/bash
+# on MBP5, -icount shift=3: is it the USB controller, which mac99 only has with the defaults or usb=on?
+# Homebrew's QEMU 11.1.2, and our engine (new) for the two that matter.
+O=~/aok-vm-bench/os9-one.sh; Q=/opt/homebrew/bin/qemu-system-ppc; M=$HOME/aok-vm-bench/macos9; cd $M
+I=(-icount shift=3,sleep=off -m 512)
+DCD=(-boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on)
+bash $O e6-plain-usboff     $Q 150 "${I[@]}" -machine mac99,usb=off "${DCD[@]}" &
+bash $O e6-nodef-usbon      $Q 150 "${I[@]}" -machine mac99,usb=on -nodefaults -vga std -nic none "${DCD[@]}" &
+bash $O e6-nodef-usboff     $Q 150 "${I[@]}" -machine mac99 -nodefaults -vga std -nic none "${DCD[@]}" &
+bash $O e6-app-usbon        $Q 150 app -icount shift=3,sleep=off -machine mac99,via=pmu,usb=on &
+bash $O e6-app              $Q 150 app -icount shift=3,sleep=off &
+bash $O e6-eng-app-usbon    new 240 app -machine mac99,via=pmu,usb=on &
+bash $O e6-eng-app          new 240 app &
+wait; echo E6-DONE
+
+===== os9-e7.sh
+#!/bin/bash
+# on MBP5, Homebrew's QEMU 11.1.2: with USB there, does the start depend on the machine's speed? The plain machine
+# at fixed speeds (-icount shift: 2 is 250 MIPS, 4 is 62, 5 is 31, 6 is 16, 8 is 4), 240 s each; shift 5 three times.
+O=~/aok-vm-bench/os9-one.sh; Q=/opt/homebrew/bin/qemu-system-ppc; cd ~/aok-vm-bench/macos9
+for s in 2 4 6 8; do bash $O e7-plain-s$s $Q 240 plain -icount shift=$s,sleep=off & done
+for i in 1 2 3; do bash $O e7-plain-s5-$i $Q 240 plain -icount shift=5,sleep=off & done
+bash $O e7-app-usb-s5 $Q 240 app -icount shift=5,sleep=off -machine mac99,via=pmu,usb=on &
+wait; echo E7-DONE
+
+===== os9-dev.sh
+#!/bin/bash
+# os9-dev.sh TAG [APP] -- on the A10X: (install APP,) start "Mac OS 9 Test", wait for the Finder, reset the machine
+# from its monitor, and watch whether Mac OS comes back: every 30 s the CPU's place and what the screen says.
+U=5c56dee8545a5a555e052ecd50aa0e3ca9334a3b
+S=/private/tmp/claude-501/-Users-mke-git-ish-AOK/7b3fb99e-2b30-444a-9291-e34744be360f/scratchpad/up/a10x
+SV=/Users/mke/git/aok-vm/aok/app/start-vm.sh; tag=$1; app=$2; cd $S
+[ -n "$app" ] && { echo "$(date +%T) $tag: install ($(stat -f %Sm "$app/AOK VM"))"; xcrun devicectl device install app --device $U "$app" 2>&1 | grep -E 'ERROR|error' | cut -c1-140; }
+IP=100.94.156.7
+mon() { ( for c in "$@"; do printf '%s\n' "$c"; sleep 1; done; sleep 1 ) | nc -w 4 $IP 4455 | tr -d '\r' | sed 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
+look() { xcrun devicectl device capture screenshot --device $U --destination "$S/$1.png" > /dev/null 2>&1
+         f=$(./ocr $1.png | grep -a -c -E '^(File|Special|Finder)|Mac OS 9\.2\.2|Trash'); o=$(./ocr $1.png | grep -a -c -E 'OpenBIOS|Trying')
+         echo "NIP $(mon 'info registers' | grep -a '^NIP' | awk '{print $2}') finder-words $f openbios-words $o"; }
+bash $SV $U "Mac OS 9 Test" > /dev/null 2>&1
+up=; for i in $(seq 1 24); do sleep 30; l=$(look $tag-boot); echo "$(date +%T) $tag boot $((i*30)) s: $l"; case $l in *"finder-words 0"*) ;; *) up=$((i*30)); break ;; esac; done
+[ -n "$up" ] || { echo "$tag: no Finder in 12 minutes"; echo "OS9-DEV-DONE $tag"; exit 1; }
+sleep 20; look $tag-finder > /dev/null
+mon system_reset > /dev/null; echo "$(date +%T) $tag: system_reset"
+seen=0; back=
+for i in $(seq 1 24); do sleep 30; l=$(look $tag-after); echo "$(date +%T) $tag after $((i*30)) s: $l"
+    case $l in *"finder-words 0"*) seen=1 ;; *) [ $seen = 1 ] && { back=$((i*30)); break; } ;; esac; done
+cp $tag-after.png $tag-last.png
+echo "$tag: Finder after ${up} s; after the reset: $([ -n "$back" ] && echo "the screen left the Finder and Mac OS was back after $back s" || echo "Mac OS did not come back in 12 minutes (left the Finder's picture: $seen)")"
+echo "OS9-DEV-DONE $tag"
+

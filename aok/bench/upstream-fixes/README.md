@@ -111,8 +111,15 @@ machines each, three presses: the dialog, an icon selected, or nothing, in no pa
 os9-run.sh presses it until the picture has the dialog's fewer colours before it sends R.
 A first run on the fixed engine sent R to the Finder and proved nothing.
 
-**Not shown in the app:** with the devices AOK VM gives a mac99 machine, this CD does not
-start, with or without the fix (below).
+**In the app on the A10X** (os9-dev.sh; "Mac OS 9 Test": mac99, the CD, a VGA display, USB
+2.0, a monitor on TCP 4455; the Finder is up 60 s after the start in either app):
+
+| the monitor's `system_reset` | build 13's app | this build |
+|---|---|---|
+| Mac OS 9.2.2 at the Finder | the CPU stays at fff2d2c4 in the firmware and the Finder's picture stays on the screen, 12 minutes watched | the screen leaves the Finder and Mac OS is back in 60 s |
+
+The first tries there did not get as far as the Finder, for a reason of the test machine's
+own: the last section.
 
 ## The three engine fixes and the app's on the A10X (2026-11-27, iPadOS 17.7.11)
 
@@ -169,24 +176,47 @@ defaults write` writes the device's copy of the domain, which the app's own pref
 (in its data container) shadow. The entry has to go into the container's plist with the app
 ended, and the simulator's cfprefsd ended by its pid, or the launch reads its cache.
 
-## Mac OS 9's start is not dependable on this engine (found 2026-11-27, open)
+## Mac OS 9 needs the Power Mac's USB controller (found and fixed 2026-11-27)
 
-Found looking for the restart in the app, and not from that day's fixes: the engine before
-them does the same. The CD's start sometimes stops for good soon after OpenBIOS hands over,
-with the CPU going round 68067ec0 to 68067ed4 (LR 680b07f0) and the screen as it was (the
-yellow OpenBIOS text, or black). Less often OpenBIOS fails to load `\\:tbxi` and ends at its
-prompt, or the CPU ends at 00000004. What was counted, all on the CD from above:
+The Mac OS 9 machine first made for the A10X never reached the Finder, 3 starts of 3: the
+CPU went round 68067ec0 to 68067ed4 (LR 680b07f0, in Mac OS's 68k emulator) from the first
+minute on, the screen still showing OpenBIOS's last text. Not from that day's fixes (the
+engine before them did the same), not our engine (Homebrew's QEMU 11.1.2 with the JIT did
+the same), and not speed: under `-icount`, where the machine has one speed whatever the
+host does, it stopped at 500, 125, 31 and 8 MIPS alike.
 
-| where | how | result |
-|---|---|---|
-| the A10X, in the app ("Mac OS 9 Test", the app's devices: `via=pmu`, `-nodefaults`, VGA with EDID, the NDRV loader, a virtio tablet, `tb-size=128`) | 3 starts | each stopped there from the first minute to the fifth, the screen still OpenBIOS's text |
-| MBP5, the app's devices, engine before and after | 1 each, with other machines running | both stopped at 68067ed0 |
-| MBP5, plain `-M mac99 -boot d`, up to 6 machines at once | 17 starts over the restart tests (6 on the engine before, 11 after) | all reached the Finder |
-| MBP5, plain, 12 at once (os9-tb.sh): default cache, `tb-size=128`, `tb-size=128` with QEMU_AOK=0 | 4 each | 3 of 4, 4 of 4, 4 of 4 reached the Finder; the one that did not stopped at 68067ed0 |
-| MBP5, eight variants of the app's devices at once (os9-args.sh), twice | 16 starts | the outcome of a variant changed between the two rounds: plain booted in one and ended at 00000004 in the other, plain with `via=pmu` the reverse |
+**Cause.** The test machine was cloned from a console machine whose USB support is off. The
+app passes `-nodefaults` and adds `-usb` only when a machine's USB support is on, and
+QEMU's mac99 has its USB controller only with the defaults or `usb=on`
+(hw/ppc/mac_newworld.c: `machine->usb |= defaults_enabled() && !machine->usb_disabled`).
+Mac OS 9.2.2 waits for ever without it, with ADB input or without. Under `-icount shift=3`
+on Homebrew's QEMU (os9-e5.sh, os9-e6.sh), one run each:
 
-So it is not one device of the app's set and not the cache's size, and it does not need the
-gadgets; it goes with how busy or slow the host is, which points at timing (Mac OS's start
-measures its clocks). Not looked at yet: where 68067ed0 is waiting, and whether stock QEMU's
-TCG does the same when it is slowed. The images are on MBP5 in `~/aok-vm-bench/macos9`, with
-the two engines built with a display (`build-os9-old`, `build-os9-new`).
+| machine | result |
+|---|---|
+| plain `-M mac99`; the same with no network card, with `-device VGA`, with the CD on ide.0 | the Finder, all four |
+| plain with `usb=off` | stopped at 68067ec0 |
+| `-nodefaults` with the display, a network card and the CD given back | stopped |
+| `-nodefaults` with `usb=on` | the Finder |
+| the app's whole set | stopped |
+| the app's whole set with `usb=on` | the Finder, on our engine too |
+
+**Fix (aok-vm, UTMQemuConfiguration+Arguments.swift):** a mac99 machine whose USB support is
+off gets `usb=on` as a machine property, so the Power Mac keeps the controller it is built
+with; a property the user wrote still wins. On the A10X, the same machine with USB support
+Disabled: 3 of 3 stopped before; with the change `-machine mac99,via=pmu,usb=on` is in its
+log and the Finder is up in 60 s. UTM has the same lines and its QEMU the same default:
+reported there.
+
+**What misled me, for the next time.** The first comparisons ran eight to eighteen machines
+at once, and there the outcome of the same settings changed from round to round, so it
+looked like timing. Two more things are true and are not ours to fix: on Homebrew's QEMU the
+plain machine (with USB) also stops now and then when the host is that busy (1 of 3, and
+1 of 4 on our engine with twelve running), and under `-icount shift=5` it stops every time
+(4 of 4) at 00f268d0, while shifts 1, 2, 3, 4, 6 and 7 reach the Finder. Neither was seen with six machines or fewer
+(17 of 17 on our engine), nor on the A10X once USB was there (3 starts of 3). `-icount` is
+what separated them: fix the machine's speed before comparing settings.
+The Power key sent with `sendkey power` is unreliable on either engine.
+
+The images are on MBP5 in `~/aok-vm-bench/macos9` (the 2 GB disk image untried), with the
+engines built with a display (`build-os9-old`, `build-os9-new`).
