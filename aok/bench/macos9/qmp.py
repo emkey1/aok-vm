@@ -2,14 +2,18 @@
 """qmp.py SOCKET CMD... -- drive a QEMU machine through QMP: a pointer with absolute positions (a tablet), keys,
 and pictures. Positions are in the screen's own pixels (W x H below).
   move X Y | click X Y | dclick X Y | drag X1 Y1 X2 Y2 | key NAME[-NAME...] (QEMU key names, e.g. meta_l-q)
-  type TEXT | shot FILE.ppm | sleep SECONDS | hmp 'COMMAND'
+  keydown NAME | keyup NAME (to hold shift for a click) | type TEXT | shot FILE.ppm | sleep SECONDS | hmp 'COMMAND'
 """
 import json, socket, sys, time
 W, H = 640, 480
 KEYS = {' ': 'spc', '.': 'dot', '-': 'minus', '/': 'slash', ',': 'comma', '\n': 'ret'}
 class Q:
     def __init__(self, path):
-        self.s = socket.socket(socket.AF_UNIX); self.s.connect(path); self.f = self.s.makefile('rw')
+        if ':' in path and '/' not in path:      # HOST:PORT, a machine with -qmp tcp:...
+            h, p = path.rsplit(':', 1); self.s = socket.create_connection((h, int(p)), timeout=20)
+        else:
+            self.s = socket.socket(socket.AF_UNIX); self.s.connect(path)
+        self.f = self.s.makefile('rw')
         self.f.readline(); self.cmd('qmp_capabilities')
     def cmd(self, name, **args):
         self.f.write(json.dumps({'execute': name, 'arguments': args}) + '\n'); self.f.flush()
@@ -35,6 +39,8 @@ while a:
         for i in range(1, 11): q.move(x1 + (x2 - x1) * i // 10, y1 + (y2 - y1) * i // 10)
         q.btn(False)
     elif c == 'key': q.key(a.pop(0))
+    elif c in ('keydown', 'keyup'):
+        q.ev({'type': 'key', 'data': {'down': c == 'keydown', 'key': {'type': 'qcode', 'data': a.pop(0)}}}); time.sleep(0.15)
     elif c == 'type':
         for ch in a.pop(0): q.key(('shift-' + ch.lower()) if ch.isupper() else KEYS.get(ch, ch))
     elif c == 'shot': print(q.cmd('screendump', filename=a.pop(0)).get('error', 'ok'))
