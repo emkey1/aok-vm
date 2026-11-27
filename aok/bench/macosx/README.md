@@ -31,5 +31,13 @@ copy was touched; it was thrown away and made again. `i.sh` now never removes, l
 sources with `find` (which does not follow links) and leaves an application that is already
 there alone.
 
+All eight installed (Xbench was started as a check); the guest was shut down from its Apple
+menu, by keyboard (control-F2, down, "shut", return, return: a shut down asked of the Finder
+from Terminal times out, because Terminal will not quit under it). The result,
+`macosx/work/tiger-final.qcow2` (4.8 GB, sha256 0985056a...), is the machine "Mac OS X
+Tiger" (mac99, 1 GB, VGA, USB 2.0, a sungem card, the disk on IDE): on the user's M4 iPad
+Pro, in the released build 13, the desktop is up 60 s after the start. Build 13 has not the
+BAT fix, so a Restart inside the guest will not come back there; Shut Down is fine.
+
 The pointer: Mac OS X has no driver for the virtio tablet, so in the app the guest's mouse
 is the Power Mac's own USB mouse, relative. Keys through QMP work as they are.
