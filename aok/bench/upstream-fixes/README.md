@@ -7,6 +7,7 @@ Each failed on the engine before its fix (11adf734f6, but for `uetest.c`: 6e0ad2
 | `x86upfix.c` | every x87 compare's C1, and RET, RETF and ENTER counts of 0x8000 and up. Run it on a real x86 and in a guest, and diff the transcripts: QEMU_AOK=1 must match the hardware on every line. With QEMU_AOK=0, TCG differs where the stack is empty, because it has no x87 stack faults. |
 | `usbcsw.c` | a USB stick's status request queued with its data transfer, through usbfs, in a guest with `-device qemu-xhci -device usb-storage`. The stick's image holds each block's number in the block's first four bytes. Needs the modules `xhci_pci` and `usbcore`, and no `usb_storage`. |
 | `uetest.c` | (2026-11-27) SSE products and quotients that round up to exactly the smallest normal, with the inexact flag already set: x86 calls that an underflow. Run it on a real x86 and in a guest, and compare. TCG's inline float path left UE out until tctiSH's 1599207c97; the gadgets never did. |
+| `batgen.py` | (2026-11-27) two PowerPC programs as machine code, for what a reset leaves in the BATs (UTM's e1c17c2009): a firmware that records them, and a kernel that leaves one over OpenBIOS. No assembler, no Mac OS. |
 | `screamer-dbdma.py` | the PowerMac's sound input leaving its DMA channel ACTIVE with RUN clear. No guest: `screamer-dbdma.py QEMU-SYSTEM-PPC PC-BIOS`. |
 
 Suspending a machine whose disk is zstd-compressed (QEMUKit e8e9e877) was tried in the simulator: on the Alpine x86-64
@@ -76,8 +77,66 @@ The x86 gates on the new binary: 8 of 8 transcripts identical to their reference
 identical to the TCG references: fptest clears the flags before each operation, so it never
 enters the inline path with PE set, which is why it did not see this.
 
-Not done: the same on a device. The change is in the code TCTI emits, which is the same on
-a Mac; the iOS engines get it when they are next built for a release.
+On a device: below.
+
+## UTM's e1c17c2009 on our engine: a reset clears the BATs (2026-11-27)
+
+Mac OS 9's Restart ended on a black screen in UTM (their #7999): a 6xx/7xx/74xx CPU's BATs
+are outside `env->spr[]`, so a reset left them as the guest had them, and OpenBIOS, which
+turns translation on expecting its next fetch to fault, ran through the stale mapping
+instead. utmapp/qemu e1c17c2009, cherry-picked as emkey1/qemu aok-vm 30e130b9a6 (the user
+asked for it the same day). Two tests that need no Mac OS (`batgen.py` writes both programs
+as machine code; mbp5-bat-test.sh in fixes-1127-scripts.txt), each on the engine before
+(6e0ad2a177) and after, on mac99 and g3beige, gadgets on and off: eight runs a test.
+
+| test | before | after |
+|---|---|---|
+| A: our own firmware loads DBAT0 and IBAT3, and after `system_reset` stores what they hold | 80001fff 80000012 90001ffe 90000012: as loaded | all four zero |
+| B: OpenBIOS starts a kernel that maps OpenBIOS's address to empty RAM with BAT0 and counts its starts; then `system_reset` | the count is never 2: OpenBIOS is stuck at fff2cd8c, one banner on the serial line | the kernel starts a second time, two banners |
+
+All eight runs of each agree with their column.
+
+**With Mac OS 9 itself** (the user gave the images: archive.org's item mac-os9, `MacOS9.iso`
+724755456 bytes, sha256 1bedd15e...269b7, Mac OS 9.2.2's CD; os9-run.sh). On MBP5, the
+engine built with pixman so that there is a VGA card and `screendump`, `-M mac99 -m 512
+-boot d` and the CD: the Finder is up within 90 s on either engine.
+
+| restart | before the fix | with it |
+|---|---|---|
+| the monitor's `system_reset` | the picture stays as it was, clock stopped, one OpenBIOS banner (1 of 1) | the Finder again, two banners (1 of 1) |
+| Mac OS's own: the Power key's dialog, then R for Restart | black for the 150 s watched, one banner (2 of 2) | the Finder again, two banners (3 of 3) |
+
+The Power key through `sendkey power` is not reliable there on either engine (three
+machines each, three presses: the dialog, an icon selected, or nothing, in no pattern), so
+os9-run.sh presses it until the picture has the dialog's fewer colours before it sends R.
+A first run on the fixed engine sent R to the Finder and proved nothing.
+
+**Not shown in the app:** with the devices AOK VM gives a mac99 machine, this CD does not
+start, with or without the fix (below).
+
+## The three engine fixes and the app's on the A10X (2026-11-27, iPadOS 17.7.11)
+
+The iOS engines built from 30e130b9a6 (MBP5, eng.sh), the app from aok-vm 4c42eb51, against
+build 13's app from its archive (dev-fix.sh, dev-round.sh).
+
+| | build 13 | this build |
+|---|---|---|
+| `uetest` in "AOK UE Test" (the x86-64 console machine with the test added), QEMU_AOK=0 | 9 of 20 lines differ from the hardware | 0 |
+| the same with the gadgets | | 0 |
+| "AOK BAT Reset" (mac99, test B's kernel), `system_reset` over a monitor on TCP 4455 | 90 s later no second start, NIP fff2d2c4, one banner | second start after 5 s, two banners |
+
+Then this build alone: each engine's machine comes up (Alpine ARM64 to its login, ReactOS to
+its desktop, the x86-64 stress with four equal hashes, the RISC-V workloads, PowerPC's
+`TLBFOLD ok: 0 of 120000 checks wrong`, the 68k workloads; no error in any log), and a
+suspend through the background with a restore on "x64 CPU Test" (x86-64, virtio-vga:
+`snapshot-load`, the state used, the same picture 8 s after the relaunch) and on "Alpine
+3.24.2 (aarch64)" (the state used, its console on the screen 8 s after the relaunch). That
+is CocoaSpice's and QEMUKit's new revisions on a device. One report from the day: a
+cpu_resource diagnostic (not a crash) of build 13's app during its gadgets-off run.
+
+The monitor on a device: `-monitor tcp:0.0.0.0:4455,server=on,wait=off` in the machine's
+additional arguments, reached with nc at the iPad's cable address (169.254.114.85 for bip;
+its Tailscale address answers too).
 
 ## UTM's fixes in the app (2026-11-27)
 
@@ -109,3 +168,25 @@ The first row is from a first attempt whose entry went into the wrong file: `sim
 defaults write` writes the device's copy of the domain, which the app's own preferences
 (in its data container) shadow. The entry has to go into the container's plist with the app
 ended, and the simulator's cfprefsd ended by its pid, or the launch reads its cache.
+
+## Mac OS 9's start is not dependable on this engine (found 2026-11-27, open)
+
+Found looking for the restart in the app, and not from that day's fixes: the engine before
+them does the same. The CD's start sometimes stops for good soon after OpenBIOS hands over,
+with the CPU going round 68067ec0 to 68067ed4 (LR 680b07f0) and the screen as it was (the
+yellow OpenBIOS text, or black). Less often OpenBIOS fails to load `\\:tbxi` and ends at its
+prompt, or the CPU ends at 00000004. What was counted, all on the CD from above:
+
+| where | how | result |
+|---|---|---|
+| the A10X, in the app ("Mac OS 9 Test", the app's devices: `via=pmu`, `-nodefaults`, VGA with EDID, the NDRV loader, a virtio tablet, `tb-size=128`) | 3 starts | each stopped there from the first minute to the fifth, the screen still OpenBIOS's text |
+| MBP5, the app's devices, engine before and after | 1 each, with other machines running | both stopped at 68067ed0 |
+| MBP5, plain `-M mac99 -boot d`, up to 6 machines at once | 17 starts over the restart tests (6 on the engine before, 11 after) | all reached the Finder |
+| MBP5, plain, 12 at once (os9-tb.sh): default cache, `tb-size=128`, `tb-size=128` with QEMU_AOK=0 | 4 each | 3 of 4, 4 of 4, 4 of 4 reached the Finder; the one that did not stopped at 68067ed0 |
+| MBP5, eight variants of the app's devices at once (os9-args.sh), twice | 16 starts | the outcome of a variant changed between the two rounds: plain booted in one and ended at 00000004 in the other, plain with `via=pmu` the reverse |
+
+So it is not one device of the app's set and not the cache's size, and it does not need the
+gadgets; it goes with how busy or slow the host is, which points at timing (Mac OS's start
+measures its clocks). Not looked at yet: where 68067ed0 is waiting, and whether stock QEMU's
+TCG does the same when it is slowed. The images are on MBP5 in `~/aok-vm-bench/macos9`, with
+the two engines built with a display (`build-os9-old`, `build-os9-new`).

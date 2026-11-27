@@ -91,3 +91,306 @@ $S term > /dev/null; sleep 3
 $PB -c 'Delete :Registry:AOK-BAD-ENTRY' "$P" 2>/dev/null
 echo "REGTEST-DONE $tag"
 
+===== mbp5-bat-build.sh
+#!/bin/bash
+# on MBP5: the engine with the three fixes (worktree src-up of src-aok), its PowerPC QEMU as build-up-ppc
+export PATH=/opt/homebrew/bin:$PATH
+set -e
+W=$HOME/aok-vm-bench; cd $W
+if [ ! -d src-up ]; then
+    git -C src-aok worktree add --detach ../src-up 6e0ad2a177 > /dev/null 2>&1
+    git -C src-up -c user.name=x -c user.email=x@x am $W/up-patches/*.patch
+fi
+git -C src-up log --oneline -4; echo "tree $(git -C src-up rev-parse 'HEAD^{tree}')"
+mkdir -p build-up-ppc && cd build-up-ppc
+[ -f build.ninja ] || ../src-up/configure --target-list=ppc-softmmu --without-default-features --enable-fdt=internal --enable-tcg --disable-werror --disable-docs --enable-tcg-threaded-interpreter --enable-aok-gadgets > configure.out 2>&1
+ninja > ninja.out 2>&1 && echo "BUILD-OK $(ls -la qemu-system-ppc-unsigned | awk '{print $5}')" || { echo BUILD-FAILED; grep -n -E 'error|FAILED' ninja.out | head -20; }
+echo UP-BUILD-DONE
+
+===== mbp5-bat-test.sh
+#!/bin/bash
+# on MBP5: what a reset leaves in the BATs, on the engine before (build-aok-ppc) and with UTM's e1c17c2009
+# (build-up-ppc), gadgets on and off. batgen.py made the programs.
+#   A: a firmware of our own that loads two BATs, and after a reset records what they hold (xp /8wx 0x2000:
+#      "OKAY" "DONE" 0 0 DBAT0U DBAT0L IBAT3U IBAT3L).
+#   B: OpenBIOS and a kernel that maps OpenBIOS's address to empty RAM with BAT0, then a reset: does OpenBIOS
+#      start the kernel a second time (the count at 0x03000000, and its banner on the serial line)?
+W=$HOME/aok-vm-bench; T=$W/up-bat; cd $T
+OLD=$W/build-aok-ppc/qemu-system-ppc-unsigned; NEW=$W/build-up-ppc/qemu-system-ppc-unsigned
+ls -la $OLD $NEW | awk '{print $5, $6, $7, $8, $9}'
+clean() { tr -d '\r' | sed 's/\x1b\[[0-9;]*[A-Za-z]//g' | grep -av '^QEMU \|^$'; }
+A() {   # label binary aok machine
+    out=$( ( sleep 3; echo 'xp /8wx 0x2000'; echo 'info registers'; sleep 1; echo system_reset; sleep 3; echo 'xp /8wx 0x2000'; sleep 1; echo quit ) |
+           QEMU_AOK=$3 $2 -M $4 -m 128 -bios $T/batbios-$4.bin -display none -serial none -monitor stdio 2>&1 | clean )
+    before=$(echo "$out" | grep -a 'BAT' | grep -av ' 0000000000000000 0000000000000000 .*0000000000000000 0000000000000000$\|00000000 00000000 .*00000000 00000000$' | tr -s ' ' | tr '\n' ';')
+    echo "A $1 $4 aok=$3: before the reset [$(echo "$out" | grep -a '^0*2000:' | head -1 | cut -d: -f2 | tr -s ' ')] BATs loaded: ${before:-none shown}"
+    echo "A $1 $4 aok=$3: after  the reset [$(echo "$out" | grep -a '^0*2000:' | tail -1 | cut -d: -f2 | tr -s ' ')] [$(echo "$out" | grep -a '^0*2010:' | tail -1 | cut -d: -f2 | tr -s ' ')]"
+}
+B() {   # label binary aok machine
+    rm -f ser-$1-$3-$4.log
+    out=$( ( sleep 30; echo 'xp /1wx 0x3000000'; echo 'info registers'; sleep 1; echo system_reset; sleep 30; echo 'xp /1wx 0x3000000'; echo 'info registers'; sleep 1; echo quit ) |
+           QEMU_AOK=$3 $2 -M $4 -m 256 -L $W/src-aok/pc-bios -kernel $T/batkern.bin -display none -serial file:ser-$1-$3-$4.log -monitor stdio 2>&1 | clean )
+    c1=$(echo "$out" | grep -a '^0*3000000:' | head -1 | cut -d: -f2 | tr -d ' '); c2=$(echo "$out" | grep -a '^0*3000000:' | tail -1 | cut -d: -f2 | tr -d ' ')
+    n1=$(echo "$out" | grep -a '^NIP' | head -1 | awk '{print $2}'); n2=$(echo "$out" | grep -a '^NIP' | tail -1 | awk '{print $2}')
+    echo "B $1 $4 aok=$3: kernel starts before the reset $c1 (NIP $n1), 30 s after it $c2 (NIP $n2); OpenBIOS banners on the serial line: $(grep -ac 'OpenBIOS 1' ser-$1-$3-$4.log)"
+    echo "$out" | grep -a 'BAT00' | head -2 | tr -s ' ' | sed "s/^/    before: /"
+}
+for m in mac99 g3beige; do for a in 1 0; do A old $OLD $a $m; A new $NEW $a $m; done; done
+for m in mac99 g3beige; do B old $OLD 1 $m & B new $NEW 1 $m & B old $OLD 0 $m & B new $NEW 0 $m & wait; done
+echo BAT-TEST-DONE
+
+===== uecheck
+#!/bin/sh
+# uetest's transcript in this guest against the one a real x86 gave (uetest.hw), a line of result
+/bench/uetest-bin > /tmp/ue.out 2>&1
+n=$(wc -l < /tmp/ue.out); d=0; i=0
+while read -r a; do i=$((i+1)); b=$(sed -n "${i}p" /tmp/ue.out); [ "$a" = "$b" ] || d=$((d+1)); done < /bench/uetest.hw
+echo "UETEST $n lines, $d differ from the hardware"
+
+===== dev-fix.sh
+#!/bin/bash
+# dev-fix.sh TAG APP -- on the A10X: install APP, then the two fixes that have a test of their own.
+#   UE:  "AOK UE Test" with QEMU_AOK=0 (and with the gadgets): the UETEST line on its console
+#   BAT: "AOK BAT Reset": the kernel's start count before and after a system_reset from the monitor (port 4455)
+U=5c56dee8545a5a555e052ecd50aa0e3ca9334a3b
+S=/private/tmp/claude-501/-Users-mke-git-ish-AOK/7b3fb99e-2b30-444a-9291-e34744be360f/scratchpad/up/a10x
+SV=/Users/mke/git/aok-vm/aok/app/start-vm.sh
+tag=$1; app=$2
+cd $S
+[ "$3" = bat-only ] || echo "$(date +%T) $tag: install $(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Info.plist") ($(stat -f %Sm "$app/AOK VM"))"
+[ "$3" = bat-only ] || xcrun devicectl device install app --device $U "$app" 2>&1 | grep -E 'ERROR|error' | cut -c1-140
+shot() { xcrun devicectl device capture screenshot --device $U --destination "$S/$1.png" > /dev/null 2>&1; }
+ue() {  # NAME ENV
+    AOKVM_ENV=$2 bash $SV $U "AOK UE Test" > /dev/null 2>&1
+    r=; for i in $(seq 1 16); do sleep 20; shot $1; r=$(./ocr $1.png | grep -E 'UETEST|engine' | tr '\n' ' '); echo "$r" | grep -q UETEST && break; done
+    echo "$(date +%T) $tag UE $1 [${2:-gadgets on}]: ${r:-nothing after $((i*20)) s}"
+}
+ip() { for a in 169.254.114.85 100.94.156.7; do nc -z -w 2 $a 4455 > /dev/null 2>&1 && { echo $a; return; }; done; }   # bip: the cable, then Tailscale
+mon() { ( for c in "$@"; do printf '%s\n' "$c"; sleep 1; done; sleep 1 ) | nc -w 4 $IP 4455 | tr -d '\r' | sed 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
+count() { mon 'xp /1wx 0x3000000' | grep -a '^0*3000000:' | tail -1 | cut -d: -f2 | tr -d ' '; }
+nip() { mon 'info registers' | grep -a '^NIP' | tail -1 | awk '{print $2}'; }
+bat() {
+    bash $SV $U "AOK BAT Reset" > /dev/null 2>&1
+    IP=; for i in $(seq 1 20); do sleep 5; IP=$(ip); [ -n "$IP" ] && break; done
+    [ -n "$IP" ] || { echo "$tag BAT: no monitor at the iPad's addresses"; shot $tag-bat; return; }
+    c=; for i in $(seq 1 18); do c=$(count); [ "$c" = 0x00000001 ] && break; sleep 5; done
+    echo "$(date +%T) $tag BAT: monitor at $IP; kernel starts before the reset: $c (NIP $(nip))"
+    shot $tag-bat-1
+    mon system_reset > /dev/null
+    c=; for i in $(seq 1 18); do sleep 5; c=$(count); [ "$c" = 0x00000002 ] && break; done
+    echo "$(date +%T) $tag BAT: $((i*5)) s after the reset: $c (NIP $(nip))"
+    shot $tag-bat-2
+    echo "  screen: $(./ocr $tag-bat-2.png | grep -c 'OpenBIOS 1') OpenBIOS banners"
+}
+if [ "$3" != bat-only ]; then
+    ue $tag-ue-off '"QEMU_AOK":"0"'
+    [ "$3" = both ] && ue $tag-ue-on ''
+fi
+bat
+echo "FIX-DONE $tag"
+
+===== dev-round.sh
+#!/bin/bash
+# dev-round.sh -- on the A10X, with the app under test installed: every engine's machine boots (a screenshot and
+# the machine's log each), then a suspend through the background and a restore on two machines with a disk.
+U=5c56dee8545a5a555e052ecd50aa0e3ca9334a3b
+S=/private/tmp/claude-501/-Users-mke-git-ish-AOK/7b3fb99e-2b30-444a-9291-e34744be360f/scratchpad/up/a10x
+A=/Users/mke/git/aok-vm/aok; SV=$A/app/start-vm.sh; B=app.ish.aok.vm
+cd $S
+shot() { xcrun devicectl device capture screenshot --device $U --destination "$S/$1.png" > /dev/null 2>&1; }
+pull() { rm -f "$3"; xcrun devicectl device copy from --device $U --domain-type appDataContainer --domain-identifier $B --source "Documents/$1.utm/$2" --destination "$3" > /dev/null 2>&1; }
+for pair in "Alpine 3.24.2 (aarch64):a64:90" "ReactOS:ros:120" "AOK x86-64 Default:x64:120" "AOK RISC-V Console:rv:120" "AOK PowerPC Check:ppc:150" "AOK 68k Console:m68k:120"; do
+    m=${pair%%:*}; r=${pair#*:}; t=${r%%:*}; w=${r#*:}
+    bash $SV $U "$m" > /dev/null 2>&1; sleep $w; shot round-$t
+    pull "$m" Data/debug.log round-$t.log
+    echo "$(date +%T) == $m: $(wc -l < round-$t.log 2>/dev/null | tr -d ' ') log lines; errors: $(grep -aiE 'abort|assert|fatal|segv|panic|Guest crashed|Error:' round-$t.log 2>/dev/null | grep -av 'Could not connect' | head -2 | cut -c1-120 | tr '\n' ' ')"
+    echo "    screen: $(./ocr round-$t.png | grep -aE 'RESULT|STRESS|checks wrong|BENCH-END|login|engine|ReactOS|Start' | tail -4 | cut -c1-110 | tr '\n' '|')"
+done
+susp() { pull "$1" snapshots.plist sn.plist; /usr/libexec/PlistBuddy -c 'Print :SuspendIdentifier' sn.plist 2>/dev/null; }
+launch() { xcrun devicectl device process launch --device $U --terminate-existing --environment-variables "{\"AOKVM_START\":\"$1\"}" $B -- -AutosaveBackground YES > /dev/null 2>&1; }
+cycle() {   # MACHINE TAG BOOT-SECONDS
+    launch "$1"; sleep $3; shot cyc-$2-1running
+    bash $A/ios-app/keep-awake.sh $U 3600 > /dev/null 2>&1      # the app to the background: it saves the machine
+    id=; for i in $(seq 1 30); do sleep 4; id=$(susp "$1"); [ -n "$id" ] && break; done
+    echo "$(date +%T) cycle $2 ($1): suspended as [$id] after $((i*4)) s"
+    sleep 4; bash $SV $U --stop > /dev/null 2>&1; sleep 3
+    launch "$1"; sleep 8; shot cyc-$2-2restored8; sleep 20; shot cyc-$2-3restored28
+    echo "$(date +%T) cycle $2: after the relaunch the state is [$(susp "$1")] (empty: used)"
+    pull "$1" Data/debug.log cyc-$2.log
+    echo "    log: snapshot-load $(grep -a 'execute = "snapshot-load"' cyc-$2.log 2>/dev/null | grep -avc QEMULogging), errors: $(grep -aiE 'error|Timed out' cyc-$2.log 2>/dev/null | grep -av 'Could not connect' | head -2 | cut -c1-120 | tr '\n' ' ')"
+}
+cycle "x64 CPU Test" x64 110
+cycle "Alpine 3.24.2 (aarch64)" a64 110
+bash $SV $U --stop 2>&1 | head -1
+bash $A/ios-app/keep-awake.sh $U 86400 > /dev/null 2>&1
+rm -rf crash; mkdir -p crash; idevicecrashreport -k -u $U crash > /dev/null 2>&1
+echo "new reports today: $(find crash -type f \( -name 'AOK*' -o -name 'JetsamEvent*' -o -name 'forceReset*' \) -newermt '2026-11-27 12:00' | sed 's|.*/||' | tr '\n' ' ')"
+echo "battery $(ideviceinfo -u $U -q com.apple.mobile.battery -k BatteryCurrentCapacity 2>/dev/null)"
+echo ROUND-DONE
+
+===== os9-setup.sh
+#!/bin/bash
+# on MBP5: Mac OS 9's CD and disk image (archive.org item mac-os9, each in a directory of its own), and the
+# PowerPC QEMU with a display (pixman, so that there is a VGA card and screendump) from the engine before the
+# BAT fix (6e0ad2a177) and with it (src-aok's HEAD).
+export PATH=/opt/homebrew/bin:$PATH
+W=$HOME/aok-vm-bench; M=$W/macos9; mkdir -p $M/iso $M/img; cd $W
+( cd $M/iso && curl -sSL -C - -O https://archive.org/download/mac-os9/MacOS9.iso; echo "iso rc=$? $(ls -la MacOS9.iso | awk '{print $5}')" ) > $M/dl-iso.log 2>&1 &
+( cd $M/img && curl -sSL -C - -O https://archive.org/download/mac-os9/MacOS9.img; echo "img rc=$? $(ls -la MacOS9.img | awk '{print $5}')" ) > $M/dl-img.log 2>&1 &
+[ -d src-os9-old ] || git -C src-aok worktree add --detach ../src-os9-old 6e0ad2a177 > /dev/null 2>&1
+C="--target-list=ppc-softmmu --without-default-features --enable-fdt=internal --enable-tcg --disable-werror --disable-docs --enable-tcg-threaded-interpreter --enable-aok-gadgets --enable-pixman"
+for p in old:src-os9-old new:src-aok; do b=build-os9-${p%%:*}; s=${p#*:}
+    ( mkdir -p $b && cd $b && { [ -f build.ninja ] || ../$s/configure $C > configure.out 2>&1; } && ninja qemu-system-ppc-unsigned > ninja.out 2>&1 && echo "BUILD-OK $b $(git -C ../$s log -1 --format=%h) $(grep -c 'define CONFIG_PIXMAN' config-host.h)" || echo "BUILD-FAILED $b" ) &
+done
+wait
+cat $M/dl-iso.log $M/dl-img.log
+echo OS9-SETUP-DONE
+
+===== os9-run.sh
+#!/bin/bash
+# on MBP5: os9-run.sh TAG old|new BOOT-SECONDS HOW -- Mac OS 9 from its CD on mac99, a picture every 30 s; once
+# BOOT-SECONDS have passed, a restart (HOW: reset = the monitor's system_reset; power = the Power key and R, which
+# is Mac OS's own Restart from the keyboard), then pictures for BOOT-SECONDS more. Pictures: macos9/shots/TAG-NNN.png
+export PATH=/opt/homebrew/bin:$PATH
+W=$HOME/aok-vm-bench; M=$W/macos9; tag=$1; bin=$W/build-os9-$2/qemu-system-ppc-unsigned; boot=$3; how=${4:-reset}
+mkdir -p $M/shots; cd $M; rm -f mon-$tag.sock shots/$tag-*.png shots/$tag-*.ppm ser-$tag.log
+$bin -M mac99 -m 512 -L $W/src-aok/pc-bios -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on \
+    -display none -serial file:ser-$tag.log -monitor unix:mon-$tag.sock,server=on,wait=off < /dev/null > qemu-$tag.log 2>&1 &
+q=$!
+mon() { ( for c in "$@"; do printf '%s\n' "$c"; sleep 0.5; done; sleep 0.5 ) | nc -U mon-$tag.sock > /dev/null 2>&1; }
+shot() { mon "screendump $M/shots/$tag-$1.ppm"; sips -s format png shots/$tag-$1.ppm --out shots/$tag-$1.png > /dev/null 2>&1; echo "$1 $(md5 -q shots/$tag-$1.ppm 2>/dev/null | cut -c1-8) $(python3 -I -c "
+import sys
+d=open(sys.argv[1],'rb').read(); b=d.split(b'\n',3)[3] if d[:2]==b'P6' else b''
+print('black' if b and max(b)==0 else 'picture', len(set(b[::997])))" shots/$tag-$1.ppm 2>/dev/null)"; rm -f shots/$tag-$1.ppm; }
+n=0; t=0
+while [ $t -lt $boot ]; do sleep 30; t=$((t+30)); n=$((n+1)); l=$(shot $(printf '%03d' $n)); echo "$tag t=$t before: $l"; done
+case $how in
+    reset) mon system_reset; echo "$tag: system_reset" ;;
+    power)  # the Power key until its dialog is on the screen, then R for Restart. The key is not reliable here on
+            # either engine (it may select an icon or do nothing, and a second press may close the dialog); the
+            # dialog dims the menu bar, which leaves the picture with fewer colours (56 or 57 against 59 or more).
+        d=
+        for try in 1 2 3 4 5 6 7 8 9 10; do
+            mon 'sendkey power'; sleep 6; n=$((n+1)); d=$(shot $(printf '%03d' $n)); echo "$tag dialog, try $try: $d"
+            [ "$(echo "$d" | awk '{print $4}')" -lt 58 ] && break
+        done
+        mon 'sendkey r'; echo "$tag: Power key ($try), then R" ;;
+    probe)  # the Power key three times, a picture after each, and no restart
+        for try in 1 2 3; do mon 'sendkey power'; sleep 6; n=$((n+1)); echo "$tag power key $try: $(shot $(printf '%03d' $n))"; done
+        boot=0 ;;
+esac
+t=0
+while [ $t -lt $boot ]; do sleep 30; t=$((t+30)); n=$((n+1)); echo "$tag t=$t after: $(shot $(printf '%03d' $n))"; done
+echo "$tag: OpenBIOS banners on the serial line: $(grep -ac 'OpenBIOS 1' ser-$tag.log)"
+mon quit; sleep 1; kill $q 2>/dev/null
+echo "OS9-RUN-DONE $tag"
+
+===== os9-all.sh
+#!/bin/bash
+# on MBP5: the four Mac OS 9 restart runs at once
+cd ~/aok-vm-bench/macos9
+for r in "old-reset old reset" "new-reset new reset" "old-power old power" "new-power new power"; do
+    set -- $r
+    nohup bash ~/aok-vm-bench/os9-run.sh $1 $2 150 $3 > run-$1.log 2>&1 &
+done
+wait
+echo OS9-ALL-DONE
+
+===== os9-power.sh
+#!/bin/bash
+# on MBP5: Mac OS 9's own Restart (the Power key's dialog, then R), on the engine with the fix three times
+cd ~/aok-vm-bench/macos9
+for t in new-power new-power2 new-power3; do nohup bash ~/aok-vm-bench/os9-run.sh $t new 150 power > run-$t.log 2>&1 & done
+wait; echo OS9-POWER-DONE
+
+===== os9-probe.sh
+#!/bin/bash
+# on MBP5: does the Power key bring up Mac OS 9's dialog? Three machines on each engine at once.
+cd ~/aok-vm-bench/macos9
+for i in 1 2 3; do for e in old new; do nohup bash ~/aok-vm-bench/os9-run.sh probe-$e$i $e 150 probe > run-probe-$e$i.log 2>&1 & done; done
+wait; echo OS9-PROBE-DONE
+
+===== os9-utm.sh
+#!/bin/bash
+# on MBP5: os9-utm.sh TAG old|new [EXTRA...] -- Mac OS 9 from its CD with the devices AOK VM gives a mac99 machine
+# (its command line from the A10X's debug.log, without spice and QMP): a picture and the CPU's place every 30 s.
+export PATH=/opt/homebrew/bin:$PATH
+W=$HOME/aok-vm-bench; M=$W/macos9; tag=$1; bin=$W/build-os9-$2/qemu-system-ppc-unsigned; shift 2
+N=$W/engines/UTM/sysroot-ios-tci-arm64/share/qemu/ppc-ndrvloader
+cd $M; rm -f mon-$tag.sock shots/$tag-*.png
+$bin -L $W/src-aok/pc-bios -nodefaults -vga none -nic none -device VGA,edid=on -smp cpus=1,sockets=1,cores=1,threads=1 \
+    -machine mac99,via=pmu -accel tcg,tb-size=128 -device loader,addr=0x4000000,file=$N -prom-env "boot-command=init-program go" \
+    -m 512 -audio none -device virtio-tablet-pci -device ide-cd,bus=ide.0,unit=0,drive=cd0,bootindex=0 \
+    -drive "if=none,media=cdrom,id=cd0,file.filename=$M/iso/MacOS9.iso,file.locking=off,readonly=on" "$@" \
+    -display none -serial file:ser-$tag.log -monitor unix:mon-$tag.sock,server=on,wait=off < /dev/null > qemu-$tag.log 2>&1 &
+q=$!
+mon() { ( for c in "$@"; do printf '%s\n' "$c"; sleep 0.5; done; sleep 0.5 ) | nc -U mon-$tag.sock 2>/dev/null | tr -d '\r'; }
+for n in 1 2 3 4 5 6; do sleep 30
+    mon "screendump $M/shots/$tag-$n.ppm" > /dev/null; sips -s format png shots/$tag-$n.ppm --out shots/$tag-$n.png > /dev/null 2>&1
+    echo "$tag t=$((n*30)): $(md5 -q shots/$tag-$n.ppm | cut -c1-8) NIP $(mon 'info registers' | grep -a '^NIP' | awk '{print $2}')"; rm -f shots/$tag-$n.ppm
+done
+head -3 qemu-$tag.log | cut -c1-200
+mon quit > /dev/null; sleep 1; kill $q 2>/dev/null
+echo "OS9-UTM-DONE $tag"
+
+===== os9-args.sh
+#!/bin/bash
+# on MBP5: which of the devices AOK VM gives a mac99 machine stops Mac OS 9's CD from starting? The app's set with
+# one thing changed a run, all at once, on the engine with the fixes: a picture's hash and the CPU's place at 60,
+# 120 and 180 s. Started: the picture is no longer OpenBIOS's text (8e1be30e) and the CPU is not at 68067exx.
+export PATH=/opt/homebrew/bin:$PATH
+W=$HOME/aok-vm-bench; M=$W/macos9; bin=$W/build-os9-new/qemu-system-ppc-unsigned; cd $M
+N=$W/engines/UTM/sysroot-ios-tci-arm64/share/qemu/ppc-ndrvloader
+CD=(-device ide-cd,bus=ide.0,unit=0,drive=cd0,bootindex=0 -drive "if=none,media=cdrom,id=cd0,file.filename=$M/iso/MacOS9.iso,file.locking=off,readonly=on")
+LD=(-device loader,addr=0x4000000,file=$N -prom-env "boot-command=init-program go")
+B=(-L $W/src-aok/pc-bios -smp 1 -accel tcg,tb-size=128 -m 512 -audio none)
+run() {  # TAG ARGS...
+    tag=$1; shift; rm -f mon-$tag.sock
+    $bin "${B[@]}" "$@" -display none -serial file:ser-$tag.log -monitor unix:mon-$tag.sock,server=on,wait=off < /dev/null > qemu-$tag.log 2>&1 &
+    q=$!
+    mon() { ( for c in "$@"; do printf '%s\n' "$c"; sleep 0.5; done; sleep 0.5 ) | nc -U mon-$tag.sock 2>/dev/null | tr -d '\r'; }
+    r=
+    for n in 1 2 3; do sleep 60; mon "screendump $M/shots/$tag-$n.ppm" > /dev/null
+        r="$r $(md5 -q shots/$tag-$n.ppm 2>/dev/null | cut -c1-8)/$(mon 'info registers' | grep -a '^NIP' | awk '{print $2}')"
+        [ $n = 3 ] && sips -s format png shots/$tag-$n.ppm --out shots/$tag-$n.png > /dev/null 2>&1; rm -f shots/$tag-$n.ppm; done
+    echo "$tag:$r  $(head -1 qemu-$tag.log | cut -c1-90)"
+    mon quit > /dev/null; sleep 1; kill $q 2>/dev/null
+}
+run a-app        -nodefaults -vga none -nic none -device VGA,edid=on -machine mac99,via=pmu "${LD[@]}" -device virtio-tablet-pci "${CD[@]}" &
+run b-cuda       -nodefaults -vga none -nic none -device VGA,edid=on -machine mac99          "${LD[@]}" -device virtio-tablet-pci "${CD[@]}" &
+run c-noloader   -nodefaults -vga none -nic none -device VGA,edid=on -machine mac99,via=pmu             -device virtio-tablet-pci "${CD[@]}" &
+run d-notablet   -nodefaults -vga none -nic none -device VGA,edid=on -machine mac99,via=pmu "${LD[@]}"                            "${CD[@]}" &
+run e-noedid     -nodefaults -vga none -nic none -device VGA         -machine mac99,via=pmu "${LD[@]}" -device virtio-tablet-pci "${CD[@]}" &
+run f-defaults   -machine mac99,via=pmu "${LD[@]}" -device virtio-tablet-pci -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on &
+run g-plain-pmu  -machine mac99,via=pmu -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on &
+run h-plain      -machine mac99 -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on &
+wait
+echo OS9-ARGS-DONE
+
+===== os9-tb.sh
+#!/bin/bash
+# on MBP5: os9-tb.sh [old|new] -- is it the translation cache's size? Mac OS 9's CD on the plain mac99 machine,
+# four times each: the default cache, -accel tcg,tb-size=128 (what AOK VM passes), and that with QEMU_AOK=0.
+# Booted: the CPU is in Mac OS (00xxxxxx) at 120 and 180 s and the picture has changed between them or from 60 s.
+export PATH=/opt/homebrew/bin:$PATH
+W=$HOME/aok-vm-bench; M=$W/macos9; bin=$W/build-os9-${1:-new}/qemu-system-ppc-unsigned; cd $M
+run() {  # TAG AOK ARGS...
+    tag=$1; aok=$2; shift 2; rm -f mon-$tag.sock
+    QEMU_AOK=$aok $bin -L $W/src-aok/pc-bios -M mac99 -m 512 -boot d -drive file=$M/iso/MacOS9.iso,format=raw,media=cdrom,readonly=on "$@" \
+        -display none -serial file:ser-$tag.log -monitor unix:mon-$tag.sock,server=on,wait=off < /dev/null > qemu-$tag.log 2>&1 &
+    q=$!
+    mon() { ( for c in "$@"; do printf '%s\n' "$c"; sleep 0.5; done; sleep 0.5 ) | nc -U mon-$tag.sock 2>/dev/null | tr -d '\r'; }
+    r=
+    for n in 1 2 3; do sleep 60; mon "screendump $M/shots/$tag-$n.ppm" > /dev/null
+        r="$r $(md5 -q shots/$tag-$n.ppm 2>/dev/null | cut -c1-8)/$(mon 'info registers' | grep -a '^NIP' | awk '{print $2}')"; rm -f shots/$tag-$n.ppm; done
+    echo "$tag:$r"
+    mon quit > /dev/null; sleep 1; kill $q 2>/dev/null
+}
+for i in 1 2 3 4; do
+    run default-$i 1 &
+    run tb128-$i 1 -accel tcg,tb-size=128 &
+    run tb128-aok0-$i 0 -accel tcg,tb-size=128 &
+done
+wait
+echo OS9-TB-DONE
+
