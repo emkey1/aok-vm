@@ -13,10 +13,10 @@
     {
       "identity" : "cocoaspice",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/emkey1/CocoaSpice.git",
+      "location" : "https://github.com/utmapp/CocoaSpice.git",
       "state" : {
-        "branch" : "aok-vm",
-        "revision" : "dbe9036f88a5e04616753f794cd92498dec99c05"
+        "branch" : "main",
+        "revision" : "e239fab0828ebafc3a5a973fa84039400d7ac703"
       }
     },
     {
@@ -61,7 +61,7 @@
       "location" : "https://github.com/utmapp/QEMUKit.git",
       "state" : {
         "branch" : "main",
-        "revision" : "e8e9e877619d0c68db07ae582f7cfe39063cbcca"
+        "revision" : "0a62428bba7b246d36a4852cddc4d5c79d98fafb"
       }
     },
     {
