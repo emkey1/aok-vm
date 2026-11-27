@@ -79,3 +79,42 @@ was put in it since the last one.
 The user's order of work (2026-11-27): the redundant jump-cache flushes; then PowerPC
 floating point on the host's FPU as gadgets; then more PowerPC gadgets for memory work (the
 front end has 220 against about 2000 for the other guests).
+
+### 2: the jump-cache flushes were not redundant
+
+A flag that skips a flush of a jump cache nothing was put into passed every gate and changed
+nothing: counted over a boot and one Xbench run, 1305771 flushes found TBs in the cache and
+67 found it clean. (The change was dropped, engine commit never pushed.) What flushes: 160520
+`tlbie`, but 8.9 million writes that changed a segment register, and 1.17 million whole-TLB
+flushes at the sync points after them, about 4300 a second. Mac OS X gives the kernel an
+address space of its own, so it loads other segment registers on the way in and out of the
+kernel, and QEMU's PowerPC target flushes the TLB (and so the jump cache) each time, where
+the real machine's TLB is tagged by VSID and keeps its entries.
+
+A simulation in the engine (diag2.py, with the FP kit): at each such flush, were the sixteen
+segment registers a set seen since the last flush a `tlbie` asked for? Of 1166508 flushes,
+40833 had a `tlbie` pending; of the rest the set was the 2nd most recent 332463 times, the
+3rd or 4th 705215, 5th to 8th 29846, 9th to 16th 2475, and new 55676. Keeping four TLB
+contexts, keyed by the segment registers, would spare 89% of the flushes.
+
+### 1: PowerPC floating point (engine 27e0e02bb2)
+
+Single-precision gadgets alone did not move the score: 43 million FP insns in the run still
+went to C, because the fast paths gave up on zero operands in fused multiply-adds (14.2
+million), on NaN or infinite operands in single ops (6.3 million each of `fadds`, `fmuls`,
+`fmadds`: a loop that runs on NaNs) and on tiny products. With those finished in the
+gadgets too, 87 thousand go to C. Side by side on MBP5 (xb-auto.sh, same disk, same moment;
+absolute scores move with the host's load, so only a pair compares):
+
+| | before | with the FP gadgets |
+|---|---|---|
+| CPU test | 12.48 | 16.42 |
+| GCD loop | 401.78 | 395.65 |
+| Floating Point Basic | 6.26 | 26.53 |
+| AltiVec Basic | 457.92 | 910.90 |
+| vecLib FFT | 4.84 | 4.18 |
+| Floating Point Library | 33.67 | 42.06 |
+| Thread test | 58.60 | 58.01 |
+| Memory test | 29.64 | 29.67 |
+
+The gate and its controls: `../../bench-pm/fp/README.md`.
