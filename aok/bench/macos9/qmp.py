@@ -6,7 +6,8 @@ and pictures. Positions are in the screen's own pixels (W x H below).
 """
 import json, socket, sys, time
 W, H = 640, 480
-KEYS = {' ': 'spc', '.': 'dot', '-': 'minus', '/': 'slash', ',': 'comma', '\n': 'ret'}
+KEYS = {' ': 'spc', '.': 'dot', '-': 'minus', '/': 'slash', ',': 'comma', '\n': 'ret', ':': 'shift-semicolon',
+        '_': 'shift-minus', '~': 'shift-grave_accent', '=': 'equal', ';': 'semicolon', '*': 'shift-8', '"': 'shift-apostrophe'}
 class Q:
     def __init__(self, path):
         if ':' in path and '/' not in path:      # HOST:PORT, a machine with -qmp tcp:...
