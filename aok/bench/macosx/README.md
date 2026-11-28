@@ -170,7 +170,12 @@ disk, and saved it in the guest as `benchmark2`. Read from a screenshot of the d
 | Memory test | 101.66 | 130.6 |
 | System | 72.40 (allocate 30.12, fill 225.25, copy 263.29) | (41, 254 to 264, 284 to 372) |
 | Stream | 170.60 (copy 186.71, scale 154.72, add 186.12, triad 159.88) | about 202 |
-| Quartz Graphics | 18.31 (line 20.19) | 23.6 |
+| Quartz Graphics | 18.31 (line 20.19, rectangle 11.61, circle 16.42, bezier 29.96, text 23.19) | 23.6 |
+| OpenGL Graphics | 14.75 (spinning squares, 18.71 frames/s) | |
+| User Interface | 7.36 (elements, 33.77 refreshes/s) | |
+| Disk test | 82.28 | |
+| Sequential | 49.30 (uncached write 22.10 at 4K, 431.63 at 256K; read 31.59, 522.37) | |
+| Random | 248.43 (uncached write 75.47 at 4K, 732.57 at 256K; read 1251.81, 1456.02) | |
 
 The iPad comes out at about four fifths of MBP5 line for line. There is no run of the old
 engine on the iPad to set beside it: the first run was not saved (nothing of it is on the
