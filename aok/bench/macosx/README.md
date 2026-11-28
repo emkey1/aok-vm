@@ -247,6 +247,13 @@ disk, and saved it in the guest as `benchmark2`. Read from a screenshot of the d
 | Stream | 170.60 (186.71, 154.72, 186.12, 159.88) | 175.36 (187.63, 154.52, 186.22, 177.33) |
 | Quartz Graphics | 18.31 (line 20.19) | 19.83 (line 22.16) |
 
+Two more runs of the user's on the same iPad: a second with engine dd744be8ea (CPU 46.50, GCD
+loop 287.28, AltiVec Basic 859.43, vecLib FFT 31.25, System Copy 299.46, Quartz 19.59), and
+one with engine 61cda07b7b (CPU 47.58, GCD loop 361.52, Floating Point Basic 23.01, AltiVec
+Basic 789.51, vecLib FFT 31.00, Floating Point Library 39.45, thread 52.59, memory 102.52,
+System Copy 245.28, Quartz 19.97). So the GCD loop read 357, 284, 287 and 362 over four runs,
+the last three all with the AltiVec gadgets: the spread of the line, as on MBP5, and no loss.
+
 One run of each, not at the same time. vecLib FFT and the CPU score moved as on MBP5. Three
 lines read lower, AltiVec Basic by half, GCD loop by a fifth and System Copy by a quarter,
 where MBP5's side-by-side pair had them level (918 against 927, 399 against 421): not
