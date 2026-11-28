@@ -83,6 +83,12 @@ timcook@m4pt` from the Air (Tailscale) answers. The A10X could not be reached by
 that day (Wi-Fi "host is down", Tailscale timing out) and its cable link had only IPv6, which
 QEMU's `hostfwd` does not listen on; its debug.log has `hostfwd=tcp::2222-:22`.
 
+Tiger's ncurses (5.4) has no `xterm-256color`, which a Mac's Terminal sends as TERM, so `top`
+over ssh said "Error opening terminal". Fixed on the M4's guest 2026-11-28 by compiling
+tigersrc's description with Tiger's own `tic` into the system database: `/usr/pkg/bin/infocmp
+xterm-256color > x.ti; sudo /usr/bin/tic -o /usr/share/terminfo x.ti`. Not yet in
+tiger-final5 or on the A10X (unreachable that day).
+
 A saving trap met here: osx-run.sh runs a machine on an overlay (`run/TAG.qcow2`), so
 changes made in it are not in the image it was started from until that overlay is committed;
 a disk once renamed under a live overlay was kept without them.
