@@ -19,7 +19,7 @@ clean() { tr -d '\r' | sed 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
 for v in $V; do
     [ -x $T/q/qemu-$v ] || continue
     for a in 1 0; do
-        ( sleep 4; echo 'xp /28wx 0x3000'; sleep 1; echo quit ) | QEMU_AOK=$a $T/q/qemu-$v -L $W/src-aok/pc-bios -M mac99 -m 128 -bios $T/ctxtest.bin -display none -serial none -monitor stdio 2>&1 | clean | python3 -I $T/ctxcheck.py "$v aok=$a"
+        ( sleep 4; echo 'xp /36wx 0x3000'; sleep 1; echo quit ) | QEMU_AOK=$a $T/q/qemu-$v -L $W/src-aok/pc-bios -M mac99 -m 128 -bios $T/ctxtest.bin -display none -serial none -monitor stdio 2>&1 | clean | python3 -I $T/ctxcheck.py "$v aok=$a"
     done
 done
 echo CTX-CONTROLS-DONE

@@ -30,6 +30,6 @@ done
 clean() { tr -d '\r' | sed 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
 for v in $VC; do
     [ -x $T/q/qemu-$v ] || continue
-    ( sleep 4; echo 'xp /28wx 0x3000'; sleep 1; echo quit ) | QEMU_AOK=1 $T/q/qemu-$v -L $W/src-aok/pc-bios -M mac99 -m 128 -bios $W/ctx/ctxtest.bin -display none -serial none -monitor stdio 2>&1 | clean | python3 -I $W/ctx/ctxcheck.py "$v"
+    ( sleep 4; echo 'xp /36wx 0x3000'; sleep 1; echo quit ) | QEMU_AOK=1 $T/q/qemu-$v -L $W/src-aok/pc-bios -M mac99 -m 128 -bios $W/ctx/ctxtest.bin -display none -serial none -monitor stdio 2>&1 | clean | python3 -I $W/ctx/ctxcheck.py "$v"
 done
 echo I3-CONTROLS-DONE

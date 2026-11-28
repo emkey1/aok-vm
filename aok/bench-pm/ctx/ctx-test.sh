@@ -6,7 +6,7 @@ W=$HOME/aok-vm-bench; T=$W/ctx; cd $T
 clean() { tr -d '\r' | sed 's/\x1b\[[0-9;]*[A-Za-z]//g'; }
 one() {  # label binary env...
     l=$1; q=$2; shift 2
-    out=$( ( sleep ${WAIT:-4}; echo 'xp /28wx 0x3000'; sleep 1; echo quit ) |
+    out=$( ( sleep ${WAIT:-4}; echo 'xp /36wx 0x3000'; sleep 1; echo quit ) |
            env QEMU_AOK_STATS=1 "$@" $q -M mac99 -m 128 -bios $T/ctxtest.bin -display none -serial none -monitor stdio 2>&1 | clean )
     echo "$out" | python3 -I $T/ctxcheck.py "$l"
     echo "$out" | grep -a 'tlb contexts' | sed 's/^/    /'

@@ -180,6 +180,33 @@ times where it was 6.6 million; half of what is left is `sc` and a third the dec
 arithmetic it counts (not looked into).
 The test and its 38 controls: `../../bench-pm/av/README.md`.
 
+**The GCD loop line, alone and in turn** (`../../bench-pm/av/gcd-ab.sh`; the user's M4 iPad read
+it a fifth lower with the AltiVec gadgets, twice, against one run without). On MBP5, each
+machine by itself, the engine before and with the gadgets alternately:
+
+| | before | with the AltiVec gadgets |
+|---|---|---|
+| GCD loop | 424.38, 347.25 | 418.63, 450.60 |
+| CPU test | 18.08, 18.28 | 62.52, 61.66 |
+| vecLib FFT | 4.58, 4.64 | 49.36, 53.78 |
+| AltiVec Basic | 512.34, 951.54 | 916.03, 969.47 |
+| Floating Point Basic | 32.18, 31.43 | 30.68, 26.98 |
+| Thread test, computation | 265.58, 256.05 | 126.83, 253.33 |
+
+No difference between the engines in the GCD loop; it moves by a quarter between runs of
+one engine (321 and 328 in the pair below, both engines with the gadgets). Why it moves
+that much is not known. AltiVec Basic and the thread test's computation each read half once.
+
+### 5: sc, the decrementer, tlbie, tlbsync, lswx (engine 61cda07b7b)
+
+What still began TCG's TBs after step 4. Side by side with the engine of step 4
+(`xb-auto.sh sa:sv sb:av`): CPU test 59.56 against 49.81 (vecLib FFT 50.47 against 27.63,
+which is that line's spread: 49 and 54 alone, above), GCD loop 321.23 against 328.34,
+Floating Point Basic 27.25 against 27.43, thread test 59.77 against 61.09, memory test 127.33
+against 129.99 (allocate 40.53 against 41.07). Nothing moved: Xbench's tests are loops of a
+user's code. TCG's code was entered 44,920 times in the run against 3,285,673.
+`../../bench-pm/sv/README.md`.
+
 ### On the M4 iPad Pro (2026-11-28, the user's run, the build with engine 818dd75848)
 
 The user ran Xbench in the app on their iPad, the machine "Mac OS X Tiger" with the corrected

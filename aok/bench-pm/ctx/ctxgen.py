@@ -3,7 +3,7 @@
 # (engine: tlb_context_switch(), target/ppc's check_tlb_flush()) where a stale translation would show. No
 # assembler, no OS. It builds a hashed page table in which one effective address means different pages under
 # different VSIDs, turns translation on, and walks segment register 4 through them. Each observation is a word
-# at 0x3000; ctxcheck.py reads them from the monitor's "xp /28wx 0x3000".
+# at 0x3000; ctxcheck.py reads them from the monitor's "xp /36wx 0x3000".
 #
 #   T1  res0-3    SR4 = V1, V2, V1, V2 (an isync after each): the word at EA_A is V1's page's, V2's, V1's, V2's.
 #   T4  res4-7    the same four with a call to code at EA_C: V1's code returns 1, V2's returns 2 (the jump cache
@@ -23,7 +23,11 @@
 #                 so one is given up and put to use again at every step of the first part.
 #   T7  res18-22  the supervisor's own insns, which are gadgets since 2026-11-28: mfmsr; SR4 = V1 by mtsrin and
 #                 read back by mfsr and by mfsrin; the word at EA_A after it; mfmsr after an mtmsr that sets RI.
-#   res23 "DONE" (or "FAIL", with the vector in res24, SRR0 in res25 and DAR in res26, on any exception).
+#   T8  res23-29  more of them, gadgets since 2026-11-28 (after AltiVec): the decrementer set to 0x7fffffff and
+#                 read (its top byte, 7f), and read again (it has gone down, by less than 2^24); sc, whose handler
+#                 at 0xc00 puts 0x5c in r21 and returns, to the insn after it, which adds one; lswx of seven
+#                 bytes into two registers, and stswx of them over ff bytes (the eighth stays ff).
+#   res30 "DONE" (or "FAIL", with the vector in res31, SRR0 in res32 and DAR in res33, on any exception).
 import struct, sys
 
 ROM, MAIN, FAIL, RES, HTAB = 0xfff00000, 0x2000, 0x1800, 0x3000, 0x100000
@@ -48,6 +52,11 @@ def mfsrin(rd, rb): return 0x7C000526 | rd << 21 | rb << 11
 def mfmsr(rd): return 0x7C0000A6 | rd << 21
 def mtmsr(rs): return 0x7C000124 | rs << 21
 def tlbie(rb): return 0x7C000264 | rb << 11
+def srwi(ra, rs, n): return 0x54000000 | rs << 21 | ra << 16 | (32 - n) << 11 | n << 6 | 31 << 1
+def subf(rd, ra, rb): return 0x7C000050 | rd << 21 | ra << 16 | rb << 11      # rb - ra
+def lswx(rd, ra, rb): return 0x7C00042A | rd << 21 | ra << 16 | rb << 11
+def stswx(rs, ra, rb): return 0x7C00052A | rs << 21 | ra << 16 | rb << 11
+TLBSYNC, SC, DEC, XER = 0x7C00046C, 0x44000002, 22, 1
 SPIN, ISYNC, SYNC, RFI, BCTRL, BLR = 0x48000000, 0x4C00012C, 0x7C0004AC, 0x4C000064, 0x4E800421, 0x4E800020
 SDR1, SRR0, SRR1, CTR, DAR = 25, 26, 27, 9, 19
 IBAT0U, IBAT0L, IBAT1U, IBAT1L, DBAT0U, DBAT0L, DBAT1U, DBAT1L = 528, 529, 530, 531, 536, 537, 538, 539
@@ -99,8 +108,9 @@ for k in range(NV):
 put(PC1, li(3, 1)); put(PC1 + 4, BLR)
 put(PC2, li(3, 2)); put(PC2 + 4, BLR)
 put(PX, li(3, 7)); put(PX + 4, BLR)
-for i in range(28):
+for i in range(36):
     put(RES + 4 * i, 0)
+put(P(8), 0x01020304); put(P(8) + 4, 0x05060708)
 # the MMU: the page table, a VSID of its own for every segment, and BATs for this code and for RAM
 m.extend(li32(3, HTAB) + [mtspr(SDR1, 3)])
 for n in range(16):
@@ -121,7 +131,7 @@ for v in (V1, V2, V1, V2):
     sr4(v); call(EA_C); res(3)
 # T2: V2 in use, V1's TLB set aside
 put(pte_v1_a + 4, P(3) | 0x180 | 2)
-m.extend(li32(6, EA_A) + [tlbie(6), SYNC, ISYNC])
+m.extend(li32(6, EA_A) + [tlbie(6), SYNC, TLBSYNC, SYNC, ISYNC])
 sr4(V1); rd(EA_A); res(7)
 # T3
 sr4(V2, sync=False); rd(EA_B); res(7)
@@ -148,6 +158,13 @@ m.append(mfsrin(7, 6)); res(7)
 rd(EA_A); res(7)
 m.extend([mfmsr(10), ori(11, 10, 2), mtmsr(11), mfmsr(7)]); res(7)
 m.append(mtmsr(10))
+# T8
+m.extend(li32(4, 0x7fffffff) + [li(7, 0), li(8, 0), mtspr(DEC, 4), mfspr(7, DEC), mfspr(8, DEC), srwi(10, 7, 24)]); res(10)
+m.extend([subf(10, 8, 7), srwi(10, 10, 24)]); res(10)
+m.extend([li(21, 0), SC, addi(21, 21, 1)]); res(21)
+m.extend(li32(6, P(8)) + [li(4, 7), mtspr(XER, 4), li(10, -1), li(11, -1), lswx(10, 0, 6)]); res(10); res(11)
+put(P(8) + 16, 0xffffffff); put(P(8) + 20, 0xffffffff)
+m.extend([li(5, 16), stswx(10, 5, 6), lwz(7, 16, 6), lwz(8, 20, 6)]); res(7); res(8)
 NDONE = nres
 m.extend(li32(4, 0x444f4e45)); res(4)
 m.append(SPIN)
@@ -161,9 +178,10 @@ def at(off, words):
 at(0x100, [b(MAIN - 0x100)])
 for v in range(0x200, 0x1800, 0x100):
     at(v, [li(31, v >> 8), b(FAIL - (v + 4))])
+at(0xc00, [li(21, 0x5c), RFI])      # the system call: back to the insn after the sc
 at(FAIL, fail)
 at(MAIN, m)
-assert nres == 24 and NDONE == 23 and len(rom) < 0x100000
+assert nres == 31 and NDONE == 30 and len(rom) < 0x100000
 out = sys.argv[1] if len(sys.argv) > 1 else 'ctxtest.bin'
 open(out, 'wb').write(rom)
 print(len(rom), 'bytes;', len(m), 'words of main;', nres, 'results')
