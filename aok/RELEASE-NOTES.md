@@ -1,4 +1,11 @@
-# AOK VM 1.0 (release candidate 6)
+# AOK VM 1.0 (release candidate 7)
+## New in build 14
+* **PowerPC Macs much faster**: on the gadget engine, floating point runs on the device's own FPU (single precision too), AltiVec's vector instructions run on its vector unit, and a Mac OS X kernel's switches between address spaces no longer throw away the memory map each time. Xbench 1.3 under Mac OS X 10.4, measured on a Mac with the old engine and the new one side by side: the CPU test from 12.5 to about 60 (Floating Point Basic 4 times, vecLib FFT 11 times), the Memory test from 30 to 130, Quartz graphics from 18 to 32. On an M4 iPad Pro the CPU test now reads 47 to 56.
+* **Two-processor Power Macs**: a Power Mac G4 (mac99) machine can have two CPUs, as a dual G4 does. Set its CPU cores to 2 (the machine needs its PMU, as the ready-made settings have); Mac OS X 10.4 starts the second CPU and runs both at once, each on a core of the device. Xbench's thread test ran 1.5 to 1.7 times faster with two, on a Mac; on an iPad the gain depends on how many of its cores are free (an iPad with two cores in all gains little). A Power Mac machine left at the default number of cores keeps one.
+* **Mac OS 9 starts, and sooner**: a Power Mac machine with USB support off waited for ever early in Mac OS 9's start; it keeps its USB controller now. Restart in Mac OS 9 ended on a black screen; it restarts. Mac OS 9.2.2's CD reaches the Finder in about 30 seconds on an A10X iPad Pro, where it took about 40.
+* **Fixes from UTM**: the app crashed at launch on iOS 15; selecting a machine whose settings could not be read crashed the app; one unreadable entry in the app's list of machines emptied the list.
+* **The engine has tctiSH's newest fixes**: a float result that rounds up to the smallest normal number now raises underflow as it should, and freeing translated code flushes the instruction cache.
+* **The Alpine machine's desktop after a reboot**: on the bundled Alpine machine, `desktop` worked only in the boot that `setup-wayland.sh` ran in. Run `aok-update` in the machine once to get the fix.
 ## New in build 13
 * **Saved machines come back**: a machine suspended by the app (by hand, or when the app goes to the background) restores where it was, in cases where it did not before:
   * ARM64 and RISC-V machines could not be restored at all: the saved state was refused ("the snapshot's vCPUs don't fit this machine") and forgotten.

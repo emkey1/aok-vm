@@ -490,6 +490,12 @@ import Virtualization // for getting network interfaces
         let hostPhysicalCpu = Int(Self.sysctlIntRead("hw.physicalcpu"))
         let hostLogicalCpu = Int(Self.sysctlIntRead("hw.logicalcpu"))
         let userCpu = system.cpuCount
+        // AOK VM: the Power Mac G4 (mac99) is one CPU or two, as a dual G4 is; one unless two are asked for,
+        // since a machine left at the default had to be one before the engine could start a second.
+        if isClassicMacNewWorld {
+            let n = min(max(userCpu, 1), 2)
+            return (n, n)
+        }
         if userCpu > 0 || hostPhysicalCpu == 0 {
             return (userCpu, userCpu) // user override
         }
