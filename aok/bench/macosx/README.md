@@ -152,3 +152,27 @@ is still TCG's: `../../bench-pm/i3/README.md`.
 
 `xb-auto.sh` now takes `TAG:ENGINE:VAR=VALUE` (one binary both ways), `XB_MODE=ui` (the Quartz
 and user interface tests) and `SAMPLE_AT`/`SAMPLE_FOR`.
+
+### On the M4 iPad Pro (2026-11-28, the user's run, the build with engine 818dd75848)
+
+The user ran Xbench in the app on their iPad, the machine "Mac OS X Tiger" with the corrected
+disk, and saved it in the guest as `benchmark2`. Read from a screenshot of the device:
+
+| | M4 iPad, in the app | MBP5, the same engine |
+|---|---|---|
+| CPU test | 14.97 | 17.9 |
+| GCD loop | 357.15 | 362 to 411 |
+| Floating Point Basic | 23.72 | about 27 |
+| AltiVec Basic | 864.14 | |
+| vecLib FFT | 3.81 | |
+| Floating Point Library | 38.99 | |
+| Thread test | 53.32 (computation 214.24, lock contention 30.45) | 62.4 |
+| Memory test | 101.66 | 130.6 |
+| System | 72.40 (allocate 30.12, fill 225.25, copy 263.29) | (41, 254 to 264, 284 to 372) |
+| Stream | 170.60 (copy 186.71, scale 154.72, add 186.12, triad 159.88) | about 202 |
+| Quartz Graphics | 18.31 (line 20.19) | 23.6 |
+
+The iPad comes out at about four fifths of MBP5 line for line. There is no run of the old
+engine on the iPad to set beside it: the first run was not saved (nothing of it is on the
+disk the iPad had). The CPU score is held where it is by vecLib FFT, 3.81 beside 357 and
+864: AltiVec arithmetic is still TCG's.
