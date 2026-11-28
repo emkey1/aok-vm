@@ -118,3 +118,37 @@ absolute scores move with the host's load, so only a pair compares):
 | Memory test | 29.64 | 29.67 |
 
 The gate and its controls: `../../bench-pm/fp/README.md`.
+
+### 2 again: a TLB context for each set of segment registers (engine 9d4b46d897)
+
+What the simulation promised, built: `tlb_context_switch()` sets the TLB and the jump cache
+aside under the sixteen segment registers and takes up the pair kept under the new ones. One
+binary, each machine alone: Memory test 30.8 to 38.3 (Allocate 15.2 to 33.2), Thread test 60.7
+to 62.6; side by side, Quartz Graphics 18.0 to 23.6. Test, controls, the table of runs and
+the two things the first numbers hid: `../../bench-pm/ctx/README.md`.
+
+### 3: the insns that sent streams to TCG (engine 818dd75848)
+
+Not more memory gadgets as first thought: the count of what TCG's TBs begin with said the
+streams were leaving for a dozen insns the front end did not have (dst, mtocrf, isync, lvx and
+stvx, mfmsr, mtsrin, mtmsr, icbi, dcbf under Mac OS X; addco, subfco and a conditional bcctr
+in Mac OS 9's 68k emulator), and each visit cost two passes of the main loop. With gadgets
+for them:
+
+| Xbench, machine alone | FP only (27e0e02bb2), side by side | + TLB contexts | + these gadgets |
+|---|---|---|---|
+| CPU test | 16.4 | 18.06, 17.25 | 18.07, 17.65 |
+| Thread test | 58.0 | 61.33, 63.96 | 63.16, 61.69 |
+| Memory test | 29.7 | 38.44, 38.18 | 132.54, 128.62 |
+| Allocate | 14.6 | 33.46, 32.93 | 41.55, 41.13 |
+| Fill | 22.5 | 24.12, 23.91 | 264.30, 254.32 |
+| Copy | 44.3 | 47.71, 48.09 | 371.52, 284.10 |
+| Stream | 45.0 | 47.04, 46.74 | 203.76, 201.56 |
+
+The main loop entered streams 115 million times and TCG's code 122 million over the run
+before, 24 and 6.7 million after. Mac OS 9: 208 and 203 million in ninety seconds before, 12
+and 7.7 after, and its desktop after about 30 s where it took about 50 (side by side). Test, controls and what
+is still TCG's: `../../bench-pm/i3/README.md`.
+
+`xb-auto.sh` now takes `TAG:ENGINE:VAR=VALUE` (one binary both ways), `XB_MODE=ui` (the Quartz
+and user interface tests) and `SAMPLE_AT`/`SAMPLE_FOR`.
