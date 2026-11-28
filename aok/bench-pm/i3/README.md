@@ -39,6 +39,9 @@ leaves such a TB whole to TCG (`tail_loops_back`; 309 TBs in the run).
 - `os9-try.sh ENGINE [SECONDS]`: Mac OS 9.2.2 from the test disk on a throwaway overlay, a
   picture every 30 s. `i3-build.sh`: the PowerPC-only build on MBP5.
 - `../fp/ppc-gates.sh BUILD`: the kit's transcripts, 166 lines identical.
+- `sim-os9.sh`, `os9-time.sh`: Mac OS 9's CD to the Finder in the Air's iPad simulator (22 s on
+  the new build) and on the A10X (as run from a session's scratch directory: the paths in them
+  are that session's; the A10X was locked when its turn came, so that one has not run).
 
 **Not done here, noticed:** the front end asks only the new gadgets whether the CPU has the
 insn (`insns_flags`); the older ones (fsqrt, the FP set, lwarx, dcbz, mftb) are translated for
