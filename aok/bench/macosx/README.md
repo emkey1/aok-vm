@@ -204,6 +204,28 @@ disk, and saved it in the guest as `benchmark2`. Read from a screenshot of the d
 | Sequential | 49.30 (uncached write 22.10 at 4K, 431.63 at 256K; read 31.59, 522.37) | |
 | Random | 248.43 (uncached write 75.47 at 4K, 732.57 at 256K; read 1251.81, 1456.02) | |
 
+**The same iPad with the AltiVec gadgets (engine dd744be8ea, the user's second run, 2026-11-28):**
+
+| | engine 818dd75848 | engine dd744be8ea |
+|---|---|---|
+| CPU test | 14.97 | 56.19 |
+| GCD loop | 357.15 | 283.53 |
+| Floating Point Basic | 23.72 | 26.95 |
+| AltiVec Basic | 864.14 | 458.83 |
+| vecLib FFT | 3.81 | 48.27 |
+| Floating Point Library | 38.99 | 39.26 |
+| Thread test | 53.32 (214.24, 30.45) | 51.90 (221.18, 29.40) |
+| Memory test | 101.66 | 100.48 |
+| System | 72.40 (30.12, 225.25, 263.29) | 70.41 (30.40, 224.46, 190.17) |
+| Stream | 170.60 (186.71, 154.72, 186.12, 159.88) | 175.36 (187.63, 154.52, 186.22, 177.33) |
+| Quartz Graphics | 18.31 (line 20.19) | 19.83 (line 22.16) |
+
+One run of each, not at the same time. vecLib FFT and the CPU score moved as on MBP5. Three
+lines read lower, AltiVec Basic by half, GCD loop by a fifth and System Copy by a quarter,
+where MBP5's side-by-side pair had them level (918 against 927, 399 against 421): not
+explained. GCD loop has no AltiVec in it, and these lines have moved this much between
+identical runs before, so the iPad's scheduling is the first suspect; a second run would say.
+
 The iPad comes out at about four fifths of MBP5 line for line. There is no run of the old
 engine on the iPad to set beside it: the first run was not saved (nothing of it is on the
 disk the iPad had). The CPU score is held where it is by vecLib FFT, 3.81 beside 357 and
