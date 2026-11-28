@@ -58,6 +58,35 @@ and the card, the dialog's OK clicked (`rel.py`: the relative mouse in small ste
 Apple menu. A fresh start of it has 10.0.2.15 by DHCP and `curl -I example.com` answers 200.
 The test runs here start the machine with `-nic none`, which is why this was not seen.
 
+**tigersrc and ssh (2026-11-28; the user chose tigersrc over Tigerbrew).** `tiger-final5.qcow2`
+(sha256 bddf82b3...) is tiger-final3 with:
+- tigersrc, pkgsrc built for 10.4 PowerPC (netbsd.org/~nia/tigersrc): its bootstrap kit
+  (`bootstrap-tiger.tar.gz`, 9.0 MB, sha256 e2ab37b6...; only `./usr/pkg` taken from it) and
+  curl, wget, openssh and python310 from its repository (`tigersrc-setup.sh`). PATH and
+  PKG_PATH in `~/.bash_profile`. OpenSSL then updated from the repository (3.1.5 to 3.3.7):
+  the kit's is older than what Python's `_ssl` was built against
+  (`Symbol not found: _X509_STORE_get1_objects`). **pkg_install must stay the kit's
+  (20240307):** the repository's 20241101 was built without SSL, and with it `pkg_add` fails
+  on the https PKG_PATH ("SSL support disabled ... Authentication error"). That run was
+  thrown away; never `pkg_add -u` everything.
+- its OpenSSH 9.9p2 as the ssh server (`sshd-setup.sh`): host keys made in the image, a
+  launchd job `/Library/LaunchDaemons/org.pkgsrc.sshd.plist`, and in `sshd_config` keys only
+  (the pkgsrc sshd has no PAM and cannot check Tiger's passwords) and `SetEnv` of PATH and
+  PKG_PATH so that plain `ssh host cmd` finds pkg_add. `authorized_keys` holds the user's
+  own keys (the Air's id_ed25519 and id_rsa). sudo's password is the account's ("password").
+- the machine's config forwards the iPad's TCP 2222 to the guest's 22.
+
+Checked on fresh starts: sshd up by itself, the user's key in and a test key refused, a real
+`pkg_add zip` and `pkg_delete zip` through sudo, Python's ssl fetching https. On both iPads
+2026-11-28 (the user: overwrite if pkg_add works and sshd is on). The M4: `ssh -p 2222
+timcook@m4pt` from the Air (Tailscale) answers. The A10X could not be reached by any network
+that day (Wi-Fi "host is down", Tailscale timing out) and its cable link had only IPv6, which
+QEMU's `hostfwd` does not listen on; its debug.log has `hostfwd=tcp::2222-:22`.
+
+A saving trap met here: osx-run.sh runs a machine on an overlay (`run/TAG.qcow2`), so
+changes made in it are not in the image it was started from until that overlay is committed;
+a disk once renamed under a live overlay was kept without them.
+
 The pointer: Mac OS X has no driver for the virtio tablet, so in the app the guest's mouse
 is the Power Mac's own USB mouse, relative. Keys through QMP work as they are.
 
