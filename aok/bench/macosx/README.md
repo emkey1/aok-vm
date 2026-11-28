@@ -48,6 +48,16 @@ Tiger" (mac99, 1 GB, VGA, USB 2.0, a sungem card, the disk on IDE): on the user'
 Pro, in the released build 13, the desktop is up 60 s after the start. Build 13 has not the
 BAT fix, so a Restart inside the guest will not come back there; Shut Down is fine.
 
+The network (2026-11-28): the machine's card (sungem) is `en1`, "PCI Ethernet Slot ethernet",
+a port the installed system had never seen, so it stayed down until Network in System
+Preferences was opened, "New Port Detected" answered and the change applied (the user did
+that by hand on the iPad, choosing DHCP). `macosx/work/tiger-final3.qcow2` (sha256
+098cdce4...) is tiger-final2 with that done: started on Homebrew's QEMU with `-netdev user`
+and the card, the dialog's OK clicked (`rel.py`: the relative mouse in small steps, about
+0.18 of a pixel a unit across and 0.3 down), the pane quit with Apply, shut down from the
+Apple menu. A fresh start of it has 10.0.2.15 by DHCP and `curl -I example.com` answers 200.
+The test runs here start the machine with `-nic none`, which is why this was not seen.
+
 The pointer: Mac OS X has no driver for the virtio tablet, so in the app the guest's mouse
 is the Power Mac's own USB mouse, relative. Keys through QMP work as they are.
 
