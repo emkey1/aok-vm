@@ -43,6 +43,10 @@ results on both sides of the least normal number.
 * No AltiVec insn began a TB of TCG's in the test; in the Xbench run under Mac
   OS X eleven did (MSR[VR] off: the exception is TCG's to raise).
 
+* On the A10X iPad, in the app (the machine "AOK AltiVec Test": the kit's kernel, this
+  initramfs, `bench=fpstress`): the last line is the Mac's, `all 719 insns
+  0afed9e02d851fdd`, after 23.8 s of guest time.
+
 Xbench under Mac OS X 10.4: `../../bench/macosx/README.md`.
 
 A kernel message can land on the end of a line of the test's (the console is
