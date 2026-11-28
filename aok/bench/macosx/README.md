@@ -153,6 +153,33 @@ is still TCG's: `../../bench-pm/i3/README.md`.
 `xb-auto.sh` now takes `TAG:ENGINE:VAR=VALUE` (one binary both ways), `XB_MODE=ui` (the Quartz
 and user interface tests) and `SAMPLE_AT`/`SAMPLE_FOR`.
 
+### 4: AltiVec arithmetic (engine dd744be8ea)
+
+After the three steps the CPU score was held down by vecLib FFT (4.4 beside 400 and 900):
+AltiVec arithmetic was TCG's, softfloat a lane at a time, and a stream stopped at it. The
+user asked for gadgets (2026-11-28). Every AltiVec insn of a G4 is one now, on the host's
+vector unit. Side by side on MBP5, the engine before and this one (`xb-auto.sh va:av vb:i3`,
+then with `XB_MODE=ui`):
+
+| | before | with the AltiVec gadgets |
+|---|---|---|
+| CPU test | 17.45 | 62.82 |
+| GCD loop | 421.30 | 398.79 |
+| Floating Point Basic | 30.09 | 30.59 |
+| AltiVec Basic | 926.70 | 918.29 |
+| vecLib FFT | 4.42 (146 Mflop/s) | 50.60 (1.67 Gflop/s) |
+| Floating Point Library | 42.81 | 42.48 |
+| Thread test | 60.21 | 62.75 |
+| Memory test | 128.56 | 128.64 |
+| Quartz Graphics | 29.10 (line 31.96, rectangle 22.29, circle 26.47, bezier 44.68, text 28.18) | 31.65 (33.80, 25.08, 30.83, 45.68, 29.24) |
+| User Interface | 9.74 | 9.94 |
+
+No FP vector went to QEMU's helpers in the run. The main loop entered TCG's code 3.4 million
+times where it was 6.6 million; half of what is left is `sc` and a third the decrementer's
+`mfspr`. AltiVec Basic did not move: at 37 Gflop/s under an interpreter it can hardly be doing the
+arithmetic it counts (not looked into).
+The test and its 38 controls: `../../bench-pm/av/README.md`.
+
 ### On the M4 iPad Pro (2026-11-28, the user's run, the build with engine 818dd75848)
 
 The user ran Xbench in the app on their iPad, the machine "Mac OS X Tiger" with the corrected
